@@ -38,18 +38,27 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Handle messages from the webview
 	panel.webview.onDidReceiveMessage(
-	async message => {
-		if (message.type === 'query') {
-		const response = await queryCustomGPT(message.prompt);
-		panel.webview.postMessage({ type: 'response', text: response });
-		} else if (message.type === 'regenerate') {
-		const regenerated = await regeneratePromptFromFeatures(message.features);
-		panel.webview.postMessage({ type: 'optimized', text: regenerated });
-		}
-	},
-	undefined,
-	context.subscriptions
-	);
+    async message => {
+      if (message.type === 'query') {
+        const response = await queryCustomGPT(message.prompt);
+        panel.webview.postMessage({ type: 'response', text: response });
+
+        // Enable "Generate Candidates"
+        panel.webview.postMessage({ type: 'showCandidatesButton' });
+
+      } else if (message.type === 'regenerate') {
+        const regenerated = await regeneratePromptFromFeatures(message.features);
+        panel.webview.postMessage({ type: 'optimized', text: regenerated });
+
+      } else if (message.type === 'candidates') {
+        const response = await queryCandidateGenerator(message.features);
+        panel.webview.postMessage({ type: 'candidates', text: response });
+      }
+    },
+    undefined,
+    context.subscriptions
+  );
+
 
 
 
@@ -161,7 +170,9 @@ async function regeneratePromptFromFeatures(features: object): Promise<string> {
   });
   const threadId = (await threadRes.json()).id;
 
-  const messageContent = `Generate an optimized prompt using the following features:\n${JSON.stringify(features, null, 2)}`;
+  const messageContent = `Generate an optimized prompt using the following JSON features, including possible candidate options. You may consider the candidates, but only use the "value" field content (with grammatical variations only, no synonyms). Do not use alternatives from "candidates" directly. JSON input:
+  ${JSON.stringify(features, null, 2)}`;
+
   await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
     method: 'POST',
     headers,
@@ -187,6 +198,54 @@ async function regeneratePromptFromFeatures(features: object): Promise<string> {
   const msgData = await msgRes.json();
 
   return msgData.data.find((m: any) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No optimized prompt.';
+}
+
+async function queryCandidateGenerator(features: object): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const candidateGenerator = process.env.CANDIDATE_GENERATOR;
+
+  if (!apiKey || !candidateGenerator) {
+    return 'Missing API key or Candidate Generator Assistant ID';
+  }
+
+  const headers = {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'OpenAI-Beta': 'assistants=v2'
+  };
+
+  const threadRes = await fetch('https://api.openai.com/v1/threads', {
+    method: 'POST',
+    headers
+  });
+  const threadId = (await threadRes.json()).id;
+
+  const messageContent = `Given these base features, generate a new set of candidate features:\n${JSON.stringify(features, null, 2)}`;
+  await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ role: 'user', content: messageContent })
+  });
+
+  const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ assistant_id: candidateGenerator })
+  });
+  const runId = (await runRes.json()).id;
+
+  let status = 'in_progress';
+  while (status !== 'completed') {
+    await new Promise(res => setTimeout(res, 1000));
+    const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
+    status = (await check.json()).status;
+    if (status === 'failed' || status === 'cancelled') {return `Error: Assistant run ${status}`;}
+  }
+
+  const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
+  const msgData = await msgRes.json();
+
+  return msgData.data.find((m: any) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No candidate features returned.';
 }
 
 
@@ -274,13 +333,22 @@ function getWebviewContent(): string {
           margin-left: 1em;
         }
 		
-		h2{
-		  color: #fff;
-		}
-		h3 {
-		  color: #888;
-		  margin-top: 1em;
-		}
+        h2{
+          color: #fff;
+        }
+        h3 {
+          color: #888;
+          margin-top: 1em;
+        }
+        .feature-block {
+          background-color: #eee;
+          padding: 10px;
+          border-radius: 6px;
+          margin-top: 0.5em;
+          font-family: sans-serif;
+          font-size: 14px;
+          color: #222;
+        }
       </style>
     </head>
     <body>
@@ -291,14 +359,24 @@ function getWebviewContent(): string {
 
       <div style="margin-top: 10px;">
         <button onclick="sendQuery()">Generate Features</button>
-        <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
       </div>
 
       <h3>Generated Features:</h3>
       <div id="response"><em>Waiting for response...</em></div>
+      <button id="candidatesBtn" style="display: none;" onclick="sendCandidates()">Generate Candidates</button>
+
+      <h3>Candidate Features:</h3>
+      <div id="candidateResponse" class="feature-block">
+        <em>Waiting for features...</em>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
+      </div>
 
       <h3>Optimized Prompt:</h3>
       <div id="optimizedPrompt"><em>Regenerated prompt will appear here.</em></div>
+
 
       <script>
         const vscode = acquireVsCodeApi();
@@ -325,14 +403,22 @@ function getWebviewContent(): string {
           vscode.postMessage({ type: 'regenerate', features: lastParsedFeatures });
         }
 
-        function renderValue(value) {
+        function renderValue(value, parentKey = '') {
           if (typeof value === 'object' && value !== null) {
             const container = document.createElement('div');
 
             if (Array.isArray(value)) {
-              const span = document.createElement('span');
-              span.textContent = value.map(item => String(item)).join(', ');
-              container.appendChild(span);
+              const ul = document.createElement('ul');
+              ul.style.margin = '0';
+              ul.style.paddingLeft = '20px';
+
+              value.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                ul.appendChild(li);
+              });
+
+              container.appendChild(ul);
             } else {
               for (const [key, val] of Object.entries(value)) {
                 const row = document.createElement('div');
@@ -341,11 +427,28 @@ function getWebviewContent(): string {
                 const label = document.createElement('strong');
                 label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';
 
-                const valEl = document.createElement('span');
-                valEl.textContent = Array.isArray(val) ? val.join(', ') : String(val);
+                if (key === 'fixed') {
+                  const checkbox = document.createElement('input');
+                  checkbox.type = 'checkbox';
+                  checkbox.checked = Boolean(val);
+                  checkbox.dataset.feature = parentKey;
 
-                row.appendChild(label);
-                row.appendChild(valEl);
+                  checkbox.addEventListener('change', () => {
+                    scheduleFeatureUpdate();
+                  });
+
+                  row.appendChild(label);
+                  row.appendChild(checkbox);
+                } else if (typeof val === 'object') {
+                  row.appendChild(label);
+                  row.appendChild(renderValue(val, parentKey || key));
+                } else {
+                  const valEl = document.createElement('span');
+                  valEl.textContent = String(val);
+                  row.appendChild(label);
+                  row.appendChild(valEl);
+                }
+
                 container.appendChild(row);
               }
             }
@@ -357,6 +460,8 @@ function getWebviewContent(): string {
             return span;
           }
         }
+
+
 
         window.addEventListener('message', event => {
           const message = event.data;
@@ -375,9 +480,67 @@ function getWebviewContent(): string {
               responseEl.textContent = message.text;
             }
           } else if (message.type === 'optimized') {
-            optimizedEl.textContent = message.text || 'No optimized prompt returned.';
+            try {
+              const parsed = JSON.parse(message.text);
+              const prompts = parsed.prompts || [];
+
+              if (Array.isArray(prompts) && prompts.length > 0) {
+                optimizedEl.innerHTML = prompts
+                  .map((prompt, i) => '<div><strong>' + (i + 1) + '.</strong> ' + prompt + '</div>')
+                  .join('<br/>');
+              } else {
+                optimizedEl.innerHTML = '<em>No prompts found in response.</em>';
+              }
+            } catch (err) {
+              console.error('Failed to parse optimized prompt JSON:', err);
+              optimizedEl.innerHTML = '<pre>' + message.text + '</pre>';
+            }
+          } else if (message.type === 'candidates') {
+            const candidateEl = document.getElementById('candidateResponse');
+            candidateEl.innerHTML = '';
+            try {
+              let cleanedText = message.text.trim();
+
+              const parsed = JSON.parse(cleanedText);
+              
+              lastParsedFeatures = parsed;
+              document.getElementById('regenerateBtn').style.display = 'inline-block';
+              candidateEl.appendChild(renderValue(parsed));
+            } catch {
+              candidateEl.textContent = message.text || 'Failed to parse candidate output.';
+            }
+          } else if (message.type === 'showCandidatesButton') {
+            document.getElementById('candidatesBtn').style.display = 'inline-block';
           }
+
+
         });
+      
+        let updateTimeout = null;
+        function scheduleFeatureUpdate() {
+          if (updateTimeout) clearTimeout(updateTimeout);
+          updateTimeout = setTimeout(updateFeatureStatesFromCheckboxes, 300);
+        }
+
+        function updateFeatureStatesFromCheckboxes() {
+          const checkboxes = document.querySelectorAll('input[type="checkbox"][data-feature]');
+          if (!lastParsedFeatures) return;
+
+          checkboxes.forEach(cb => {
+            const feature = cb.dataset.feature;
+            if (lastParsedFeatures[feature]) {
+              lastParsedFeatures[feature].fixed = cb.checked;
+            }
+          });
+
+          console.log('Updated features:', lastParsedFeatures);
+        }
+        function sendCandidates() {
+          if (!lastParsedFeatures) return;
+          document.getElementById('candidateResponse').innerHTML = '<em>Generating candidate features...</em>';
+          vscode.postMessage({ type: 'candidates', features: lastParsedFeatures });
+        }
+
       </script>
     </body>
     </html>
