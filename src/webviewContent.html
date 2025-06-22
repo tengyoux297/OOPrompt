@@ -141,13 +141,15 @@
         lastParsedFeatures = null;
 
         vscode.postMessage({ type: 'query', prompt: query });
-    }
-
-    function sendOptimizedPrompt() {
-        if (!lastParsedFeatures) return;
+    }    function sendOptimizedPrompt() {
+        // Use candidateFeatures for regenerating prompt, not lastParsedFeatures
+        if (!candidateFeatures) {
+            console.log('No candidate features available. Please generate candidates first.');
+            return;
+        }
         document.getElementById('optimizedPrompt').innerHTML = '<em>Optimizing...</em>';
-        vscode.postMessage({ type: 'regenerate', features: lastParsedFeatures });
-    }    function renderValue(value, parentKey = '', isTopLevel = false, context = '') {
+        vscode.postMessage({ type: 'regenerate', features: candidateFeatures });
+    }function renderValue(value, parentKey = '', isTopLevel = false, context = '') {
         if (typeof value === 'object' && value !== null) {
         const container = document.createElement('div');
 
@@ -414,7 +416,8 @@
               lastParsedFeatures = parsed;
               console.log('Setting lastParsedFeatures:', lastParsedFeatures); // Debug log
               
-              document.getElementById('regenerateBtn').style.display = 'inline-block';
+              // Don't show regenerate button until candidates are generated
+              // document.getElementById('regenerateBtn').style.display = 'inline-block';
               responseEl.appendChild(renderValue(parsed, '', true, 'features'));
 
               // Add feature form
@@ -434,8 +437,13 @@
               
               // Store candidate features separately, don't overwrite lastParsedFeatures
               candidateFeatures = parsed;
+              console.log('Setting candidateFeatures:', candidateFeatures);
+              
+              // Show regenerate button only when candidates are available
               document.getElementById('regenerateBtn').style.display = 'inline-block';
-              candidateEl.appendChild(renderValue(parsed, '', true, 'candidates'));
+              
+              // Render candidates as read-only (not editable)
+              candidateEl.appendChild(renderValue(parsed, '', false, 'candidates'));
             } catch {
               candidateEl.textContent = message.text || 'Failed to parse candidate output.';
             }
@@ -481,9 +489,12 @@
         });
 
         console.log('Updated features:', lastParsedFeatures);
-    }
-    function sendCandidates() {
-        if (!lastParsedFeatures) return;
+    }    function sendCandidates() {
+        // Use lastParsedFeatures (the original features) to generate candidates
+        if (!lastParsedFeatures) {
+            console.log('No features available. Please generate features first.');
+            return;
+        }
         document.getElementById('candidateResponse').innerHTML = '<em>Generating candidate features...</em>';
         vscode.postMessage({ type: 'candidates', features: lastParsedFeatures });
     }
