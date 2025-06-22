@@ -124,9 +124,9 @@
     <script>
     function stripCodeBlock(text) {
             return text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, '$1');
-          }
-    const vscode = acquireVsCodeApi();
+          }    const vscode = acquireVsCodeApi();
     let lastParsedFeatures = null;
+    let candidateFeatures = null;
 
     function sendQuery() {
         const query = document.getElementById('query').value.trim();
@@ -147,9 +147,7 @@
         if (!lastParsedFeatures) return;
         document.getElementById('optimizedPrompt').innerHTML = '<em>Optimizing...</em>';
         vscode.postMessage({ type: 'regenerate', features: lastParsedFeatures });
-    }
-
-    function renderValue(value, parentKey = '') {
+    }    function renderValue(value, parentKey = '', isTopLevel = false, context = '') {
         if (typeof value === 'object' && value !== null) {
         const container = document.createElement('div');
 
@@ -169,9 +167,56 @@
             for (const [key, val] of Object.entries(value)) {
             const row = document.createElement('div');
             row.className = 'field';
+            row.style.position = 'relative';
 
             const label = document.createElement('strong');
-            label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';
+            label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';            // Add delete button for top-level features (but not for nested properties like 'value' or 'fixed')
+            if (isTopLevel && context === 'features') {
+                console.log('Adding delete button for feature:', key); // Debug log
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '×';
+                deleteBtn.style.position = 'absolute';
+                deleteBtn.style.right = '0';
+                deleteBtn.style.top = '0';                
+                deleteBtn.style.backgroundColor = '#d32f2f';
+                deleteBtn.style.color = 'white';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.borderRadius = '3px';
+                deleteBtn.style.width = '20px';
+                deleteBtn.style.height = '20px';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.style.fontSize = '12px';
+                deleteBtn.style.display = 'flex';
+                deleteBtn.style.alignItems = 'center';
+                deleteBtn.style.justifyContent = 'center';
+                deleteBtn.title = `Delete ${key}`;
+                deleteBtn.style.zIndex = '1000';
+                  deleteBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Delete button clicked for:', key); // Debug log
+                    console.log('Current lastParsedFeatures:', lastParsedFeatures); // Debug log
+                    
+                    // Remove confirmation dialog since webview is sandboxed
+                    if (lastParsedFeatures && lastParsedFeatures[key]) {
+                        delete lastParsedFeatures[key];
+                        console.log('Feature deleted. Updated features:', lastParsedFeatures); // Debug log
+                        
+                        // Re-render the features
+                        const responseEl = document.getElementById('response');
+                        responseEl.innerHTML = '';
+                        responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
+                        
+                        // Re-add the form container
+                        const formContainer = createAddFeatureForm();
+                        responseEl.appendChild(formContainer);
+                    } else {
+                        console.error('Feature not found in lastParsedFeatures:', key);
+                    }
+                };
+                
+                row.appendChild(deleteBtn);
+            }
 
             if (key === 'fixed') {
                 const checkbox = document.createElement('input');
@@ -187,7 +232,7 @@
                 row.appendChild(checkbox);
             } else if (typeof val === 'object') {
                 row.appendChild(label);
-                row.appendChild(renderValue(val, parentKey || key));
+                row.appendChild(renderValue(val, parentKey || key, false, context));
             } else {
                 const valEl = document.createElement('span');
                 valEl.textContent = String(val);
@@ -209,92 +254,98 @@
 
 
 
+    function createAddFeatureForm() {
+        const formContainer = document.createElement('div');
+        formContainer.style.marginTop = '1em';
+        formContainer.style.paddingTop = '1em';
+        formContainer.style.borderTop = '1px solid #ccc';
+
+        // Feature name input
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Feature name';
+        nameInput.style.marginRight = '8px';
+
+        // Value input
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.placeholder = 'Value';
+        valueInput.style.marginRight = '8px';
+
+        // Fixed checkbox
+        const fixedCheckbox = document.createElement('input');
+        fixedCheckbox.type = 'checkbox';
+        fixedCheckbox.id = 'fixedCheckbox';
+        const fixedLabel = document.createElement('label');
+        fixedLabel.textContent = 'Fixed';
+        fixedLabel.htmlFor = 'fixedCheckbox';
+        fixedLabel.style.marginRight = '8px';
+
+        // Add button
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+ Add Feature';
+        addBtn.onclick = () => {
+            const key = nameInput.value.trim();
+            const val = valueInput.value.trim();
+            const isFixed = fixedCheckbox.checked;
+
+            if (!key || !val) {
+                alert('Please fill in both feature name and value.');
+                return;
+            }
+
+            lastParsedFeatures[key] = {
+                value: val,
+                fixed: isFixed
+            };
+
+            // Re-render feature list
+            const responseEl = document.getElementById('response');
+            responseEl.innerHTML = '';
+            responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
+            responseEl.appendChild(createAddFeatureForm());
+
+            // Clear inputs
+            nameInput.value = '';
+            valueInput.value = '';
+            fixedCheckbox.checked = false;
+
+            // Log updated features
+            console.log('Updated JSON after add:', JSON.stringify(lastParsedFeatures, null, 2));
+        };
+
+        // Append inputs to form container
+        formContainer.appendChild(nameInput);
+        formContainer.appendChild(valueInput);
+        formContainer.appendChild(fixedCheckbox);
+        formContainer.appendChild(fixedLabel);
+        formContainer.appendChild(addBtn);
+
+        return formContainer;
+    }
+
     window.addEventListener('message', event => {
         const message = event.data;
         const responseEl = document.getElementById('response');
-        const optimizedEl = document.getElementById('optimizedPrompt');
-
-        if (message.type === 'response') {
+        const optimizedEl = document.getElementById('optimizedPrompt');        if (message.type === 'response') {
             responseEl.innerHTML = '';
             try {
               const cleaned = stripCodeBlock(message.text);
-              const parsed = JSON.parse(cleaned);              lastParsedFeatures = parsed;
+              const parsed = JSON.parse(cleaned);
+              lastParsedFeatures = parsed;
+              console.log('Setting lastParsedFeatures:', lastParsedFeatures); // Debug log
+              
               document.getElementById('regenerateBtn').style.display = 'inline-block';
               responseEl.appendChild(renderValue(parsed, '', true, 'features'));
 
-              // add feature button
-              const formContainer = document.createElement('div');
-              formContainer.style.marginTop = '1em';
-              formContainer.style.paddingTop = '1em';
-              formContainer.style.borderTop = '1px solid #ccc';
-
-              // Feature name input
-              const nameInput = document.createElement('input');
-              nameInput.type = 'text';
-              nameInput.placeholder = 'Feature name';
-              nameInput.style.marginRight = '8px';
-
-              // Value input
-              const valueInput = document.createElement('input');
-              valueInput.type = 'text';
-              valueInput.placeholder = 'Value';
-              valueInput.style.marginRight = '8px';
-
-              // Fixed checkbox
-              const fixedCheckbox = document.createElement('input');
-              fixedCheckbox.type = 'checkbox';
-              fixedCheckbox.id = 'fixedCheckbox';
-              const fixedLabel = document.createElement('label');
-              fixedLabel.textContent = 'Fixed';
-              fixedLabel.htmlFor = 'fixedCheckbox';
-              fixedLabel.style.marginRight = '8px';
-
-              // Add button
-              const addBtn = document.createElement('button');
-              addBtn.textContent = '+ Add Feature';
-              addBtn.onclick = () => {
-                const key = nameInput.value.trim();
-                const val = valueInput.value.trim();
-                const isFixed = fixedCheckbox.checked;
-
-                if (!key || !val) {
-                  alert('Please fill in both feature name and value.');
-                  return;
-                }
-
-                lastParsedFeatures[key] = {
-                  value: val,
-                  fixed: isFixed
-                };                // Re-render feature list
-                responseEl.innerHTML = '';
-                responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
-                responseEl.appendChild(formContainer);
-
-                // Clear inputs
-                nameInput.value = '';
-                valueInput.value = '';
-                fixedCheckbox.checked = false;
-
-                // Log updated features
-                console.log('Updated JSON after add:', JSON.stringify(lastParsedFeatures, null, 2));
-
-              };
-
-              // Append inputs to form container
-              formContainer.appendChild(nameInput);
-              formContainer.appendChild(valueInput);
-              formContainer.appendChild(fixedCheckbox);
-              formContainer.appendChild(fixedLabel);
-              formContainer.appendChild(addBtn);
-
-              // Append form container to the response area
+              // Add feature form
+              const formContainer = createAddFeatureForm();
               responseEl.appendChild(formContainer);
               
             } catch {
               lastParsedFeatures = null;
               responseEl.textContent = message.text;
-            }          
-        } else if (message.type === 'candidates') {
+            }} else if (message.type === 'candidates') {
             const candidateEl = document.getElementById('candidateResponse');
             candidateEl.innerHTML = '';
             try {
@@ -302,6 +353,7 @@
 
               const parsed = JSON.parse(cleanedText);
               
+              // Store candidate features separately, don't overwrite lastParsedFeatures
               candidateFeatures = parsed;
               document.getElementById('regenerateBtn').style.display = 'inline-block';
               candidateEl.appendChild(renderValue(parsed, '', true, 'candidates'));
@@ -325,21 +377,7 @@
             console.error('Failed to parse optimized prompt JSON:', err);
             optimizedEl.innerHTML = '<pre>' + message.text + '</pre>';
         }
-        } else if (message.type === 'candidates') {
-        const candidateEl = document.getElementById('candidateResponse');
-        candidateEl.innerHTML = '';
-        try {
-            let cleanedText = message.text.trim();
-
-            const parsed = JSON.parse(cleanedText);
-            
-            lastParsedFeatures = parsed;
-            document.getElementById('regenerateBtn').style.display = 'inline-block';
-            candidateEl.appendChild(renderValue(parsed));
-        } catch {
-            candidateEl.textContent = message.text || 'Failed to parse candidate output.';
-        }
-        } else if (message.type === 'showCandidatesButton') {
+        }else if (message.type === 'showCandidatesButton') {
         document.getElementById('candidatesBtn').style.display = 'inline-block';
         }
 
