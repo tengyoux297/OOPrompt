@@ -167,10 +167,59 @@
             for (const [key, val] of Object.entries(value)) {
             const row = document.createElement('div');
             row.className = 'field';
-            row.style.position = 'relative';
-
-            const label = document.createElement('strong');
-            label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';            // Add delete button for top-level features (but not for nested properties like 'value' or 'fixed')
+            row.style.position = 'relative';            const label = document.createElement('strong');
+            
+            // Make feature names editable for top-level features
+            if (isTopLevel && context === 'features') {
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = key;
+                nameInput.style.backgroundColor = '#f9f9f9';
+                nameInput.style.border = '1px solid #ddd';
+                nameInput.style.borderRadius = '4px';
+                nameInput.style.padding = '4px 8px';
+                nameInput.style.fontSize = '14px';
+                nameInput.style.fontWeight = 'bold';
+                nameInput.style.color = '#aaa';
+                nameInput.style.minWidth = '100px';
+                nameInput.style.marginRight = '5px';
+                
+                nameInput.addEventListener('input', () => {
+                    const newKey = nameInput.value.trim();
+                    if (newKey && newKey !== key && lastParsedFeatures) {
+                        // Store the old value
+                        const oldValue = lastParsedFeatures[key];
+                        
+                        // Delete old key and add new key
+                        delete lastParsedFeatures[key];
+                        lastParsedFeatures[newKey] = oldValue;
+                        
+                        console.log('Updated feature name from:', key, 'to:', newKey);
+                        console.log('Current features:', lastParsedFeatures);
+                        
+                        // Re-render to reflect the change
+                        setTimeout(() => {
+                            const responseEl = document.getElementById('response');
+                            responseEl.innerHTML = '';
+                            responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
+                            
+                            const formContainer = createAddFeatureForm();
+                            responseEl.appendChild(formContainer);
+                        }, 100);
+                    }
+                });
+                
+                row.appendChild(nameInput);
+                
+                // Add colon after the input
+                const colon = document.createElement('span');
+                colon.textContent = ':';
+                colon.style.marginRight = '8px';
+                row.appendChild(colon);
+            } else {
+                label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';
+                row.appendChild(label);
+            }// Add delete button for top-level features (but not for nested properties like 'value' or 'fixed')
             if (isTopLevel && context === 'features') {
                 console.log('Adding delete button for feature:', key); // Debug log
                 const deleteBtn = document.createElement('button');
@@ -216,9 +265,7 @@
                 };
                 
                 row.appendChild(deleteBtn);
-            }
-
-            if (key === 'fixed') {
+            }            if (key === 'fixed') {
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = Boolean(val);
@@ -228,15 +275,47 @@
                 scheduleFeatureUpdate();
                 });
 
-                row.appendChild(label);
+                if (!isTopLevel || context !== 'features') {
+                    const fixedLabel = document.createElement('strong');
+                    fixedLabel.textContent = 'Fixed:';
+                    row.appendChild(fixedLabel);
+                }
                 row.appendChild(checkbox);
             } else if (typeof val === 'object') {
-                row.appendChild(label);
+                if (!isTopLevel || context !== 'features') {
+                    row.appendChild(label);
+                }
                 row.appendChild(renderValue(val, parentKey || key, false, context));
+            } else if (key === 'value' && context === 'features') {
+                // Make feature values editable
+                const valueInput = document.createElement('input');
+                valueInput.type = 'text';
+                valueInput.value = String(val);
+                valueInput.style.backgroundColor = '#f9f9f9';
+                valueInput.style.border = '1px solid #ddd';
+                valueInput.style.borderRadius = '4px';
+                valueInput.style.padding = '4px 8px';
+                valueInput.style.fontSize = '14px';
+                valueInput.style.width = '200px';
+                
+                valueInput.addEventListener('input', () => {
+                    if (lastParsedFeatures && lastParsedFeatures[parentKey]) {
+                        lastParsedFeatures[parentKey].value = valueInput.value;
+                        console.log('Updated feature value:', parentKey, '=', valueInput.value);
+                        console.log('Current features:', lastParsedFeatures);
+                    }
+                });
+                
+                if (!isTopLevel || context !== 'features') {
+                    row.appendChild(label);
+                }
+                row.appendChild(valueInput);
             } else {
                 const valEl = document.createElement('span');
                 valEl.textContent = String(val);
-                row.appendChild(label);
+                if (!isTopLevel || context !== 'features') {
+                    row.appendChild(label);
+                }
                 row.appendChild(valEl);
             }
 
