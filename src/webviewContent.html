@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Modifier Panel</title>
+    <style>
+    body {
+        font-family: sans-serif;
+        padding: 1em;
+        color: #222;
+    }
+
+    textarea::placeholder {
+        font-style: italic;
+        color: #666;
+    }
+
+    textarea,
+    #response,
+    #optimizedPrompt {
+        background-color: #eee;
+        color: #222;
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        border: none;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 0.5em;
+        white-space: pre-wrap;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #response em,
+    #optimizedPrompt em {
+        color: #666;
+        font-style: italic;
+    }
+
+    button {
+        background-color: #444;
+        color: #fff;
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+        margin-right: 6px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #555;
+    }
+
+    .field {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: baseline;
+    }
+
+    .field strong {
+        min-width: 100px;
+        color: #aaa;
+    }
+
+    .field span {
+        color: #666;
+    }
+
+    .nested {
+        margin-left: 1em;
+    }
+    
+    h2{
+        color: #fff;
+    }
+    h3 {
+        color: #888;
+        margin-top: 1em;
+    }
+    .feature-block {
+        background-color: #eee;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 0.5em;
+        font-family: sans-serif;
+        font-size: 14px;
+        color: #222;
+    }
+    </style>
+</head>
+<body>
+    <h2>Prompt Modifier</h2>
+
+    <h3>Initial Prompt:</h3>
+    <textarea id="query" placeholder="Enter your prompt..."></textarea><br>
+
+    <div style="margin-top: 10px;">
+    <button onclick="sendQuery()">Generate Features</button>
+    </div>
+
+    <h3>Generated Features:</h3>
+    <div id="response"><em>Waiting for response...</em></div>
+    <button id="candidatesBtn" style="display: none;" onclick="sendCandidates()">Generate Candidates</button>
+
+    <h3>Candidate Features:</h3>
+    <div id="candidateResponse" class="feature-block">
+    <em>Waiting for features...</em>
+    </div>
+
+    <div style="margin-top: 10px;">
+    <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
+    </div>
+
+    <h3>Optimized Prompt:</h3>
+    <div id="optimizedPrompt"><em>Regenerated prompt will appear here.</em></div>
+    
+    <script>
+    function stripCodeBlock(text) {
+            return text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, '$1');
+          }
+    const vscode = acquireVsCodeApi();
+    let lastParsedFeatures = null;
+
+    function sendQuery() {
+        const query = document.getElementById('query').value.trim();
+        if (!query) {
+        document.getElementById('response').innerHTML = '<em>Please enter a prompt.</em>';
+        return;
+        }
+
+        document.getElementById('response').innerHTML = '<em>Loading...</em>';
+        document.getElementById('optimizedPrompt').innerHTML = '<em>Regenerated prompt will appear here.</em>';
+        document.getElementById('regenerateBtn').style.display = 'none';
+        lastParsedFeatures = null;
+
+        vscode.postMessage({ type: 'query', prompt: query });
+    }
+
+    function sendOptimizedPrompt() {
+        if (!lastParsedFeatures) return;
+        document.getElementById('optimizedPrompt').innerHTML = '<em>Optimizing...</em>';
+        vscode.postMessage({ type: 'regenerate', features: lastParsedFeatures });
+    }
+
+    function renderValue(value, parentKey = '') {
+        if (typeof value === 'object' && value !== null) {
+        const container = document.createElement('div');
+
+        if (Array.isArray(value)) {
+            const ul = document.createElement('ul');
+            ul.style.margin = '0';
+            ul.style.paddingLeft = '20px';
+
+            value.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            ul.appendChild(li);
+            });
+
+            container.appendChild(ul);
+        } else {
+            for (const [key, val] of Object.entries(value)) {
+            const row = document.createElement('div');
+            row.className = 'field';
+
+            const label = document.createElement('strong');
+            label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ':';
+
+            if (key === 'fixed') {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = Boolean(val);
+                checkbox.dataset.feature = parentKey;
+
+                checkbox.addEventListener('change', () => {
+                scheduleFeatureUpdate();
+                });
+
+                row.appendChild(label);
+                row.appendChild(checkbox);
+            } else if (typeof val === 'object') {
+                row.appendChild(label);
+                row.appendChild(renderValue(val, parentKey || key));
+            } else {
+                const valEl = document.createElement('span');
+                valEl.textContent = String(val);
+                row.appendChild(label);
+                row.appendChild(valEl);
+            }
+
+            container.appendChild(row);
+            }
+        }
+
+        return container;
+        } else {
+        const span = document.createElement('span');
+        span.textContent = String(value);
+        return span;
+        }
+    }
+
+
+
+    window.addEventListener('message', event => {
+        const message = event.data;
+        const responseEl = document.getElementById('response');
+        const optimizedEl = document.getElementById('optimizedPrompt');
+
+        if (message.type === 'response') {
+            responseEl.innerHTML = '';
+            try {
+              const cleaned = stripCodeBlock(message.text);
+              const parsed = JSON.parse(cleaned);              lastParsedFeatures = parsed;
+              document.getElementById('regenerateBtn').style.display = 'inline-block';
+              responseEl.appendChild(renderValue(parsed, '', true, 'features'));
+
+              // add feature button
+              const formContainer = document.createElement('div');
+              formContainer.style.marginTop = '1em';
+              formContainer.style.paddingTop = '1em';
+              formContainer.style.borderTop = '1px solid #ccc';
+
+              // Feature name input
+              const nameInput = document.createElement('input');
+              nameInput.type = 'text';
+              nameInput.placeholder = 'Feature name';
+              nameInput.style.marginRight = '8px';
+
+              // Value input
+              const valueInput = document.createElement('input');
+              valueInput.type = 'text';
+              valueInput.placeholder = 'Value';
+              valueInput.style.marginRight = '8px';
+
+              // Fixed checkbox
+              const fixedCheckbox = document.createElement('input');
+              fixedCheckbox.type = 'checkbox';
+              fixedCheckbox.id = 'fixedCheckbox';
+              const fixedLabel = document.createElement('label');
+              fixedLabel.textContent = 'Fixed';
+              fixedLabel.htmlFor = 'fixedCheckbox';
+              fixedLabel.style.marginRight = '8px';
+
+              // Add button
+              const addBtn = document.createElement('button');
+              addBtn.textContent = '+ Add Feature';
+              addBtn.onclick = () => {
+                const key = nameInput.value.trim();
+                const val = valueInput.value.trim();
+                const isFixed = fixedCheckbox.checked;
+
+                if (!key || !val) {
+                  alert('Please fill in both feature name and value.');
+                  return;
+                }
+
+                lastParsedFeatures[key] = {
+                  value: val,
+                  fixed: isFixed
+                };                // Re-render feature list
+                responseEl.innerHTML = '';
+                responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
+                responseEl.appendChild(formContainer);
+
+                // Clear inputs
+                nameInput.value = '';
+                valueInput.value = '';
+                fixedCheckbox.checked = false;
+
+                // Log updated features
+                console.log('Updated JSON after add:', JSON.stringify(lastParsedFeatures, null, 2));
+
+              };
+
+              // Append inputs to form container
+              formContainer.appendChild(nameInput);
+              formContainer.appendChild(valueInput);
+              formContainer.appendChild(fixedCheckbox);
+              formContainer.appendChild(fixedLabel);
+              formContainer.appendChild(addBtn);
+
+              // Append form container to the response area
+              responseEl.appendChild(formContainer);
+              
+            } catch {
+              lastParsedFeatures = null;
+              responseEl.textContent = message.text;
+            }          
+        } else if (message.type === 'candidates') {
+            const candidateEl = document.getElementById('candidateResponse');
+            candidateEl.innerHTML = '';
+            try {
+              let cleanedText = message.text.trim();
+
+              const parsed = JSON.parse(cleanedText);
+              
+              candidateFeatures = parsed;
+              document.getElementById('regenerateBtn').style.display = 'inline-block';
+              candidateEl.appendChild(renderValue(parsed, '', true, 'candidates'));
+            } catch {
+              candidateEl.textContent = message.text || 'Failed to parse candidate output.';
+            }
+
+        } else if (message.type === 'optimized') {
+        try {
+            const parsed = JSON.parse(message.text);
+            const prompts = parsed.prompts || [];
+
+            if (Array.isArray(prompts) && prompts.length > 0) {
+            optimizedEl.innerHTML = prompts
+                .map((prompt, i) => '<div><strong>' + (i + 1) + '.</strong> ' + prompt + '</div>')
+                .join('<br/>');
+            } else {
+            optimizedEl.innerHTML = '<em>No prompts found in response.</em>';
+            }
+        } catch (err) {
+            console.error('Failed to parse optimized prompt JSON:', err);
+            optimizedEl.innerHTML = '<pre>' + message.text + '</pre>';
+        }
+        } else if (message.type === 'candidates') {
+        const candidateEl = document.getElementById('candidateResponse');
+        candidateEl.innerHTML = '';
+        try {
+            let cleanedText = message.text.trim();
+
+            const parsed = JSON.parse(cleanedText);
+            
+            lastParsedFeatures = parsed;
+            document.getElementById('regenerateBtn').style.display = 'inline-block';
+            candidateEl.appendChild(renderValue(parsed));
+        } catch {
+            candidateEl.textContent = message.text || 'Failed to parse candidate output.';
+        }
+        } else if (message.type === 'showCandidatesButton') {
+        document.getElementById('candidatesBtn').style.display = 'inline-block';
+        }
+
+
+    });
+    
+    let updateTimeout = null;
+    function scheduleFeatureUpdate() {
+        if (updateTimeout) clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(updateFeatureStatesFromCheckboxes, 300);
+    }
+
+    function updateFeatureStatesFromCheckboxes() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"][data-feature]');
+        if (!lastParsedFeatures) return;
+
+        checkboxes.forEach(cb => {
+        const feature = cb.dataset.feature;
+        if (lastParsedFeatures[feature]) {
+            lastParsedFeatures[feature].fixed = cb.checked;
+        }
+        });
+
+        console.log('Updated features:', lastParsedFeatures);
+    }
+    function sendCandidates() {
+        if (!lastParsedFeatures) return;
+        document.getElementById('candidateResponse').innerHTML = '<em>Generating candidate features...</em>';
+        vscode.postMessage({ type: 'candidates', features: lastParsedFeatures });
+    }
+
+    </script>
+</body>
+</html>
