@@ -54,6 +54,17 @@ export function activate(context: vscode.ExtensionContext) {
         const response = await queryCandidateGenerator(message.features);
         panel.webview.postMessage({ type: 'candidates', text: response });
       }
+      else if (message.type === 'insertFinalPrompt') {
+        const prompt = message.prompt;
+        const editor = vscode.window.activeTextEditor;
+        if (editor && prompt) {
+          editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, prompt);
+          });
+        } else {
+          vscode.window.showErrorMessage('No active editor or prompt to insert.');
+        }
+      }
     },
     undefined,
     context.subscriptions

@@ -298,7 +298,7 @@
                 valueInput.style.borderRadius = '4px';
                 valueInput.style.padding = '4px 8px';
                 valueInput.style.fontSize = '14px';
-                valueInput.style.width = '200px';
+                valueInput.style.width = '120px';
                 
                 valueInput.addEventListener('input', () => {
                     if (lastParsedFeatures && lastParsedFeatures[parentKey]) {
@@ -454,11 +454,59 @@
             const prompts = parsed.prompts || [];
 
             if (Array.isArray(prompts) && prompts.length > 0) {
-            optimizedEl.innerHTML = prompts
-                .map((prompt, i) => '<div><strong>' + (i + 1) + '.</strong> ' + prompt + '</div>')
-                .join('<br/>');
+                optimizedEl.innerHTML = '';
+                // Create a form for radio buttons
+                const form = document.createElement('form');
+                form.id = 'promptRadioForm';
+                let selectedPromptIndex = 0;
+                prompts.forEach((prompt, i) => {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    div.style.marginBottom = '4px';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'optimizedPromptRadio';
+                    radio.value = i;
+                    radio.style.marginRight = '8px';
+                    if (i === 0) {
+                        radio.checked = true;
+                    }
+                    radio.addEventListener('change', () => {
+                        selectedPromptIndex = i;
+                    });
+                    const label = document.createElement('label');
+                    label.textContent = prompt;
+                    label.style.flex = '1';
+                    div.appendChild(radio);
+                    div.appendChild(label);
+                    form.appendChild(div);
+                });
+                optimizedEl.appendChild(form);
+                // Add insert button after displaying the prompts
+                let insertBtn = document.createElement('button');
+                insertBtn.textContent = 'Insert Final Prompt';
+                insertBtn.style.marginTop = '10px';
+                insertBtn.onclick = function(e) {
+                    e.preventDefault();
+                    // Find selected radio
+                    const radios = form.elements['optimizedPromptRadio'];
+                    let idx = 0;
+                    if (radios.length) {
+                        for (let j = 0; j < radios.length; j++) {
+                            if (radios[j].checked) {
+                                idx = parseInt(radios[j].value);
+                                break;
+                            }
+                        }
+                    } else {
+                        idx = radios.checked ? parseInt(radios.value) : 0;
+                    }
+                    vscode.postMessage({ type: 'insertFinalPrompt', prompt: prompts[idx] });
+                };
+                optimizedEl.appendChild(insertBtn);
             } else {
-            optimizedEl.innerHTML = '<em>No prompts found in response.</em>';
+                optimizedEl.innerHTML = '<em>No prompts found in response.</em>';
             }
         } catch (err) {
             console.error('Failed to parse optimized prompt JSON:', err);
