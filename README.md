@@ -1,71 +1,137 @@
-# ooprompt README
+# OOPrompt Web - Prompt Optimization Tool
 
-This is the README for your extension "ooprompt". After writing up a brief description, we recommend including the following sections.
+A web-based prompt optimization tool that helps you generate, edit, and optimize prompts using AI assistants.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Feature Generation**: Convert your initial prompt into structured features
+- **Feature Editing**: Edit feature names, values, and fixed states
+- **Feature Ranking**: Drag and drop features to reorder by importance
+- **Candidate Generation**: Generate alternative feature sets
+- **Prompt Regeneration**: Create optimized prompts from features (prioritizing ranked features)
+- **Copy to Clipboard**: Easily copy the final optimized prompt
+- **Chat Integration**: Insert optimized prompts into a ChatGPT-like interface
 
-For example if there is an image subfolder under your extension project workspace:
+## Setup
 
-\!\[feature X\]\(images/feature-x.png\)
+### Prerequisites
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Node.js (version 16 or higher)
+- OpenAI API key
+- OpenAI Assistant IDs for:
+  - Feature Generator
+  - Prompt Generator  
+  - Candidate Generator
+  - General GPT (for chat interface)
 
-## Requirements
+### Installation
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd ooprompt
+```
 
-## Extension Settings
+2. Install dependencies:
+```bash
+npm install
+```
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+3. **Set up environment variables**:
+   
+   **Option 1: Copy the example file**
+   ```bash
+   cp env.example .env
+   ```
+   
+   **Option 2: Create manually**
+   Create a `.env` file in the root directory with your API keys:
+   ```env
+   OPENAI_API_KEY=your_openai_api_key_here
+   FEATURE_GENERATOR=your_feature_generator_assistant_id
+   PROMPT_GENERATOR=your_prompt_generator_assistant_id
+   CANDIDATE_GENERATOR=your_candidate_generator_assistant_id
+   GENERAL_GPT=your_general_gpt_assistant_id
+   PORT=3000
+   ```
 
-For example:
+### Running the Application
 
-This extension contributes the following settings:
+1. Start the development server:
+```bash
+npm run dev
+```
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+2. Open your browser and navigate to `http://localhost:3000`
 
-## Known Issues
+3. **If you see environment variable errors**, make sure your `.env` file is properly configured with your actual API keys and Assistant IDs.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## Usage
 
-## Release Notes
+1. **Enter Initial Prompt**: Type your initial prompt in the text area on the right
+2. **Generate Features**: Click "Generate Features" to convert your prompt into structured features
+3. **Rank Features**: Drag and drop features to reorder them by importance (rank 1 is most important)
+4. **Edit Features**: Modify feature names, values, and fixed states as needed
+5. **Generate Candidates**: Click "Generate Candidates" to create alternative feature sets
+6. **Regenerate Prompt**: Click "Regenerate Prompt" to create optimized prompts from the features (higher-ranked features will be prioritized)
+7. **Insert to Chat**: Click "Insert to Chat" to add the optimized prompt to the left chat interface
+8. **Send to AI**: Use the chat interface to send the prompt to your General GPT assistant
 
-Users appreciate release notes as you update your extension.
+## Feature Ranking
 
-### 1.0.0
+The application includes a drag-and-drop ranking system for features:
 
-Initial release of ...
+- **Visual Ranking**: Each feature displays a rank badge (1, 2, 3, etc.)
+- **Drag to Reorder**: Click and drag features to change their order
+- **Importance Priority**: Higher-ranked features (rank 1, 2, 3) are prioritized in prompt generation
+- **Real-time Updates**: The feature order is automatically saved and used in prompt regeneration
 
-### 1.0.1
+## Environment Variables
 
-Fixed issue #.
+| Variable                | Description                           | Required |
+| ----------------------- | ------------------------------------- | -------- |
+| `OPENAI_API_KEY`      | Your OpenAI API key                   | ✅       |
+| `FEATURE_GENERATOR`   | Assistant ID for feature generation   | ✅       |
+| `PROMPT_GENERATOR`    | Assistant ID for prompt regeneration  | ✅       |
+| `CANDIDATE_GENERATOR` | Assistant ID for candidate generation | ✅       |
+| `GENERAL_GPT`         | Assistant ID for chat interface       | ✅       |
+| `PORT`                | Server port (default: 3000)           | ❌       |
 
-### 1.1.0
+## API Endpoints
 
-Added features X, Y, and Z.
+- `POST /api/query` - Generate features from a prompt
+- `POST /api/candidates` - Generate candidate features
+- `POST /api/regenerate` - Regenerate optimized prompts
+- `POST /api/send-to-gpt` - Send prompt to General GPT assistant
 
----
+## Development
 
-## Following extension guidelines
+- `npm start` - Start the production server
+- `npm run dev` - Start the development server with auto-reload
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+## Architecture
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+- **Frontend**: HTML, CSS, JavaScript (vanilla)
+- **Backend**: Node.js with Express
+- **AI Integration**: OpenAI Assistants API
+- **Styling**: Modern CSS with responsive design
 
-## Working with Markdown
+## Troubleshooting
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+### Environment Variables Not Set
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+If you see errors about missing environment variables:
 
-## For more information
+1. Make sure you have a `.env` file in the root directory
+2. Copy from `env.example` and replace placeholder values with your actual API keys
+3. Restart the server after making changes
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+### API Errors
 
-**Enjoy!**
+- Verify your OpenAI API key is valid
+- Check that your Assistant IDs are correct
+- Ensure you have sufficient API credits
+
+## License
+
+MIT
