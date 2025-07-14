@@ -54,7 +54,20 @@ app.post('/api/query', async (req, res) => {
         }
         
         const response = await queryCustomGPT(prompt);
-        res.json({ type: 'response', text: response });
+        
+        // Try to parse the response as JSON if it's a JSON string
+        let parsedResponse = response;
+        try {
+            // Check if the response looks like a JSON string
+            if (typeof response === 'string' && (response.trim().startsWith('[') || response.trim().startsWith('{'))) {
+                parsedResponse = JSON.parse(response);
+            }
+        } catch (parseError) {
+            // If parsing fails, keep the original response
+            console.log('Failed to parse response as JSON, keeping as string:', parseError.message);
+        }
+        
+        res.json({ type: 'response', text: parsedResponse });
     } catch (error) {
         console.error('Error in query endpoint:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
@@ -99,6 +112,27 @@ app.post('/api/candidates', async (req, res) => {
         res.json({ type: 'candidates', text: response });
     } catch (error) {
         console.error('Error in candidates endpoint:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+    }
+});
+
+// API endpoint to generate candidates for individual properties
+app.post('/api/generate-candidates', async (req, res) => {
+    try {
+        const { term, propertyKey } = req.body;
+        
+        // Check if environment variables are set
+        if (!process.env.OPENAI_API_KEY || !process.env.CANDIDATE_GENERATOR) {
+            return res.status(500).json({ 
+                error: 'Missing environment variables. Please check your .env file.',
+                details: 'OPENAI_API_KEY and CANDIDATE_GENERATOR are required.'
+            });
+        }
+        
+        const candidates = await generateCandidatesForTerm(term);
+        res.json({ candidates });
+    } catch (error) {
+        console.error('Error in generate-candidates endpoint:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
@@ -217,20 +251,51 @@ async function regeneratePromptFromFeatures(features) {
     });
     const threadId = (await threadRes.json()).id;
 
-    // Create ranked features object with ranking information
-    const rankedFeatures = {};
-    Object.keys(features).forEach((key, index) => {
-        rankedFeatures[key] = {
-            ...features[key],
-            rank: index + 1,
-            importance: index === 0 ? 'highest' : index === 1 ? 'high' : index === 2 ? 'medium' : 'low'
-        };
-    });
+    // Handle both array and object formats
+    let rankedFeatures;
+                    if (Array.isArray(features)) {
+                    // Convert array format to ranked object format
+                    rankedFeatures = {};
+                    features.forEach((item, index) => {
+                        if (item.feature_name && item.value !== undefined) {
+                            rankedFeatures[item.feature_name] = {
+                                value: item.value,
+                                candidates: item.candidates || [],
+                                rank: index + 1
+                            };
+                        }
+                    });
+                } else {
+                    // Handle existing object format
+                    rankedFeatures = {};
+                    Object.keys(features).forEach((key, index) => {
+                        rankedFeatures[key] = {
+                            ...features[key],
+                            rank: index + 1
+                        };
+                    });
+                }
 
-    const messageContent = `Generate an optimized prompt using the following JSON features, including possible candidate options. The features are ranked by importance (rank 1 is most important). You may consider the candidates, but only use the "value" field content (with grammatical variations only, no synonyms). Do not use alternatives from "candidates" directly. Prioritize higher-ranked features in the generated prompt.
+    const messageContent = `Generate 5 different optimized prompts using the following JSON features, including possible candidate options. The features are ranked by importance (rank 1 is most important). You may consider the candidates, but only use the "value" field content (with grammatical variations only, no synonyms). Do not use alternatives from "candidates" directly. Prioritize higher-ranked features in the generated prompts.
+
+Please return the response in this exact JSON format:
+{
+  "prompts": [
+    "First optimized prompt here",
+    "Second optimized prompt here", 
+    "Third optimized prompt here",
+    "Fourth optimized prompt here",
+    "Fifth optimized prompt here"
+  ]
+}
 
 Ranked JSON input:
 ${JSON.stringify(rankedFeatures, null, 2)}`;
+
+    console.log('=== SENDING TO PROMPT_GENERATOR ===');
+    console.log('Ranked Features JSON:');
+    console.log(JSON.stringify(rankedFeatures, null, 2));
+    console.log('=== END OF JSON ===');
 
     await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
         method: 'POST',
@@ -258,7 +323,14 @@ ${JSON.stringify(rankedFeatures, null, 2)}`;
     const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
     const msgData = await msgRes.json();
 
-    return msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No optimized prompt.';
+    const assistantResponse = msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No optimized prompt.';
+    
+    console.log('=== RESPONSE FROM PROMPT_GENERATOR ===');
+    console.log('Assistant Response:');
+    console.log(assistantResponse);
+    console.log('=== END OF RESPONSE ===');
+    
+    return assistantResponse;
 }
 
 async function queryCandidateGenerator(features) {
@@ -309,6 +381,91 @@ async function queryCandidateGenerator(features) {
     const msgData = await msgRes.json();
 
     return msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No candidate features returned.';
+}
+
+async function generateCandidatesForTerm(term) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const candidateGenerator = process.env.CANDIDATE_GENERATOR;
+
+    if (!apiKey || !candidateGenerator) {
+        throw new Error('Missing API key or Candidate Generator Assistant ID');
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+    };
+
+    const threadRes = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers
+    });
+    const threadId = (await threadRes.json()).id;
+
+    // Format the term as requested: "term/sentence"
+    const formattedTerm = `"${term}"`;
+    
+    const messageContent = `Generate 5-8 candidate alternatives for this term/sentence: ${formattedTerm}
+
+Please return only a JSON array of strings, like this:
+["candidate1", "candidate2", "candidate3", "candidate4", "candidate5"]
+
+The candidates should be:
+- Similar in meaning but different in wording
+- Grammatically correct
+- Suitable for use in prompts
+- No more than 3-4 words each`;
+
+    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ role: 'user', content: messageContent })
+    });
+
+    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ assistant_id: candidateGenerator })
+    });
+    const runId = (await runRes.json()).id;
+
+    let status = 'in_progress';
+    while (status !== 'completed') {
+        await new Promise(res => setTimeout(res, 1000));
+        const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
+        status = (await check.json()).status;
+        if (status === 'failed' || status === 'cancelled') {
+            throw new Error(`Assistant run ${status}`);
+        }
+    }
+
+    const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
+    const msgData = await msgRes.json();
+
+    const response = msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value;
+    
+    if (!response) {
+        throw new Error('No response from assistant');
+    }
+
+    try {
+        // Try to parse as JSON array
+        const candidates = JSON.parse(response);
+        if (Array.isArray(candidates)) {
+            return candidates;
+        } else {
+            throw new Error('Response is not an array');
+        }
+    } catch (parseError) {
+        // If JSON parsing fails, try to extract candidates from text
+        const lines = response.split('\n').filter(line => line.trim());
+        const candidates = lines
+            .map(line => line.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim())
+            .filter(candidate => candidate.length > 0);
+        
+        return candidates.length > 0 ? candidates : [term]; // Fallback to original term
+    }
 }
 
 async function sendToGeneralGPT(prompt) {

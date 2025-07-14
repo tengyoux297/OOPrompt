@@ -393,9 +393,48 @@
             animation: spin 1s linear infinite;
         }
 
+        .loading-bar {
+            display: inline-block;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff 0%, #0056b3 50%, #007bff 100%);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            animation: loading-bar 1.5s ease-in-out infinite;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes loading-bar {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .processing-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(44, 62, 80, 0.2);
+            border-radius: 12px;
+            margin: 16px 0;
+            font-size: 14px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .processing-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e9ecef;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
         .error {
@@ -640,10 +679,6 @@
 
                 <h3>Extracted Properties:</h3>
                 <div id="response"><em>Waiting for response...</em></div>
-                <button id="candidatesBtn" style="display: none;" onclick="sendCandidates()">Generate Candidates</button>
-
-                <h3>GeneratedCandidate:</h3>
-                <div id="candidateResponse" class="feature-block"><em>Waiting for properties...</em></div>
 
                 <div style="margin-top: 10px;">
                     <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
@@ -675,6 +710,9 @@
             addMessage(message, 'user');
             chatInput.value = '';
             
+            // Add loading message
+            addMessage('Thinking...', 'assistant');
+            
             // Send to GENERAL_GPT assistant
             try {
                 const response = await fetch('/api/send-to-gpt', {
@@ -688,13 +726,34 @@
                 const data = await response.json();
                 
                 if (data.error) {
-                    addMessage('Error: ' + data.error, 'assistant');
+                    // Replace the last message (loading message) with error
+                    const chatMessages = document.getElementById('chatMessages');
+                    const lastMessage = chatMessages.lastElementChild;
+                    if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
+                        lastMessage.querySelector('.message-content').textContent = 'Error: ' + data.error;
+                    } else {
+                        addMessage('Error: ' + data.error, 'assistant');
+                    }
                 } else {
-                    addMessage(data.text, 'assistant');
+                    // Replace the last message (loading message) with actual response
+                    const chatMessages = document.getElementById('chatMessages');
+                    const lastMessage = chatMessages.lastElementChild;
+                    if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
+                        lastMessage.querySelector('.message-content').textContent = data.text;
+                    } else {
+                        addMessage(data.text, 'assistant');
+                    }
                 }
             } catch (error) {
                 console.error('Error sending message to GPT:', error);
-                addMessage('Error: Failed to get response from AI assistant. Please check your environment variables.', 'assistant');
+                // Replace the last message (loading message) with error
+                const chatMessages = document.getElementById('chatMessages');
+                const lastMessage = chatMessages.lastElementChild;
+                if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
+                    lastMessage.querySelector('.message-content').textContent = 'Error: Failed to get response from AI assistant. Please check your environment variables.';
+                } else {
+                    addMessage('Error: Failed to get response from AI assistant. Please check your environment variables.', 'assistant');
+                }
             }
         }
 
@@ -789,7 +848,14 @@
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<span class="loading"></span> Generating...';
 
-            document.getElementById('response').innerHTML = '<em>Loading...</em>';
+            // Show processing indicator for response
+            const responseEl = document.getElementById('response');
+            responseEl.innerHTML = `
+                <div class="processing-indicator">
+                    <div class="processing-spinner"></div>
+                    <span>Extracting properties...</span>
+                </div>
+            `;
             document.getElementById('optimizedPrompt').innerHTML = '<em>Regenerated prompt will appear here.</em>';
             document.getElementById('regenerateBtn').style.display = 'none';
             lastParsedProperties = null;
@@ -815,8 +881,8 @@
         }
 
         async function sendOptimizedPrompt() {
-            if (!candidateProperties) {
-                console.log('No candidate properties available. Please generate candidates first.');
+            if (!lastParsedProperties) {
+                console.log('No properties available. Please generate properties first.');
                 return;
             }
 
@@ -824,19 +890,40 @@
             regenerateBtn.disabled = true;
             regenerateBtn.innerHTML = '<span class="loading"></span> Optimizing...';
 
-            document.getElementById('optimizedPrompt').innerHTML = '<em>Optimizing...</em>';
+            // Show processing indicator
+            const optimizedEl = document.getElementById('optimizedPrompt');
+            optimizedEl.innerHTML = `
+                <div class="processing-indicator">
+                    <div class="processing-spinner"></div>
+                    <span>Generating optimized prompts...</span>
+                </div>
+            `;
 
             try {
+                // Convert object format back to array format for API
+                const propertiesArray = Object.keys(lastParsedProperties).map(key => ({
+                    feature_name: key,
+                    value: lastParsedProperties[key].value,
+                    candidates: lastParsedProperties[key].candidates || []
+                }));
+
                 const response = await fetch('/api/regenerate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ features: candidateProperties })
+                    body: JSON.stringify({ features: propertiesArray })
                 });
 
                 const data = await response.json();
-                handleOptimizedResponse(data);
+                console.log('API Response:', data);
+                
+                if (data.error) {
+                    document.getElementById('optimizedPrompt').innerHTML = '<div class="error">Error: ' + data.error + '</div>';
+                } else {
+                    // Handle the specific JSON response format with "prompts" array
+                    handleOptimizedResponse(data);
+                }
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('optimizedPrompt').innerHTML = '<div class="error">Error: Failed to regenerate prompt. Please try again.</div>';
@@ -846,123 +933,168 @@
             }
         }
 
-        async function sendCandidates() {
-            if (!lastParsedProperties) {
-                console.log('No properties available. Please generate properties first.');
-                return;
-            }
 
-            const candidatesBtn = document.getElementById('candidatesBtn');
-            candidatesBtn.disabled = true;
-            candidatesBtn.innerHTML = '<span class="loading"></span> Generating...';
-
-            document.getElementById('candidateResponse').innerHTML = '<em>Generating candidate properties...</em>';
-
-            try {
-                const response = await fetch('/api/candidates', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ features: lastParsedProperties })
-                });
-
-                const data = await response.json();
-                handleCandidatesResponse(data);
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('candidateResponse').innerHTML = '<div class="error">Error: Failed to generate candidates. Please try again.</div>';
-            } finally {
-                candidatesBtn.disabled = false;
-                candidatesBtn.textContent = 'Generate Candidates';
-            }
-        }
 
         function handleResponse(message) {
             const responseEl = document.getElementById('response');
             responseEl.innerHTML = '';
             
             try {
-                const cleaned = stripCodeBlock(message.text);
-                const parsed = JSON.parse(cleaned);
-                lastParsedProperties = parsed;
-                console.log('Setting lastParsedProperties:', lastParsedProperties);
+                let parsed;
                 
-                responseEl.appendChild(renderValue(parsed, '', true, 'properties'));
+                // Check if message.text is already an object (from API response)
+                if (typeof message.text === 'object' && message.text !== null) {
+                    parsed = message.text;
+                } else {
+                    // Parse JSON string - try different parsing strategies
+                    console.log('Attempting to parse:', message.text);
+                    
+                    // First, try parsing the original text directly
+                    try {
+                        parsed = JSON.parse(message.text);
+                        console.log('Successfully parsed original text');
+                    } catch (parseError1) {
+                        console.log('Failed to parse original text:', parseError1.message);
+                        // If that fails, try stripping code blocks and parsing
+                        try {
+                            const cleaned = stripCodeBlock(message.text);
+                            parsed = JSON.parse(cleaned);
+                            console.log('Successfully parsed after stripping code blocks');
+                        } catch (parseError2) {
+                            console.log('Failed to parse after stripping code blocks:', parseError2.message);
+                            // If both fail, try parsing as a JSON string that might be escaped
+                            try {
+                                                            // Handle case where the response is a JSON string that's been escaped
+                            let unescaped = message.text;
+                            // Remove outer quotes if they exist
+                            if (unescaped.startsWith('"') && unescaped.endsWith('"')) {
+                                unescaped = unescaped.slice(1, -1);
+                            }
+                            // Replace escaped characters
+                            unescaped = unescaped.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                                console.log('Unescaped text:', unescaped);
+                                parsed = JSON.parse(unescaped);
+                                console.log('Successfully parsed unescaped text');
+                            } catch (parseError3) {
+                                console.log('Failed to parse unescaped text:', parseError3.message);
+                                // If all fail, throw the original error
+                                throw parseError1;
+                            }
+                        }
+                    }
+                }
+                
+                // Convert array format to object format for internal use
+                if (Array.isArray(parsed)) {
+                    const convertedProperties = {};
+                    parsed.forEach(item => {
+                        if (item.feature_name && item.value !== undefined) {
+                            const key = item.feature_name;
+                            convertedProperties[key] = {
+                                value: item.value,
+                                candidates: item.candidates || []
+                            };
+                        }
+                    });
+                    lastParsedProperties = convertedProperties;
+                } else {
+                    lastParsedProperties = parsed;
+                }
+                
 
-                // Add feature form
-                const formContainer = createAddFeatureForm();
-                responseEl.appendChild(formContainer);
                 
-                // Show candidates button
-                document.getElementById('candidatesBtn').style.display = 'inline-block';
+                try {
+                    const renderedValue = renderValue(lastParsedProperties, '', true, 'properties');
+                    responseEl.appendChild(renderedValue);
+                    
+                    // Add property form
+                    const formContainer = createAddPropertyForm();
+                    responseEl.appendChild(formContainer);
+                    
+                    // Show the regenerate button after properties are extracted
+                    document.getElementById('regenerateBtn').style.display = 'inline-block';
+                } catch (renderError) {
+                    console.error('Error rendering properties:', renderError);
+                    responseEl.innerHTML = '<div class="error">Error rendering properties: ' + renderError.message + '</div>';
+                }
                 
-            } catch (error) {
-                console.error('Failed to parse response:', error);
-                lastParsedProperties = null;
-                responseEl.innerHTML = '<div class="error">Failed to parse response. Raw output: ' + message.text + '</div>';
-            }
+                            } catch (error) {
+                    console.error('Failed to parse response:', error);
+                    console.error('Error details:', error.stack);
+                    lastParsedProperties = null;
+                    responseEl.innerHTML = '<div class="error">Failed to parse response. Raw output: ' + JSON.stringify(message.text, null, 2) + '</div>';
+                }
         }
 
-        function handleCandidatesResponse(message) {
-            const candidateEl = document.getElementById('candidateResponse');
-            candidateEl.innerHTML = '';
-            
-            try {
-                let cleanedText = message.text.trim();
-                const parsed = JSON.parse(cleanedText);
-                
-                // Store candidate properties separately, don't overwrite lastParsedProperties
-                candidateProperties = parsed;
-                console.log('Setting candidateProperties:', candidateProperties);
-                
-                // Show regenerate button only when candidates are available
-                document.getElementById('regenerateBtn').style.display = 'inline-block';
-                
-                // Render candidates as read-only (not editable)
-                candidateEl.appendChild(renderValue(parsed, '', false, 'candidates'));
-            } catch (error) {
-                console.error('Failed to parse candidates:', error);
-                candidateEl.innerHTML = '<div class="error">Failed to parse candidate output. Raw output: ' + message.text + '</div>';
-            }
-        }
+
 
         function handleOptimizedResponse(message) {
             const optimizedEl = document.getElementById('optimizedPrompt');
             
             try {
-                const parsed = JSON.parse(message.text);
+                let parsed;
+                console.log('Raw message:', message);
+                console.log('Message text type:', typeof message.text);
+                console.log('Message text:', message.text);
+                
+                // Check if message.text is already an object (from API response)
+                if (typeof message.text === 'object' && message.text !== null) {
+                    parsed = message.text;
+                } else {
+                    // Try to parse JSON string - handle different formats
+                    try {
+                        parsed = JSON.parse(message.text);
+                    } catch (parseError) {
+                        console.log('Failed to parse as JSON, trying to extract JSON from text');
+                        // Try to extract JSON from the text if it's wrapped in code blocks
+                        const cleaned = stripCodeBlock(message.text);
+                        try {
+                            parsed = JSON.parse(cleaned);
+                        } catch (secondError) {
+                            console.log('Failed to parse cleaned text, showing raw response');
+                            optimizedEl.innerHTML = '<div class="error">Failed to parse response. Raw output: ' + message.text + '</div>';
+                            return;
+                        }
+                    }
+                }
+                
+                console.log('Parsed response:', parsed);
                 const prompts = parsed.prompts || [];
+                console.log('Prompts array:', prompts);
+                console.log('Prompts length:', prompts.length);
 
                 if (Array.isArray(prompts) && prompts.length > 0) {
                     optimizedEl.innerHTML = '';
                     
-                    // Create a form for radio buttons
+                    // Create a form for radio buttons (single selection)
                     const form = document.createElement('form');
                     form.id = 'promptRadioForm';
-                    let selectedPromptIndex = 0;
                     
                     prompts.forEach((prompt, i) => {
                         const div = document.createElement('div');
                         div.style.display = 'flex';
-                        div.style.alignItems = 'center';
-                        div.style.marginBottom = '8px';
+                        div.style.alignItems = 'flex-start';
+                        div.style.marginBottom = '12px';
+                        div.style.padding = '8px';
+                        div.style.border = '1px solid #e9ecef';
+                        div.style.borderRadius = '8px';
+                        div.style.backgroundColor = '#f8f9fa';
                         
                         const radio = document.createElement('input');
                         radio.type = 'radio';
                         radio.name = 'optimizedPromptRadio';
                         radio.value = i;
-                        radio.style.marginRight = '8px';
+                        radio.style.marginRight = '12px';
+                        radio.style.marginTop = '2px';
                         if (i === 0) {
                             radio.checked = true;
                         }
-                        radio.addEventListener('change', () => {
-                            selectedPromptIndex = i;
-                        });
                         
                         const label = document.createElement('label');
                         label.textContent = prompt;
                         label.style.flex = '1';
+                        label.style.lineHeight = '1.4';
+                        label.style.cursor = 'pointer';
                         
                         div.appendChild(radio);
                         div.appendChild(label);
@@ -977,26 +1109,32 @@
                     copyBtn.className = 'copy-button';
                     copyBtn.onclick = function(e) {
                         e.preventDefault();
-                        const radios = form.elements['optimizedPromptRadio'];
-                        let idx = 0;
-                        if (radios.length) {
-                            for (let j = 0; j < radios.length; j++) {
-                                if (radios[j].checked) {
-                                    idx = parseInt(radios[j].value);
-                                    break;
-                                }
+                        const radios = document.querySelectorAll('input[name="optimizedPromptRadio"]');
+                        console.log('Found radios:', radios.length);
+                        let selectedPrompt = '';
+                        
+                        for (let i = 0; i < radios.length; i++) {
+                            console.log(`Radio ${i}: checked=${radios[i].checked}, value=${radios[i].value}`);
+                            if (radios[i].checked) {
+                                selectedPrompt = prompts[parseInt(radios[i].value)];
+                                console.log('Selected prompt:', selectedPrompt);
+                                break;
                             }
-                        } else {
-                            idx = radios.checked ? parseInt(radios.value) : 0;
                         }
                         
-                        const selectedPrompt = prompts[idx];
-                        navigator.clipboard.writeText(selectedPrompt).then(() => {
-                            copyBtn.textContent = 'Copied!';
-                            setTimeout(() => {
-                                copyBtn.textContent = 'Copy Selected Prompt';
-                            }, 2000);
-                        });
+                        if (selectedPrompt) {
+                            navigator.clipboard.writeText(selectedPrompt).then(() => {
+                                copyBtn.textContent = 'Copied!';
+                                setTimeout(() => {
+                                    copyBtn.textContent = 'Copy Selected Prompt';
+                                }, 2000);
+                            }).catch(err => {
+                                console.error('Failed to copy:', err);
+                                alert('Failed to copy to clipboard. Please try again.');
+                            });
+                        } else {
+                            alert('Please select a prompt to copy.');
+                        }
                     };
                     optimizedEl.appendChild(copyBtn);
 
@@ -1006,30 +1144,61 @@
                     insertBtn.className = 'insert-to-chat-button';
                     insertBtn.onclick = function(e) {
                         e.preventDefault();
-                        const radios = form.elements['optimizedPromptRadio'];
-                        let idx = 0;
-                        if (radios.length) {
-                            for (let j = 0; j < radios.length; j++) {
-                                if (radios[j].checked) {
-                                    idx = parseInt(radios[j].value);
-                                    break;
-                                }
+                        const radios = document.querySelectorAll('input[name="optimizedPromptRadio"]');
+                        console.log('Found radios for insert:', radios.length);
+                        let selectedPrompt = '';
+                        
+                        for (let i = 0; i < radios.length; i++) {
+                            console.log(`Radio ${i} for insert: checked=${radios[i].checked}, value=${radios[i].value}`);
+                            if (radios[i].checked) {
+                                selectedPrompt = prompts[parseInt(radios[i].value)];
+                                console.log('Selected prompt for insert:', selectedPrompt);
+                                break;
                             }
-                        } else {
-                            idx = radios.checked ? parseInt(radios.value) : 0;
                         }
                         
-                        const selectedPrompt = prompts[idx];
-                        insertPromptToChat(selectedPrompt);
+                        if (selectedPrompt) {
+                            insertPromptToChat(selectedPrompt);
+                        } else {
+                            alert('Please select a prompt to insert.');
+                        }
                     };
                     optimizedEl.appendChild(insertBtn);
                     
                 } else {
-                    optimizedEl.innerHTML = '<em>No prompts found in response.</em>';
+                    // If no prompts array found, try to display the raw response
+                    console.log('No prompts array found, displaying raw response');
+                    optimizedEl.innerHTML = '<div class="feature-block">' + message.text + '</div>';
+                    
+                    // Add copy button for raw response
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Copy Response';
+                    copyBtn.className = 'copy-button';
+                    copyBtn.onclick = function() {
+                        navigator.clipboard.writeText(message.text).then(() => {
+                            copyBtn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copy Response';
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Failed to copy:', err);
+                            alert('Failed to copy to clipboard. Please try again.');
+                        });
+                    };
+                    optimizedEl.appendChild(copyBtn);
+
+                    // Add insert to chat button for raw response
+                    const insertBtn = document.createElement('button');
+                    insertBtn.textContent = 'Insert to Chat';
+                    insertBtn.className = 'insert-to-chat-button';
+                    insertBtn.onclick = function() {
+                        insertPromptToChat(message.text);
+                    };
+                    optimizedEl.appendChild(insertBtn);
                 }
             } catch (error) {
                 console.error('Failed to parse optimized prompt JSON:', error);
-                optimizedEl.innerHTML = '<pre>' + message.text + '</pre>';
+                optimizedEl.innerHTML = '<div class="error">Failed to parse response. Raw output: ' + JSON.stringify(message.text, null, 2) + '</div>';
             }
         }
 
@@ -1061,20 +1230,13 @@
                         rankingInfo.innerHTML = '<strong> Property Ranking:</strong> Drag properties to reorder by importance. Higher ranked properties will be prioritized in prompt generation.';
                         propertiesContainer.appendChild(rankingInfo);
 
-                        // Add test button
-                        const testButton = document.createElement('button');
-                        testButton.textContent = 'Test Ranking Update';
-                        testButton.style.marginBottom = '10px';
-                        testButton.onclick = () => {
-                            console.log('Testing ranking update');
-                            updatePropertyRanks();
-                            updatePropertiesOrder();
-                        };
-                        propertiesContainer.appendChild(testButton);
+
 
                         // Create property items
                         const propertyKeys = Object.keys(value);
+                        console.log('Creating property items in order:', propertyKeys);
                         propertyKeys.forEach((key, index) => {
+                            console.log(`Creating property item ${index + 1}: ${key}`);
                             const propertyItem = createDraggablePropertyItem(key, value[key], index + 1);
                             propertiesContainer.appendChild(propertyItem);
                         });
@@ -1199,23 +1361,7 @@
                                 row.appendChild(deleteBtn);
                             }
 
-                            if (key === 'fixed') {
-                                const checkbox = document.createElement('input');
-                                checkbox.type = 'checkbox';
-                                checkbox.checked = Boolean(val);
-                                checkbox.dataset.property = parentKey;
-
-                                checkbox.addEventListener('change', () => {
-                                    schedulePropertyUpdate();
-                                });
-
-                                if (!isTopLevel || context !== 'properties') {
-                                    const fixedLabel = document.createElement('strong');
-                                    fixedLabel.textContent = '';
-                                    row.appendChild(fixedLabel);
-                                }
-                                row.appendChild(checkbox);
-                            } else if (typeof val === 'object') {
+                            if (typeof val === 'object') {
                                 if (!isTopLevel || context !== 'features') {
                                     row.appendChild(label);
                                 }
@@ -1279,6 +1425,45 @@
 
             const header = document.createElement('div');
             header.className = 'feature-header';
+            header.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+            `;
+
+            const leftSection = document.createElement('div');
+            leftSection.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '⋮⋮⋮';
+            dragHandle.title = 'Drag to reorder';
+            dragHandle.style.cssText = `
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                color: white;
+                border-radius: 4px;
+                padding: 4px 6px;
+                cursor: grab;
+                font-size: 12px;
+                font-weight: bold;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(44, 62, 80, 0.3);
+            `;
+            
+            dragHandle.addEventListener('mouseenter', () => {
+                dragHandle.style.transform = 'scale(1.05)';
+                dragHandle.style.boxShadow = '0 2px 6px rgba(44, 62, 80, 0.4)';
+            });
+            
+            dragHandle.addEventListener('mouseleave', () => {
+                dragHandle.style.transform = 'scale(1)';
+                dragHandle.style.boxShadow = '0 1px 3px rgba(44, 62, 80, 0.3)';
+            });
 
             const rankBadge = document.createElement('div');
             rankBadge.className = 'feature-rank';
@@ -1288,67 +1473,98 @@
             propertyName.className = 'feature-name';
             propertyName.textContent = key;
 
-            const dragHandle = document.createElement('div');
+            leftSection.appendChild(dragHandle);
+            leftSection.appendChild(rankBadge);
+            leftSection.appendChild(propertyName);
             dragHandle.className = 'drag-handle';
-            dragHandle.innerHTML = '⋮⋮';
+            dragHandle.innerHTML = '⋮⋮⋮';
             dragHandle.title = 'Drag to reorder';
+            dragHandle.style.cssText = `
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                color: white;
+                border-radius: 4px;
+                padding: 4px 6px;
+                cursor: grab;
+                font-size: 12px;
+                font-weight: bold;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(44, 62, 80, 0.3);
+            `;
+            
+            dragHandle.addEventListener('mouseenter', () => {
+                dragHandle.style.transform = 'scale(1.05)';
+                dragHandle.style.boxShadow = '0 2px 6px rgba(44, 62, 80, 0.4)';
+            });
+            
+            dragHandle.addEventListener('mouseleave', () => {
+                dragHandle.style.transform = 'scale(1)';
+                dragHandle.style.boxShadow = '0 1px 3px rgba(44, 62, 80, 0.3)';
+            });
+
+            const rightSection = document.createElement('div');
+            rightSection.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
 
             // Add delete button
             const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = '×';
+            deleteBtn.textContent = 'Delete';
             deleteBtn.className = 'delete-feature-btn';
             deleteBtn.title = `Delete ${key}`;
             deleteBtn.style.cssText = `
-                background-color: #dc3545;
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
                 color: white;
                 border: none;
-                border-radius: 3px;
-                width: 20px;
-                height: 20px;
+                border-radius: 8px;
+                padding: 6px 12px;
                 cursor: pointer;
-                font-size: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-left: 8px;
-                transition: background-color 0.2s;
+                font-size: 11px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
             `;
             
             deleteBtn.addEventListener('mouseenter', () => {
-                deleteBtn.style.backgroundColor = '#c82333';
+                deleteBtn.style.background = 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)';
+                deleteBtn.style.transform = 'translateY(-1px)';
+                deleteBtn.style.boxShadow = '0 4px 8px rgba(231, 76, 60, 0.4)';
             });
             
             deleteBtn.addEventListener('mouseleave', () => {
-                deleteBtn.style.backgroundColor = '#dc3545';
+                deleteBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                deleteBtn.style.transform = 'translateY(0)';
+                deleteBtn.style.boxShadow = '0 2px 6px rgba(231, 76, 60, 0.3)';
             });
             
             deleteBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('Delete button clicked for:', key);
-                console.log('Current lastParsedFeatures:', lastParsedFeatures);
+                console.log('Current lastParsedProperties:', lastParsedProperties);
                 
-                if (lastParsedFeatures && lastParsedFeatures[key]) {
-                    delete lastParsedFeatures[key];
-                    console.log('Feature deleted. Updated features:', lastParsedFeatures);
+                if (lastParsedProperties && lastParsedProperties[key]) {
+                    delete lastParsedProperties[key];
+                    console.log('Property deleted. Updated properties:', lastParsedProperties);
                     
-                    // Re-render the features
+                    // Re-render the properties
                     const responseEl = document.getElementById('response');
                     responseEl.innerHTML = '';
-                    responseEl.appendChild(renderValue(lastParsedFeatures, '', true, 'features'));
+                    responseEl.appendChild(renderValue(lastParsedProperties, '', true, 'properties'));
                     
                     // Re-add the form container
-                    const formContainer = createAddFeatureForm();
+                    const formContainer = createAddPropertyForm();
                     responseEl.appendChild(formContainer);
                 } else {
-                    console.error('Feature not found in lastParsedFeatures:', key);
+                    console.error('Property not found in lastParsedProperties:', key);
                 }
             };
 
-            header.appendChild(rankBadge);
-            header.appendChild(propertyName);
-            header.appendChild(dragHandle);
-            header.appendChild(deleteBtn);
+            rightSection.appendChild(deleteBtn);
+            
+            header.appendChild(leftSection);
+            header.appendChild(rightSection);
 
             const content = document.createElement('div');
             content.className = 'feature-content';
@@ -1357,8 +1573,8 @@
             const valueInput = document.createElement('input');
             valueInput.type = 'text';
             valueInput.className = 'feature-value';
-            valueInput.value = featureData.value || '';
-            valueInput.placeholder = 'Feature value';
+            valueInput.value = propertyData.value || '';
+            valueInput.placeholder = 'Property value';
 
             valueInput.addEventListener('input', () => {
                 if (lastParsedProperties && lastParsedProperties[key]) {
@@ -1366,33 +1582,93 @@
                 }
             });
 
-            // Fixed checkbox
-            const fixedContainer = document.createElement('div');
-            fixedContainer.className = 'feature-fixed';
-            
-            const fixedCheckbox = document.createElement('input');
-            fixedCheckbox.type = 'checkbox';
-            fixedCheckbox.checked = Boolean(featureData.fixed);
-            fixedCheckbox.id = `fixed-${key}`;
-            
-            const fixedLabel = document.createElement('label');
-            fixedLabel.textContent = 'Fixed';
-            fixedLabel.htmlFor = `fixed-${key}`;
 
-            fixedCheckbox.addEventListener('change', () => {
-                if (lastParsedProperties && lastParsedProperties[key]) {
-                    lastParsedProperties[key].fixed = fixedCheckbox.checked;
-                }
+
+            // Generate Candidates button
+            const candidatesBtn = document.createElement('button');
+            candidatesBtn.textContent = 'Generate Candidates';
+            candidatesBtn.className = 'candidates-btn';
+            candidatesBtn.style.cssText = `
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 11px;
+                font-weight: 500;
+                margin-left: 8px;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 6px rgba(44, 62, 80, 0.3);
+            `;
+            
+            candidatesBtn.addEventListener('mouseenter', () => {
+                candidatesBtn.style.background = 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)';
+                candidatesBtn.style.transform = 'translateY(-1px)';
+                candidatesBtn.style.boxShadow = '0 4px 8px rgba(44, 62, 80, 0.4)';
+            });
+            
+            candidatesBtn.addEventListener('mouseleave', () => {
+                candidatesBtn.style.background = 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)';
+                candidatesBtn.style.transform = 'translateY(0)';
+                candidatesBtn.style.boxShadow = '0 2px 6px rgba(44, 62, 80, 0.3)';
             });
 
-            fixedContainer.appendChild(fixedCheckbox);
-            fixedContainer.appendChild(fixedLabel);
+            candidatesBtn.onclick = async () => {
+                const propertyValue = valueInput.value.trim();
+                if (!propertyValue) {
+                    alert('Please enter a property value first.');
+                    return;
+                }
+
+                // Show loading state
+                const originalText = candidatesBtn.textContent;
+                candidatesBtn.textContent = 'Generating...';
+                candidatesBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/generate-candidates', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            term: propertyValue,
+                            propertyKey: key 
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        // Store candidates in the property data
+                        if (lastParsedProperties && lastParsedProperties[key]) {
+                            lastParsedProperties[key].candidates = data.candidates;
+                        }
+                        // Display candidates as a list
+                        displayCandidates(key, data.candidates, propertyItem);
+                    }
+                } catch (error) {
+                    console.error('Error generating candidates:', error);
+                    alert('Error generating candidates. Please try again.');
+                } finally {
+                    candidatesBtn.textContent = originalText;
+                    candidatesBtn.disabled = false;
+                }
+            };
 
             content.appendChild(valueInput);
-            content.appendChild(fixedContainer);
+            content.appendChild(candidatesBtn);
 
             propertyItem.appendChild(header);
             propertyItem.appendChild(content);
+
+            // Display candidates section only if candidates exist
+            if (propertyData.candidates && Array.isArray(propertyData.candidates) && propertyData.candidates.length > 0) {
+                displayCandidates(key, propertyData.candidates, propertyItem);
+            }
 
             console.log('Created draggable property item:', key);
 
@@ -1448,22 +1724,14 @@
             valueInput.placeholder = 'Value';
             valueInput.style.marginRight = '8px';
 
-            // Fixed checkbox
-            const fixedCheckbox = document.createElement('input');
-            fixedCheckbox.type = 'checkbox';
-            fixedCheckbox.id = 'fixedCheckbox';
-            const fixedLabel = document.createElement('label');
-            fixedLabel.textContent = 'Fixed';
-            fixedLabel.htmlFor = 'fixedCheckbox';
-            fixedLabel.style.marginRight = '8px';
+
 
             // Add button
             const addBtn = document.createElement('button');
-            addBtn.textContent = '+ Add Feature';
+            addBtn.textContent = '+ Add Property';
             addBtn.onclick = () => {
                 const key = nameInput.value.trim();
                 const val = valueInput.value.trim();
-                const isFixed = fixedCheckbox.checked;
 
                 if (!key || !val) {
                     alert('Please fill in both property name and value.');
@@ -1471,8 +1739,7 @@
                 }
 
                 lastParsedProperties[key] = {
-                    value: val,
-                    fixed: isFixed
+                    value: val
                 };
 
                 // Re-render property list
@@ -1484,7 +1751,6 @@
                 // Clear inputs
                 nameInput.value = '';
                 valueInput.value = '';
-                fixedCheckbox.checked = false;
 
                 // Log updated properties
                 console.log('Updated JSON after add:', JSON.stringify(lastParsedProperties, null, 2));
@@ -1493,32 +1759,186 @@
             // Append inputs to form container
             formContainer.appendChild(nameInput);
             formContainer.appendChild(valueInput);
-            formContainer.appendChild(fixedCheckbox);
-            formContainer.appendChild(fixedLabel);
             formContainer.appendChild(addBtn);
 
             return formContainer;
         }
 
-        let updateTimeout = null;
-        function schedulePropertyUpdate() {
-            if (updateTimeout) clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(updatePropertyStatesFromCheckboxes, 300);
-        }
+        function displayCandidates(propertyKey, candidates, propertyItem) {
+            // Remove existing candidates display if any
+            const existingCandidates = propertyItem.querySelector('.candidates-display');
+            if (existingCandidates) {
+                existingCandidates.remove();
+            }
 
-        function updatePropertyStatesFromCheckboxes() {
-            const checkboxes = document.querySelectorAll('input[type="checkbox"][data-property]');
-            if (!lastParsedProperties) return;
+            // Create candidates display
+            const candidatesDisplay = document.createElement('div');
+            candidatesDisplay.className = 'candidates-display';
+            candidatesDisplay.style.cssText = `
+                margin-top: 12px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.9);
+                border: 1px solid rgba(44, 62, 80, 0.2);
+                border-radius: 8px;
+                font-size: 12px;
+            `;
 
-            checkboxes.forEach(cb => {
-                const property = cb.dataset.property;
-                if (lastParsedProperties[property]) {
-                    lastParsedProperties[property].fixed = cb.checked;
+            const candidatesTitle = document.createElement('div');
+            candidatesTitle.style.cssText = `
+                font-weight: 600;
+                color: #2c3e50;
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            
+            const titleText = document.createElement('span');
+            titleText.textContent = 'Candidates:';
+            candidatesTitle.appendChild(titleText);
+            
+            // Add Clear All button
+            const clearAllBtn = document.createElement('button');
+            clearAllBtn.textContent = 'Clear All';
+            clearAllBtn.style.cssText = `
+                background: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                cursor: pointer;
+                font-size: 10px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+            `;
+            
+            clearAllBtn.addEventListener('mouseenter', () => {
+                clearAllBtn.style.backgroundColor = '#c0392b';
+            });
+            
+            clearAllBtn.addEventListener('mouseleave', () => {
+                clearAllBtn.style.backgroundColor = '#e74c3c';
+            });
+            
+            clearAllBtn.onclick = () => {
+                // Remove all candidates from the property data
+                if (lastParsedProperties && lastParsedProperties[propertyKey]) {
+                    delete lastParsedProperties[propertyKey].candidates;
+                    console.log('All candidates cleared for property:', propertyKey);
+                    console.log('Updated properties:', lastParsedProperties);
                 }
+                
+                // Remove the candidates display
+                candidatesDisplay.remove();
+            };
+            
+            candidatesTitle.appendChild(clearAllBtn);
+            candidatesDisplay.appendChild(candidatesTitle);
+
+            // Create candidate list
+            const candidatesList = document.createElement('div');
+            candidatesList.style.cssText = `
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+                align-items: flex-start;
+            `;
+
+            candidates.forEach((candidate, index) => {
+                const candidateChip = document.createElement('div');
+                candidateChip.style.cssText = `
+                    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    transition: all 0.2s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    position: relative;
+                    width: fit-content;
+                    min-width: 40px;
+                    min-height: 24px;
+                    margin: 2px;
+                `;
+
+                const candidateText = document.createElement('span');
+                candidateText.textContent = candidate;
+                candidateText.style.cssText = `
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 200px;
+                `;
+                candidateChip.appendChild(candidateText);
+
+                // Add individual delete button for each candidate (top right corner)
+                const deleteCandidateBtn = document.createElement('div');
+                deleteCandidateBtn.textContent = '';
+                deleteCandidateBtn.textContent = '×';
+                deleteCandidateBtn.style.cssText = `
+                    background: #e74c3c;
+                    border: none;
+                    border-radius: 2px;
+                    width: 12px;
+                    height: 12px;
+                    cursor: pointer;
+                    position: absolute;
+                    top: -4px;
+                    right: -4px;
+                    margin: 0;
+                    z-index: 2;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 8px;
+                    font-weight: bold;
+                    line-height: 1;
+                `;
+
+                deleteCandidateBtn.addEventListener('mouseenter', () => {
+                    deleteCandidateBtn.style.background = '#c0392b';
+                    deleteCandidateBtn.style.transform = 'scale(1.2)';
+                });
+
+                deleteCandidateBtn.addEventListener('mouseleave', () => {
+                    deleteCandidateBtn.style.background = '#e74c3c';
+                    deleteCandidateBtn.style.transform = 'scale(1)';
+                });
+
+                deleteCandidateBtn.onclick = () => {
+                    // Remove this specific candidate from the property data
+                    if (lastParsedProperties && lastParsedProperties[propertyKey] && lastParsedProperties[propertyKey].candidates) {
+                        const updatedCandidates = lastParsedProperties[propertyKey].candidates.filter(c => c !== candidate);
+                        if (updatedCandidates.length === 0) {
+                            delete lastParsedProperties[propertyKey].candidates;
+                            candidatesDisplay.remove();
+                        } else {
+                            lastParsedProperties[propertyKey].candidates = updatedCandidates;
+                            displayCandidates(propertyKey, updatedCandidates, propertyItem);
+                        }
+                    }
+                };
+
+                candidateChip.appendChild(deleteCandidateBtn);
+                candidatesList.appendChild(candidateChip);
             });
 
-            console.log('Updated properties:', lastParsedProperties);
+            candidatesDisplay.appendChild(candidatesList);
+            
+            // Ensure candidates are always appended at the end of the property item
+            // Remove any existing candidates display first
+            const existingCandidatesDisplay = propertyItem.querySelector('.candidates-display');
+            if (existingCandidatesDisplay) {
+                existingCandidatesDisplay.remove();
+            }
+            
+            propertyItem.appendChild(candidatesDisplay);
         }
+
+
     </script>
 </body>
 </html> 
