@@ -682,6 +682,7 @@
 
                 <div style="margin-top: 10px;">
                     <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
+                    <button id="sendJsonToChatBtn" style="display: none;" onclick="sendJsonToChat()">Send JSON to Chat</button>
                 </div>
 
                 <h3>Optimized Prompt:</h3>
@@ -794,6 +795,32 @@
             }
         });
 
+        // Function to send JSON to chat
+        function sendJsonToChat() {
+            if (!lastParsedProperties) {
+                alert('No properties available. Please generate properties first.');
+                return;
+            }
+
+            // Format the JSON nicely for display
+            const jsonString = JSON.stringify(lastParsedProperties, null, 2);
+            const formattedMessage = `**Extracted Properties JSON:**\n\`\`\`json\n${jsonString}\n\`\`\``;
+            
+            // Insert into chat
+            insertPromptToChat(formattedMessage);
+            
+            // Add visual feedback
+            const sendJsonBtn = document.getElementById('sendJsonToChatBtn');
+            const originalText = sendJsonBtn.textContent;
+            sendJsonBtn.textContent = 'Sent!';
+            sendJsonBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+            
+            setTimeout(() => {
+                sendJsonBtn.textContent = originalText;
+                sendJsonBtn.style.background = 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)';
+            }, 2000);
+        }
+
         // Function to insert prompt into chat
         function insertPromptToChat(prompt) {
             const chatInput = document.getElementById('chatInput');
@@ -858,6 +885,7 @@
             `;
             document.getElementById('optimizedPrompt').innerHTML = '<em>Regenerated prompt will appear here.</em>';
             document.getElementById('regenerateBtn').style.display = 'none';
+            document.getElementById('sendJsonToChatBtn').style.display = 'none';
             lastParsedProperties = null;
 
             try {
@@ -1013,6 +1041,9 @@
                     
                     // Show the regenerate button after properties are extracted
                     document.getElementById('regenerateBtn').style.display = 'inline-block';
+                    
+                    // Show the send JSON to chat button
+                    document.getElementById('sendJsonToChatBtn').style.display = 'inline-block';
                 } catch (renderError) {
                     console.error('Error rendering properties:', renderError);
                     responseEl.innerHTML = '<div class="error">Error rendering properties: ' + renderError.message + '</div>';
