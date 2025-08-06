@@ -1,0 +1,14 @@
+{
+  "mainTask": "",
+  "requirements": {
+    "story_type": {
+      "property_name": "story_type",
+      "value": ""
+    },
+    "character": {
+      "property_name": "character",
+      "value": ""
+    }
+  },
+  "audience": []
+} 

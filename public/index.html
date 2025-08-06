@@ -48,6 +48,317 @@
             font-size: 1.2rem;
             letter-spacing: 0.5px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .chat-control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-control-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Chat History Panel */
+        .chat-history-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .chat-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+        }
+
+        .chat-history-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-history-content {
+            padding: 20px;
+            max-height: calc(100% - 80px);
+            overflow-y: auto;
+        }
+
+        /* Base Class Selection Modal */
+        .base-class-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .base-class-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .base-class-modal h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .base-class-list {
+            margin: 20px 0;
+        }
+
+        .base-class-item {
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+        }
+
+        .base-class-item:hover {
+            border-color: #2c3e50;
+            background: #e9ecef;
+        }
+
+        .base-class-item.selected {
+            border-color: #2c3e50;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .base-class-modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .save-base-class-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .save-base-class-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .save-base-class-modal h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .save-base-class-modal input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 15px 0;
+            box-sizing: border-box;
+        }
+
+        .save-base-class-modal input:focus {
+            outline: none;
+            border-color: #2c3e50;
+        }
+
+        /* Input Options Styling */
+        .input-option {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .input-option:hover {
+            border-color: #2c3e50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-option h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .input-option p {
+            margin: 0 0 15px 0;
+        }
+
+        .input-option textarea {
+            width: 100%;
+            min-height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .input-option button {
+            margin-right: 10px;
+        }
+
+        .chat-history-item {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(44, 62, 80, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-history-item:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .chat-history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .chat-history-item-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .chat-history-item-time {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .chat-history-item-preview {
+            font-size: 13px;
+            color: #34495e;
+            line-height: 1.4;
+            max-height: 40px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .chat-history-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .chat-history-action-btn {
+            background: none;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-history-action-btn:hover {
+            background: #ecf0f1;
+        }
+
+        .chat-history-action-btn.delete {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .chat-history-action-btn.delete:hover {
+            background: #e74c3c;
+            color: white;
         }
 
         .chat-messages {
@@ -233,6 +544,10 @@
             font-size: 1.2rem;
             letter-spacing: 0.5px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .optimization-content {
@@ -624,14 +939,281 @@
                 height: 50vh;
             }
         }
+
+        /* Step section styles */
+        .step-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(44, 62, 80, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .step-section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .step-section:not(:last-child) {
+            border-bottom: 2px solid rgba(44, 62, 80, 0.1);
+        }
+
+        /* Progress indicator styles */
+        .progress-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #2c3e50;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+            border: 1px solid rgba(44, 62, 80, 0.1);
+        }
+
+        .progress-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e9ecef;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Smooth animation for step sections */
+        .step-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+        }
+
+        .step-section.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Content fade-in animation */
+        .content-fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Button disabled state during loading */
+        .button-loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Chat message formatting styles */
+        .message-text {
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .message-text:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-text p {
+            margin: 0 0 12px 0;
+        }
+
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .inline-code {
+            background-color: #f1f3f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            color: #d73a49;
+        }
+
+        .code-block {
+            background-color: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            margin: 12px 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #f1f3f4;
+            border-bottom: 1px solid #e1e4e8;
+            font-size: 12px;
+            font-weight: 600;
+            color: #586069;
+        }
+
+        .code-language {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-code-btn {
+            background: none;
+            border: 1px solid #d1d5da;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 11px;
+            color: #586069;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-code-btn:hover {
+            background-color: #e1e4e8;
+            border-color: #c1c5c9;
+        }
+
+        .code-content {
+            margin: 0;
+            padding: 12px;
+            background-color: #f6f8fa;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            color: #24292e;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .list-container {
+            margin: 12px 0;
+        }
+
+        .list-container ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .list-container li {
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+
+        .table-container {
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        .message-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .message-table td {
+            border: 1px solid #e1e4e8;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .message-table tr:nth-child(even) {
+            background-color: #f6f8fa;
+        }
+
+        .message-table tr:first-child {
+            background-color: #f1f3f4;
+            font-weight: 600;
+        }
+
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .notification-info {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .notification-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .notification-error {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
     </style>
 </head>
 <body>
     <div class="main-container">
         <!-- Left Side - Chat Interface -->
         <div class="chat-container">
+            <!-- Chat History Panel (initially hidden) -->
+            <div id="chatHistoryPanel" class="chat-history-panel" style="display: none;">
+                <div class="chat-history-header">
+                    <h3>Chat History</h3>
+                    <button class="close-btn" onclick="toggleChatHistory()">×</button>
+                </div>
+                <div class="chat-history-content" id="chatHistoryContent">
+                    <!-- Chat history items will be populated here -->
+                </div>
+            </div>
+
             <div class="chat-header">
-                AI Chat Interface
+                <div class="chat-header-content">
+                    <span>AI Chat Interface</span>
+                    <div class="chat-controls">
+                        <button class="chat-control-btn" onclick="toggleChatHistory()" title="View Chat History">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            History
+                        </button>
+                        <button class="chat-control-btn" onclick="createNewChat()" title="Start New Chat">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            New Chat
+                        </button>
+                        <button class="chat-control-btn" onclick="resetCurrentChat()" title="Clear Chat History">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <div class="chat-messages" id="chatMessages">
@@ -670,23 +1252,77 @@
             </div>
             
             <div class="optimization-content">
-                <h3>Initial Prompt:</h3>
-                <textarea id="query" placeholder="Enter your prompt here..."></textarea><br>
-
-                <div style="margin-top: 10px;">
-                    <button onclick="sendQuery()" id="generateBtn">Generate Properties</button>
+                <!-- Step 1: Initialization Options -->
+                <div id="step1" class="step-section show">
+                    <h3>Choose Your Starting Point:</h3>
+                    
+                    <!-- Option 1: Unstructured Input -->
+                    <div class="input-option">
+                        <h4>📝 Unstructured Input</h4>
+                        <p style="color: #6c757d; font-size: 14px; margin-bottom: 15px;">Start with a natural language prompt and let AI extract the structure.</p>
+                        <textarea id="query" placeholder="Enter your prompt here..."></textarea>
+                        <div style="margin-top: 10px;">
+                            <button onclick="sendQuery()" id="generateBtn">Generate Properties</button>
+                            <div class="progress-indicator" id="generateProgress" style="display: none;">
+                                <div class="progress-spinner"></div>
+                                <span>Generating properties...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Option 2: Structured Input -->
+                    <div class="input-option">
+                        <h4>🏗️ Structured Input</h4>
+                        <p style="color: #6c757d; font-size: 14px; margin-bottom: 15px;">Load a pre-defined template and customize it.</p>
+                        <button onclick="loadBaseClass()" id="initLoadBaseClassBtn" style="background-color: #17a2b8;">Load Base Class</button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="resetWorkflow()" id="resetBtn" style="background-color: #6c757d;">Reset</button>
+                    </div>
                 </div>
 
-                <h3>Extracted Properties:</h3>
-                <div id="response"><em>Waiting for response...</em></div>
+                <!-- Step 2: Extracted Properties (initially hidden) -->
+                <div id="step2" class="step-section" style="display: none;">
+                    <h3>Extracted Properties:</h3>
+                    <div id="response"><em>Waiting for response...</em></div>
 
-                <div style="margin-top: 10px;">
-                    <button id="regenerateBtn" style="display: none;" onclick="sendOptimizedPrompt()">Regenerate Prompt</button>
-                    <button id="sendJsonToChatBtn" style="display: none;" onclick="sendJsonToChat()">Send JSON to Chat</button>
+                    <div style="margin-top: 10px;">
+                        <button id="sendToChatBtn" onclick="sendOptimizedPromptToChat()">Send to Chat</button>
+                        <button id="saveBaseClassBtn" onclick="saveBaseClass()" style="margin-left: 10px; background-color: #28a745;">Save as Base Class</button>
+                        <button id="oopLoadBaseClassBtn" onclick="loadBaseClass()" style="margin-left: 10px; background-color: #17a2b8;">Load Base Class</button>
+                        <div class="progress-indicator" id="sendToChatProgress" style="display: none;">
+                            <div class="progress-spinner"></div>
+                            <span>Sending optimized prompt to chat...</span>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <h3>Optimized Prompt:</h3>
-                <div id="optimizedPrompt"><em>Regenerated prompt will appear here.</em></div>
+    <!-- Base Class Selection Modal -->
+    <div class="base-class-modal" id="baseClassModal">
+        <div class="base-class-modal-content">
+            <h3>Select Base Class to Load</h3>
+            <div class="base-class-list" id="baseClassList">
+                <!-- Base classes will be loaded here -->
+            </div>
+            <div class="base-class-modal-buttons">
+                <button onclick="closeBaseClassModal()" style="background-color: #6c757d;">Cancel</button>
+                <button onclick="loadSelectedBaseClass()" style="background-color: #2c3e50;">Load Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Base Class Modal -->
+    <div class="save-base-class-modal" id="saveBaseClassModal">
+        <div class="save-base-class-modal-content">
+            <h3>Save as Base Class</h3>
+            <input type="text" id="baseClassNameInput" placeholder="Enter base class name (e.g., story-writing, code-generation)">
+            <div style="text-align: center;">
+                <button onclick="closeSaveBaseClassModal()" style="background-color: #6c757d; margin-right: 10px;">Cancel</button>
+                <button onclick="confirmSaveBaseClass()" style="background-color: #28a745;">Save</button>
             </div>
         </div>
     </div>
@@ -695,6 +1331,63 @@
     <script>
         let lastParsedProperties = null;
         let candidateProperties = null;
+        let selectedBaseClass = null;
+
+        // Modular utility functions
+        function showObjectPanel() {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+            step2.style.visibility = 'visible';
+            step2.style.opacity = '1';
+        }
+
+        function showInitializationPanel() {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            step1.style.display = 'block';
+            step2.style.display = 'none';
+            step2.classList.remove('show');
+        }
+
+        function renderPropertiesToUI(properties) {
+            const responseEl = document.getElementById('response');
+            responseEl.innerHTML = '';
+            
+            const renderedValue = renderValue(properties, '', true, 'properties');
+            
+            if (renderedValue && renderedValue.childNodes.length > 0) {
+                responseEl.appendChild(renderedValue);
+            } else {
+                responseEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">No content to display. The base class may be empty.</div>';
+            }
+            
+            // Add the property form container
+            const formContainer = createAddPropertyForm();
+            responseEl.appendChild(formContainer);
+        }
+
+        function convertBaseClassToStructure(baseClass) {
+            const newStructure = {
+                mainTask: baseClass.mainTask || '',
+                audience: baseClass.audience || [],
+                requirements: {}
+            };
+            
+            // Convert requirements to the expected format
+            if (baseClass.requirements) {
+                Object.keys(baseClass.requirements).forEach(key => {
+                    const req = baseClass.requirements[key];
+                    newStructure.requirements[key] = {
+                        value: req.value || '',
+                        candidates: req.candidates || []
+                    };
+                });
+            }
+            
+            return newStructure;
+        }
 
         function stripCodeBlock(text) {
             return text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, '$1');
@@ -703,9 +1396,14 @@
         // Chat functionality
         async function sendChatMessage() {
             const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
             const message = chatInput.value.trim();
             
             if (!message) return;
+            
+            // Disable button and show loading state
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
             
             // Add user message
             addMessage(message, 'user');
@@ -716,7 +1414,7 @@
             
             // Send to GENERAL_GPT assistant
             try {
-                const response = await fetch('/api/send-to-gpt', {
+                const response = await fetch('/api/general-gpt', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -731,7 +1429,9 @@
                     const chatMessages = document.getElementById('chatMessages');
                     const lastMessage = chatMessages.lastElementChild;
                     if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
-                        lastMessage.querySelector('.message-content').textContent = 'Error: ' + data.error;
+                        const messageContent = lastMessage.querySelector('.message-content');
+                        messageContent.innerHTML = '';
+                        formatAssistantMessage(messageContent, 'Error: ' + data.error);
                     } else {
                         addMessage('Error: ' + data.error, 'assistant');
                     }
@@ -740,7 +1440,10 @@
                     const chatMessages = document.getElementById('chatMessages');
                     const lastMessage = chatMessages.lastElementChild;
                     if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
-                        lastMessage.querySelector('.message-content').textContent = data.text;
+                        // Clear the message content and format it properly
+                        const messageContent = lastMessage.querySelector('.message-content');
+                        messageContent.innerHTML = '';
+                        formatAssistantMessage(messageContent, data.text);
                     } else {
                         addMessage(data.text, 'assistant');
                     }
@@ -751,10 +1454,16 @@
                 const chatMessages = document.getElementById('chatMessages');
                 const lastMessage = chatMessages.lastElementChild;
                 if (lastMessage && lastMessage.querySelector('.message-content').textContent === 'Thinking...') {
-                    lastMessage.querySelector('.message-content').textContent = 'Error: Failed to get response from AI assistant. Please check your environment variables.';
+                    const messageContent = lastMessage.querySelector('.message-content');
+                    messageContent.innerHTML = '';
+                    formatAssistantMessage(messageContent, 'Error: Failed to get response from AI assistant. Please check your environment variables.');
                 } else {
                     addMessage('Error: Failed to get response from AI assistant. Please check your environment variables.', 'assistant');
                 }
+            } finally {
+                // Re-enable button
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
             }
         }
 
@@ -777,7 +1486,13 @@
             
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
-            messageContent.textContent = content;
+            
+            // Format content based on sender
+            if (sender === 'assistant') {
+                formatAssistantMessage(messageContent, content);
+            } else {
+                messageContent.textContent = content;
+            }
             
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(messageContent);
@@ -785,6 +1500,440 @@
             
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatAssistantMessage(container, content) {
+            // Parse and format the content similar to ChatGPT
+            const parts = parseMessageContent(content);
+            
+            parts.forEach(part => {
+                switch (part.type) {
+                    case 'text':
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'message-text';
+                        textDiv.innerHTML = formatText(part.content);
+                        container.appendChild(textDiv);
+                        break;
+                    case 'code':
+                        const codeBlock = createCodeBlock(part.content, part.language);
+                        container.appendChild(codeBlock);
+                        break;
+                    case 'list':
+                        const listDiv = createList(part.content);
+                        container.appendChild(listDiv);
+                        break;
+                    case 'table':
+                        const tableDiv = createTable(part.content);
+                        container.appendChild(tableDiv);
+                        break;
+                }
+            });
+        }
+
+        function parseMessageContent(content) {
+            const parts = [];
+            let currentIndex = 0;
+            
+            // Regular expression to match code blocks (more flexible)
+            const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g;
+            let match;
+            
+            while ((match = codeBlockRegex.exec(content)) !== null) {
+                // Add text before code block
+                if (match.index > currentIndex) {
+                    const textContent = content.slice(currentIndex, match.index);
+                    if (textContent.trim()) {
+                        parts.push({ type: 'text', content: textContent });
+                    }
+                }
+                
+                // Add code block
+                const language = match[1] || '';
+                const codeContent = match[2].trim();
+                parts.push({ type: 'code', content: codeContent, language: language });
+                
+                currentIndex = match.index + match[0].length;
+            }
+            
+            // Add remaining text
+            if (currentIndex < content.length) {
+                const remainingText = content.slice(currentIndex);
+                if (remainingText.trim()) {
+                    parts.push({ type: 'text', content: remainingText });
+                }
+            }
+            
+            return parts;
+        }
+
+        function formatText(text) {
+            // Convert markdown-style formatting to HTML
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code class="inline-code">$1</code>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>')
+                .replace(/^/, '<p>')
+                .replace(/$/, '</p>');
+        }
+
+        function createCodeBlock(code, language) {
+            const codeContainer = document.createElement('div');
+            codeContainer.className = 'code-block';
+            
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            header.innerHTML = `
+                <span class="code-language">${language || 'text'}</span>
+                <button class="copy-code-btn" onclick="copyCode(this)">Copy</button>
+            `;
+            
+            const codeElement = document.createElement('pre');
+            codeElement.className = 'code-content';
+            codeElement.textContent = code;
+            
+            codeContainer.appendChild(header);
+            codeContainer.appendChild(codeElement);
+            
+            return codeContainer;
+        }
+
+        function createList(content) {
+            const listDiv = document.createElement('div');
+            listDiv.className = 'list-container';
+            
+            const lines = content.split('\n');
+            const list = document.createElement('ul');
+            
+            lines.forEach(line => {
+                if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+                    const li = document.createElement('li');
+                    li.textContent = line.trim().substring(2);
+                    list.appendChild(li);
+                }
+            });
+            
+            listDiv.appendChild(list);
+            return listDiv;
+        }
+
+        function createTable(content) {
+            const tableDiv = document.createElement('div');
+            tableDiv.className = 'table-container';
+            
+            // Simple table parsing (you can enhance this)
+            const table = document.createElement('table');
+            table.className = 'message-table';
+            
+            const lines = content.split('\n');
+            lines.forEach(line => {
+                if (line.includes('|')) {
+                    const row = document.createElement('tr');
+                    const cells = line.split('|').filter(cell => cell.trim());
+                    
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell.trim();
+                        row.appendChild(td);
+                    });
+                    
+                    table.appendChild(row);
+                }
+            });
+            
+            tableDiv.appendChild(table);
+            return tableDiv;
+        }
+
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block');
+            const codeElement = codeBlock.querySelector('.code-content');
+            const textToCopy = codeElement.textContent;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy code:', err);
+                alert('Failed to copy code to clipboard');
+            });
+        }
+
+        // Chat management functions
+        let currentChatId = generateChatId();
+        let chatHistory = [];
+
+        function generateChatId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        async function createNewChat() {
+            // Save current chat to history if it has messages
+            const currentMessages = document.querySelectorAll('#chatMessages .message');
+            if (currentMessages.length > 1) { // More than just the initial welcome message
+                const chatData = {
+                    id: currentChatId,
+                    timestamp: Date.now(),
+                    messages: Array.from(currentMessages).map(msg => ({
+                        role: msg.classList.contains('user') ? 'user' : 'assistant',
+                        content: msg.querySelector('.message-content').textContent || msg.querySelector('.message-content').innerHTML
+                    }))
+                };
+                chatHistory.push(chatData);
+            }
+
+            // Clear server-side context for fresh start
+            try {
+                const response = await fetch('/api/clear-context', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.warn('Failed to clear server context, but continuing with new chat');
+                }
+            } catch (error) {
+                console.warn('Error clearing server context:', error);
+            }
+
+            // Clear current chat
+            clearChatMessages();
+            
+            // Generate new chat ID
+            currentChatId = generateChatId();
+            
+            // Add welcome message for new chat
+            addWelcomeMessage();
+            
+            // Show notification
+            showNotification('New chat created! Server context cleared.', 'success');
+        }
+
+        async function resetCurrentChat() {
+            if (confirm('Are you sure you want to clear the current chat? This action cannot be undone.')) {
+                // Save current chat to history if it has messages
+                const currentMessages = document.querySelectorAll('#chatMessages .message');
+                if (currentMessages.length > 1) { // More than just the initial welcome message
+                    const chatData = {
+                        id: currentChatId,
+                        timestamp: Date.now(),
+                        messages: Array.from(currentMessages).map(msg => ({
+                            role: msg.classList.contains('user') ? 'user' : 'assistant',
+                            content: msg.querySelector('.message-content').textContent || msg.querySelector('.message-content').innerHTML
+                        }))
+                    };
+                    chatHistory.push(chatData);
+                }
+
+                // Clear server-side context
+                try {
+                    const response = await fetch('/api/clear-context', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        console.warn('Failed to clear server context, but continuing with client-side clear');
+                    }
+                } catch (error) {
+                    console.warn('Error clearing server context:', error);
+                }
+
+                // Clear current chat
+                clearChatMessages();
+                
+                // Generate new chat ID
+                currentChatId = generateChatId();
+                
+                // Add welcome message
+                addWelcomeMessage();
+                
+                // Show notification
+                showNotification('Chat cleared! Server context also cleared.', 'success');
+            }
+        }
+
+        function clearChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+        }
+
+        function addWelcomeMessage() {
+            const welcomeMessage = `
+                <div class="message assistant">
+                    <div class="message-avatar">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142-.0852 4.783-2.7582a.7712.7712 0 0 0 .7806 0l5.8428 3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.504 4.504 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
+                        </svg>
+                    </div>
+                    <div class="message-content">
+                        Hello! I'm your AI assistant. You can chat with me here, and optimized prompts from the right panel can be inserted into this chat.
+                    </div>
+                </div>
+            `;
+            document.getElementById('chatMessages').innerHTML = welcomeMessage;
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function toggleChatHistory() {
+            const panel = document.getElementById('chatHistoryPanel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                renderChatHistory();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function renderChatHistory() {
+            const content = document.getElementById('chatHistoryContent');
+            
+            if (chatHistory.length === 0) {
+                content.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 40px;">No chat history yet. Start a conversation to see it here!</div>';
+                return;
+            }
+
+            content.innerHTML = chatHistory.map((chat, index) => {
+                const date = new Date(chat.timestamp);
+                const timeString = date.toLocaleString();
+                const preview = chat.messages.length > 0 ? chat.messages[0].content.substring(0, 100) + '...' : 'Empty chat';
+                
+                return `
+                    <div class="chat-history-item" onclick="loadChat(${index})">
+                        <div class="chat-history-item-header">
+                            <div class="chat-history-item-title">Chat ${chatHistory.length - index}</div>
+                            <div class="chat-history-item-time">${timeString}</div>
+                        </div>
+                        <div class="chat-history-item-preview">${preview}</div>
+                        <div class="chat-history-actions">
+                            <button class="chat-history-action-btn" onclick="event.stopPropagation(); loadChat(${index})">Load</button>
+                            <button class="chat-history-action-btn delete" onclick="event.stopPropagation(); deleteChat(${index})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadChat(index) {
+            const chat = chatHistory[index];
+            if (!chat) return;
+
+            // Clear current chat
+            clearChatMessages();
+            
+            // Load chat messages
+            chat.messages.forEach(msg => {
+                addMessage(msg.content, msg.role);
+            });
+            
+            // Update current chat ID
+            currentChatId = chat.id;
+            
+            // Close history panel
+            document.getElementById('chatHistoryPanel').style.display = 'none';
+            
+            showNotification('Chat loaded successfully!', 'success');
+        }
+
+        function deleteChat(index) {
+            if (confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+                chatHistory.splice(index, 1);
+                renderChatHistory();
+                showNotification('Chat deleted!', 'success');
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) { // Less than 1 minute
+                return 'Just now';
+            } else if (diff < 3600000) { // Less than 1 hour
+                const minutes = Math.floor(diff / 60000);
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else if (diff < 86400000) { // Less than 1 day
+                const hours = Math.floor(diff / 3600000);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+
+        // Helper functions for new three-part structure
+        function getRequirementsFromProperties(properties) {
+            if (properties.requirements) {
+                return properties.requirements;
+            }
+            return properties; // Legacy format
+        }
+
+        function updatePropertyInStructure(properties, oldKey, newKey, value) {
+            if (properties.requirements) {
+                // New structure
+                if (oldKey !== newKey) {
+                    delete properties.requirements[oldKey];
+                }
+                properties.requirements[newKey] = value;
+            } else {
+                // Legacy structure
+                if (oldKey !== newKey) {
+                    delete properties[oldKey];
+                }
+                properties[newKey] = value;
+            }
+        }
+
+        function deletePropertyFromStructure(properties, key) {
+            if (properties.requirements) {
+                // New structure
+                delete properties.requirements[key];
+            } else {
+                // Legacy structure
+                delete properties[key];
+            }
+        }
+
+        function addPropertyToStructure(properties, key, value) {
+            if (properties.requirements) {
+                // New structure
+                properties.requirements[key] = value;
+            } else {
+                // Legacy structure
+                properties[key] = value;
+            }
         }
 
         // Enter key to send message
@@ -795,31 +1944,7 @@
             }
         });
 
-        // Function to send JSON to chat
-        function sendJsonToChat() {
-            if (!lastParsedProperties) {
-                alert('No properties available. Please generate properties first.');
-                return;
-            }
 
-            // Format the JSON nicely for display
-            const jsonString = JSON.stringify(lastParsedProperties, null, 2);
-            const formattedMessage = `**Extracted Properties JSON:**\n\`\`\`json\n${jsonString}\n\`\`\``;
-            
-            // Insert into chat
-            insertPromptToChat(formattedMessage);
-            
-            // Add visual feedback
-            const sendJsonBtn = document.getElementById('sendJsonToChatBtn');
-            const originalText = sendJsonBtn.textContent;
-            sendJsonBtn.textContent = 'Sent!';
-            sendJsonBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
-            
-            setTimeout(() => {
-                sendJsonBtn.textContent = originalText;
-                sendJsonBtn.style.background = 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)';
-            }, 2000);
-        }
 
         // Function to insert prompt into chat
         function insertPromptToChat(prompt) {
@@ -864,6 +1989,33 @@
             }
         }
 
+        // Function to reset the workflow
+        function resetWorkflow() {
+            // Show initialization module and hide object panel
+            showInitializationPanel();
+            
+            // Reset content
+            document.getElementById('query').value = '';
+            document.getElementById('response').innerHTML = '<em>Waiting for response...</em>';
+            
+            // Reset variables
+            lastParsedProperties = null;
+            candidateProperties = null;
+            
+            // Reset button states and progress indicators
+            const generateBtn = document.getElementById('generateBtn');
+            const generateProgress = document.getElementById('generateProgress');
+            generateBtn.disabled = false;
+            generateBtn.classList.remove('button-loading');
+            generateProgress.style.display = 'none';
+            
+            const sendToChatBtn = document.getElementById('sendToChatBtn');
+            const sendToChatProgress = document.getElementById('sendToChatProgress');
+            sendToChatBtn.disabled = false;
+            sendToChatBtn.classList.remove('button-loading');
+            sendToChatProgress.style.display = 'none';
+        }
+
         async function sendQuery() {
             const query = document.getElementById('query').value.trim();
             if (!query) {
@@ -872,20 +2024,20 @@
             }
 
             const generateBtn = document.getElementById('generateBtn');
+            const generateProgress = document.getElementById('generateProgress');
+            
+            // Show progress indicator
+            generateBtn.classList.add('button-loading');
+            generateProgress.style.display = 'inline-flex';
             generateBtn.disabled = true;
-            generateBtn.innerHTML = '<span class="loading"></span> Generating...';
+            
 
-            // Show processing indicator for response
-            const responseEl = document.getElementById('response');
-            responseEl.innerHTML = `
-                <div class="processing-indicator">
-                    <div class="processing-spinner"></div>
-                    <span>Extracting properties...</span>
-                </div>
-            `;
-            document.getElementById('optimizedPrompt').innerHTML = '<em>Regenerated prompt will appear here.</em>';
-            document.getElementById('regenerateBtn').style.display = 'none';
-            document.getElementById('sendJsonToChatBtn').style.display = 'none';
+            
+            // Hide step 2 until content is generated
+            const step2 = document.getElementById('step2');
+            step2.style.display = 'none';
+            step2.classList.remove('show');
+            
             lastParsedProperties = null;
 
             try {
@@ -902,62 +2054,80 @@
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('response').innerHTML = '<div class="error">Error: Failed to generate properties. Please try again.</div>';
+                // Don't show step 2 if there's an error
             } finally {
+                // Hide progress indicator and reset button
+                generateBtn.classList.remove('button-loading');
+                generateProgress.style.display = 'none';
                 generateBtn.disabled = false;
-                generateBtn.textContent = 'Generate Properties';
             }
         }
 
-        async function sendOptimizedPrompt() {
+        async function sendOptimizedPromptToChat() {
             if (!lastParsedProperties) {
                 console.log('No properties available. Please generate properties first.');
                 return;
             }
 
-            const regenerateBtn = document.getElementById('regenerateBtn');
-            regenerateBtn.disabled = true;
-            regenerateBtn.innerHTML = '<span class="loading"></span> Optimizing...';
-
-            // Show processing indicator
-            const optimizedEl = document.getElementById('optimizedPrompt');
-            optimizedEl.innerHTML = `
-                <div class="processing-indicator">
-                    <div class="processing-spinner"></div>
-                    <span>Generating optimized prompts...</span>
-                </div>
-            `;
+            const sendToChatBtn = document.getElementById('sendToChatBtn');
+            const sendToChatProgress = document.getElementById('sendToChatProgress');
+            
+            // Show progress indicator
+            sendToChatBtn.classList.add('button-loading');
+            sendToChatProgress.style.display = 'inline-flex';
+            sendToChatBtn.disabled = true;
 
             try {
-                // Convert object format back to array format for API
-                const propertiesArray = Object.keys(lastParsedProperties).map(key => ({
-                    feature_name: key,
-                    value: lastParsedProperties[key].value,
-                    candidates: lastParsedProperties[key].candidates || []
-                }));
+                // Prepare the data structure for the new prompt optimizer
+                const promptData = {
+                    "Main Task": lastParsedProperties.mainTask || "",
+                    "Audience": lastParsedProperties.audience || [],
+                    "Requirements": []
+                };
 
-                const response = await fetch('/api/regenerate', {
+                // Convert requirements to the expected format
+                if (lastParsedProperties.requirements) {
+                    Object.keys(lastParsedProperties.requirements).forEach(key => {
+                        promptData.Requirements.push({
+                            property_name: key,
+                            value: lastParsedProperties.requirements[key].value
+                        });
+                    });
+                }
+
+                console.log('Sending prompt data:', promptData);
+
+                const response = await fetch('/api/prompt-optimizer', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ features: propertiesArray })
+                    body: JSON.stringify({ prompt: JSON.stringify(promptData) })
                 });
 
                 const data = await response.json();
                 console.log('API Response:', data);
                 
                 if (data.error) {
-                    document.getElementById('optimizedPrompt').innerHTML = '<div class="error">Error: ' + data.error + '</div>';
+                    showNotification('Error: ' + data.error, 'error');
                 } else {
-                    // Handle the specific JSON response format with "prompts" array
-                    handleOptimizedResponse(data);
+                    // Send the optimized prompt to chat
+                    const chatInput = document.getElementById('chatInput');
+                    chatInput.value = data.text;
+                    
+                    // Automatically send the message
+                    sendChatMessage();
+                    
+                    showNotification('Optimized prompt sent to chat!', 'success');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('optimizedPrompt').innerHTML = '<div class="error">Error: Failed to regenerate prompt. Please try again.</div>';
+                showNotification('Error: Failed to send optimized prompt to chat. Please try again.', 'error');
             } finally {
-                regenerateBtn.disabled = false;
-                regenerateBtn.textContent = 'Regenerate Prompt';
+                // Hide progress indicator and reset button
+                sendToChatBtn.classList.remove('button-loading');
+                sendToChatProgress.style.display = 'none';
+                sendToChatBtn.disabled = false;
             }
         }
 
@@ -1012,8 +2182,36 @@
                     }
                 }
                 
-                // Convert array format to object format for internal use
-                if (Array.isArray(parsed)) {
+                // Handle new three-part structure: Main Task, Audience, Requirements
+                if (parsed && typeof parsed === 'object') {
+                    // Extract the three main parts
+                    const mainTask = parsed.Main_Task || parsed['Main Task'] || '';
+                    const audience = parsed.Audience || [];
+                    const requirements = parsed.Requirements || [];
+                    
+                    // Create the new structure
+                    const newStructure = {
+                        mainTask: mainTask,
+                        audience: audience,
+                        requirements: {}
+                    };
+                    
+                    // Convert requirements array to object format for the property panel
+                    if (Array.isArray(requirements)) {
+                        requirements.forEach((req, index) => {
+                            if (req.property_name && req.value !== undefined) {
+                                const key = req.property_name;
+                                newStructure.requirements[key] = {
+                                    value: req.value,
+                                    candidates: req.candidates || []
+                                };
+                            }
+                        });
+                    }
+                    
+                    lastParsedProperties = newStructure;
+                } else if (Array.isArray(parsed)) {
+                    // Handle legacy array format
                     const convertedProperties = {};
                     parsed.forEach(item => {
                         if (item.feature_name && item.value !== undefined) {
@@ -1024,7 +2222,7 @@
                             };
                         }
                     });
-                    lastParsedProperties = convertedProperties;
+                    lastParsedProperties = { requirements: convertedProperties };
                 } else {
                     lastParsedProperties = parsed;
                 }
@@ -1033,20 +2231,24 @@
                 
                 try {
                     const renderedValue = renderValue(lastParsedProperties, '', true, 'properties');
+                    renderedValue.classList.add('content-fade-in');
                     responseEl.appendChild(renderedValue);
                     
-                    // Add property form
+                    // Add property form with animation
                     const formContainer = createAddPropertyForm();
+                    formContainer.classList.add('content-fade-in');
                     responseEl.appendChild(formContainer);
                     
-                    // Show the regenerate button after properties are extracted
-                    document.getElementById('regenerateBtn').style.display = 'inline-block';
+                    // Hide initialization module and show object panel with animation
+                    showObjectPanel();
+                    setTimeout(() => {
+                        document.getElementById('step2').classList.add('show');
+                    }, 10);
                     
-                    // Show the send JSON to chat button
-                    document.getElementById('sendJsonToChatBtn').style.display = 'inline-block';
                 } catch (renderError) {
                     console.error('Error rendering properties:', renderError);
                     responseEl.innerHTML = '<div class="error">Error rendering properties: ' + renderError.message + '</div>';
+                    // Don't show step 2 if there's an error
                 }
                 
                             } catch (error) {
@@ -1061,6 +2263,13 @@
 
         function handleOptimizedResponse(message) {
             const optimizedEl = document.getElementById('optimizedPrompt');
+            
+            // Show step 3 with animation
+            const step3 = document.getElementById('step3');
+            step3.style.display = 'block';
+            setTimeout(() => {
+                step3.classList.add('show');
+            }, 10);
             
             try {
                 let parsed;
@@ -1132,6 +2341,7 @@
                         form.appendChild(div);
                     });
                     
+                    form.classList.add('content-fade-in');
                     optimizedEl.appendChild(form);
                     
                     // Add copy button
@@ -1167,6 +2377,7 @@
                             alert('Please select a prompt to copy.');
                         }
                     };
+                    copyBtn.classList.add('content-fade-in');
                     optimizedEl.appendChild(copyBtn);
 
                     // Add insert to chat button
@@ -1194,12 +2405,17 @@
                             alert('Please select a prompt to insert.');
                         }
                     };
+                    insertBtn.classList.add('content-fade-in');
                     optimizedEl.appendChild(insertBtn);
                     
                 } else {
                     // If no prompts array found, try to display the raw response
                     console.log('No prompts array found, displaying raw response');
-                    optimizedEl.innerHTML = '<div class="feature-block">' + message.text + '</div>';
+                    const rawResponseDiv = document.createElement('div');
+                    rawResponseDiv.className = 'feature-block content-fade-in';
+                    rawResponseDiv.innerHTML = message.text;
+                    optimizedEl.innerHTML = '';
+                    optimizedEl.appendChild(rawResponseDiv);
                     
                     // Add copy button for raw response
                     const copyBtn = document.createElement('button');
@@ -1216,6 +2432,7 @@
                             alert('Failed to copy to clipboard. Please try again.');
                         });
                     };
+                    copyBtn.classList.add('content-fade-in');
                     optimizedEl.appendChild(copyBtn);
 
                     // Add insert to chat button for raw response
@@ -1225,11 +2442,13 @@
                     insertBtn.onclick = function() {
                         insertPromptToChat(message.text);
                     };
+                    insertBtn.classList.add('content-fade-in');
                     optimizedEl.appendChild(insertBtn);
                 }
             } catch (error) {
                 console.error('Failed to parse optimized prompt JSON:', error);
                 optimizedEl.innerHTML = '<div class="error">Failed to parse response. Raw output: ' + JSON.stringify(message.text, null, 2) + '</div>';
+                // Don't show step 3 if there's an error
             }
         }
 
@@ -1250,18 +2469,281 @@
 
                     container.appendChild(ul);
                 } else {
-                                    // For properties context, create draggable items
+                                    // For properties context, create three-part structure
                 if (isTopLevel && context === 'properties') {
-                    const propertiesContainer = document.createElement('div');
-                    propertiesContainer.id = 'propertiesContainer';
+
+                    // Check if this is the new three-part structure
+                    if (value.mainTask !== undefined || value.audience !== undefined || value.requirements !== undefined) {
+                        // Render Main Task section
+                        if (value.mainTask !== undefined) {
+                            const mainTaskSection = document.createElement('div');
+                            mainTaskSection.className = 'main-task-section';
+                            mainTaskSection.style.marginBottom = '20px';
+                            mainTaskSection.style.padding = '15px';
+                            mainTaskSection.style.backgroundColor = '#f8f9fa';
+                            mainTaskSection.style.borderRadius = '8px';
+                            mainTaskSection.style.border = '1px solid #e9ecef';
+                            
+                            const mainTaskLabel = document.createElement('h4');
+                            mainTaskLabel.textContent = 'Main Task:';
+                            mainTaskLabel.style.margin = '0 0 10px 0';
+                            mainTaskLabel.style.color = '#495057';
+                            mainTaskSection.appendChild(mainTaskLabel);
+                            
+                            const mainTaskInput = document.createElement('input');
+                            mainTaskInput.type = 'text';
+                            mainTaskInput.value = value.mainTask;
+                            mainTaskInput.style.cssText = `
+                                width: 100%;
+                                padding: 8px 12px;
+                                border: 1px solid #ced4da;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                color: #212529;
+                                background-color: white;
+                                transition: border-color 0.2s ease;
+                            `;
+                            
+                            mainTaskInput.addEventListener('input', () => {
+                                if (lastParsedProperties) {
+                                    lastParsedProperties.mainTask = mainTaskInput.value;
+                                    console.log('Updated main task:', mainTaskInput.value);
+                                }
+                            });
+                            
+                            mainTaskInput.addEventListener('focus', () => {
+                                mainTaskInput.style.borderColor = '#007bff';
+                                mainTaskInput.style.boxShadow = '0 0 0 0.2rem rgba(0, 123, 255, 0.25)';
+                            });
+                            
+                            mainTaskInput.addEventListener('blur', () => {
+                                mainTaskInput.style.borderColor = '#ced4da';
+                                mainTaskInput.style.boxShadow = 'none';
+                            });
+                            
+                            mainTaskSection.appendChild(mainTaskInput);
+                            
+                            container.appendChild(mainTaskSection);
+                        }
+                        
+                        // Render Audience section
+                        if (value.audience && Array.isArray(value.audience)) {
+                            const audienceSection = document.createElement('div');
+                            audienceSection.className = 'audience-section';
+                            audienceSection.style.marginBottom = '20px';
+                            audienceSection.style.padding = '15px';
+                            audienceSection.style.backgroundColor = '#f8f9fa';
+                            audienceSection.style.borderRadius = '8px';
+                            audienceSection.style.border = '1px solid #e9ecef';
+                            
+                            const audienceLabel = document.createElement('h4');
+                            audienceLabel.textContent = 'Audience:';
+                            audienceLabel.style.margin = '0 0 10px 0';
+                            audienceLabel.style.color = '#495057';
+                            audienceSection.appendChild(audienceLabel);
+                            
+                            const audienceContainer = document.createElement('div');
+                            audienceContainer.style.marginBottom = '10px';
+                            
+                            // Create editable audience items
+                            const audienceArray = value.audience.length > 0 ? value.audience : [''];
+                            audienceArray.forEach((audience, index) => {
+                                const audienceItem = document.createElement('div');
+                                audienceItem.style.cssText = `
+                                    display: flex;
+                                    align-items: center;
+                                    margin-bottom: 8px;
+                                    gap: 8px;
+                                    position: relative;
+                                `;
+                                
+                                const audienceInput = document.createElement('input');
+                                audienceInput.type = 'text';
+                                audienceInput.value = audience;
+                                audienceInput.style.cssText = `
+                                    flex: 1;
+                                    padding: 6px 30px 6px 10px;
+                                    border: 1px solid #ced4da;
+                                    border-radius: 4px;
+                                    font-size: 14px;
+                                    color: #212529;
+                                    background-color: white;
+                                    transition: border-color 0.2s ease;
+                                `;
+                                
+                                audienceInput.addEventListener('input', () => {
+                                    if (lastParsedProperties && lastParsedProperties.audience) {
+                                        lastParsedProperties.audience[index] = audienceInput.value;
+                                        console.log('Updated audience item:', index, audienceInput.value);
+                                    }
+                                });
+                                
+                                audienceInput.addEventListener('focus', () => {
+                                    audienceInput.style.borderColor = '#007bff';
+                                    audienceInput.style.boxShadow = '0 0 0 0.2rem rgba(0, 123, 255, 0.25)';
+                                });
+                                
+                                audienceInput.addEventListener('blur', () => {
+                                    audienceInput.style.borderColor = '#ced4da';
+                                    audienceInput.style.boxShadow = 'none';
+                                });
+                                
+                                // Add delete button for audience items
+                                const deleteAudienceBtn = document.createElement('button');
+                                deleteAudienceBtn.textContent = '×';
+                                deleteAudienceBtn.style.position = 'absolute';
+                                deleteAudienceBtn.style.right = '0';
+                                deleteAudienceBtn.style.top = '50%';
+                                deleteAudienceBtn.style.transform = 'translateY(-50%)';
+                                deleteAudienceBtn.style.backgroundColor = '#dc3545';
+                                deleteAudienceBtn.style.color = 'white';
+                                deleteAudienceBtn.style.border = 'none';
+                                deleteAudienceBtn.style.borderRadius = '3px';
+                                deleteAudienceBtn.style.width = '20px';
+                                deleteAudienceBtn.style.height = '20px';
+                                deleteAudienceBtn.style.cursor = 'pointer';
+                                deleteAudienceBtn.style.fontSize = '12px';
+                                deleteAudienceBtn.style.display = 'flex';
+                                deleteAudienceBtn.style.alignItems = 'center';
+                                deleteAudienceBtn.style.justifyContent = 'center';
+                                deleteAudienceBtn.style.zIndex = '1000';
+                                
+                                deleteAudienceBtn.addEventListener('mouseenter', () => {
+                                    deleteAudienceBtn.style.backgroundColor = '#c82333';
+                                });
+                                
+                                deleteAudienceBtn.addEventListener('mouseleave', () => {
+                                    deleteAudienceBtn.style.backgroundColor = '#dc3545';
+                                });
+                                
+                                deleteAudienceBtn.onclick = () => {
+                                    if (lastParsedProperties && lastParsedProperties.audience) {
+                                        lastParsedProperties.audience.splice(index, 1);
+                                        console.log('Removed audience item:', index);
+                                        // Re-render to reflect changes
+                                        setTimeout(() => {
+                                            const responseEl = document.getElementById('response');
+                                            responseEl.innerHTML = '';
+                                            responseEl.appendChild(renderValue(lastParsedProperties, '', true, 'properties'));
+                                            
+                                            const formContainer = createAddPropertyForm();
+                                            responseEl.appendChild(formContainer);
+                                        }, 100);
+                                    }
+                                };
+                                
+                                audienceItem.appendChild(audienceInput);
+                                audienceItem.appendChild(deleteAudienceBtn);
+                                audienceContainer.appendChild(audienceItem);
+                            });
+                            
+                            // Add button to add new audience item
+                            const addAudienceBtn = document.createElement('button');
+                            addAudienceBtn.textContent = '+ Add Audience';
+                            addAudienceBtn.style.cssText = `
+                                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                padding: 6px 12px;
+                                cursor: pointer;
+                                font-size: 12px;
+                                font-weight: 500;
+                                margin-top: 8px;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 2px 6px rgba(44, 62, 80, 0.3);
+                            `;
+                            
+                            addAudienceBtn.addEventListener('mouseenter', () => {
+                                addAudienceBtn.style.background = 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)';
+                                addAudienceBtn.style.transform = 'translateY(-1px)';
+                                addAudienceBtn.style.boxShadow = '0 4px 8px rgba(44, 62, 80, 0.4)';
+                            });
+                            
+                            addAudienceBtn.addEventListener('mouseleave', () => {
+                                addAudienceBtn.style.background = 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)';
+                                addAudienceBtn.style.transform = 'translateY(0)';
+                                addAudienceBtn.style.boxShadow = '0 2px 6px rgba(44, 62, 80, 0.3)';
+                            });
+                            
+                            addAudienceBtn.onclick = () => {
+                                if (lastParsedProperties && lastParsedProperties.audience) {
+                                    lastParsedProperties.audience.push('');
+                                    console.log('Added new audience item');
+                                    // Re-render to reflect changes
+                                    setTimeout(() => {
+                                        const responseEl = document.getElementById('response');
+                                        responseEl.innerHTML = '';
+                                        responseEl.appendChild(renderValue(lastParsedProperties, '', true, 'properties'));
+                                        
+                                        const formContainer = createAddPropertyForm();
+                                        responseEl.appendChild(formContainer);
+                                    }, 100);
+                                }
+                            };
+                            
+                            audienceSection.appendChild(audienceContainer);
+                            audienceSection.appendChild(addAudienceBtn);
+                            
+                            container.appendChild(audienceSection);
+                        }
+                        
+                        // Render Requirements section (using existing property panel logic)
+                        if (value.requirements && Object.keys(value.requirements).length > 0) {
+                            const requirementsSection = document.createElement('div');
+                            requirementsSection.className = 'requirements-section';
+                            requirementsSection.style.marginTop = '20px';
+                            
+                            const requirementsLabel = document.createElement('h4');
+                            requirementsLabel.textContent = 'Requirements:';
+                            requirementsLabel.style.margin = '0 0 15px 0';
+                            requirementsLabel.style.color = '#495057';
+                            requirementsSection.appendChild(requirementsLabel);
+                            
+                            const propertiesContainer = document.createElement('div');
+                            propertiesContainer.id = 'propertiesContainer';
+                            
+                            // Add ranking info
+                            const rankingInfo = document.createElement('div');
+                            rankingInfo.className = 'ranking-info';
+                            rankingInfo.innerHTML = '<strong>Property Ranking:</strong> Drag requirements to reorder by importance. Higher ranked requirements will be prioritized in prompt generation.';
+                            rankingInfo.style.marginBottom = '15px';
+                            propertiesContainer.appendChild(rankingInfo);
+                            
+                            // Create property items for requirements
+                            const propertyKeys = Object.keys(value.requirements);
+                            console.log('Creating requirement items in order:', propertyKeys);
+                            propertyKeys.forEach((key, index) => {
+                                console.log(`Creating requirement item ${index + 1}: ${key}`);
+                                const propertyItem = createDraggablePropertyItem(key, value.requirements[key], index + 1);
+                                propertiesContainer.appendChild(propertyItem);
+                            });
+                            
+                            requirementsSection.appendChild(propertiesContainer);
+                            
+                            if (window.Sortable && propertiesContainer) {
+                                Sortable.create(propertiesContainer, {
+                                    animation: 150,
+                                    handle: '.drag-handle',
+                                    onEnd: function () {
+                                        updatePropertyRanks();
+                                        updatePropertiesOrder();
+                                    }
+                                });
+                            }
+                            
+                            container.appendChild(requirementsSection);
+                        }
+                    } else {
+                        // Legacy single-properties format
+                        const propertiesContainer = document.createElement('div');
+                        propertiesContainer.id = 'propertiesContainer';
                         
                         // Add ranking info
                         const rankingInfo = document.createElement('div');
                         rankingInfo.className = 'ranking-info';
                         rankingInfo.innerHTML = '<strong> Property Ranking:</strong> Drag properties to reorder by importance. Higher ranked properties will be prioritized in prompt generation.';
                         propertiesContainer.appendChild(rankingInfo);
-
-
 
                         // Create property items
                         const propertyKeys = Object.keys(value);
@@ -1283,12 +2765,14 @@
                                 }
                             });
                         }
+                    }
                     } else {
                         // Original rendering for non-properties context
                         for (const [key, val] of Object.entries(value)) {
                             const row = document.createElement('div');
                             row.className = 'field';
                             row.style.position = 'relative';
+                            row.style.paddingRight = '30px';
                             
                             const label = document.createElement('strong');
                             
@@ -1311,11 +2795,11 @@
                                     const newKey = nameInput.value.trim();
                                     if (newKey && newKey !== key && lastParsedProperties) {
                                         // Store the old value
-                                        const oldValue = lastParsedProperties[key];
+                                        const requirements = getRequirementsFromProperties(lastParsedProperties);
+                                        const oldValue = requirements[key];
                                         
-                                        // Delete old key and add new key
-                                        delete lastParsedProperties[key];
-                                        lastParsedProperties[newKey] = oldValue;
+                                        // Update property in structure
+                                        updatePropertyInStructure(lastParsedProperties, key, newKey, oldValue);
                                         
                                         console.log('Updated property name from:', key, 'to:', newKey);
                                         console.log('Current properties:', lastParsedProperties);
@@ -1351,7 +2835,8 @@
                                 deleteBtn.textContent = '×';
                                 deleteBtn.style.position = 'absolute';
                                 deleteBtn.style.right = '0';
-                                deleteBtn.style.top = '0';                
+                                deleteBtn.style.top = '50%';
+                                deleteBtn.style.transform = 'translateY(-50%)';                
                                 deleteBtn.style.backgroundColor = '#dc3545';
                                 deleteBtn.style.color = 'white';
                                 deleteBtn.style.border = 'none';
@@ -1372,8 +2857,8 @@
                                     console.log('Delete button clicked for:', key);
                                     console.log('Current lastParsedProperties:', lastParsedProperties);
                                     
-                                    if (lastParsedProperties && lastParsedProperties[key]) {
-                                        delete lastParsedProperties[key];
+                                    if (lastParsedProperties) {
+                                        deletePropertyFromStructure(lastParsedProperties, key);
                                         console.log('Property deleted. Updated properties:', lastParsedProperties);
                                         
                                         // Re-render the properties
@@ -1410,10 +2895,13 @@
                                 valueInput.style.width = '120px';
                                 
                                 valueInput.addEventListener('input', () => {
-                                    if (lastParsedProperties && lastParsedProperties[parentKey]) {
-                                        lastParsedProperties[parentKey].value = valueInput.value;
-                                        console.log('Updated property value:', parentKey, '=', valueInput.value);
-                                        console.log('Current properties:', lastParsedProperties);
+                                    if (lastParsedProperties) {
+                                        const requirements = getRequirementsFromProperties(lastParsedProperties);
+                                        if (requirements[parentKey]) {
+                                            requirements[parentKey].value = valueInput.value;
+                                            console.log('Updated property value:', parentKey, '=', valueInput.value);
+                                            console.log('Current properties:', lastParsedProperties);
+                                        }
                                     }
                                 });
                                 
@@ -1608,8 +3096,11 @@
             valueInput.placeholder = 'Property value';
 
             valueInput.addEventListener('input', () => {
-                if (lastParsedProperties && lastParsedProperties[key]) {
-                    lastParsedProperties[key].value = valueInput.value;
+                if (lastParsedProperties) {
+                    const requirements = getRequirementsFromProperties(lastParsedProperties);
+                    if (requirements[key]) {
+                        requirements[key].value = valueInput.value;
+                    }
                 }
             });
 
@@ -1675,8 +3166,11 @@
                         alert('Error: ' + data.error);
                     } else {
                         // Store candidates in the property data
-                        if (lastParsedProperties && lastParsedProperties[key]) {
-                            lastParsedProperties[key].candidates = data.candidates;
+                        if (lastParsedProperties) {
+                            const requirements = getRequirementsFromProperties(lastParsedProperties);
+                            if (requirements[key]) {
+                                requirements[key].candidates = data.candidates;
+                            }
                         }
                         // Display candidates as a list
                         displayCandidates(key, data.candidates, propertyItem);
@@ -1769,9 +3263,9 @@
                     return;
                 }
 
-                lastParsedProperties[key] = {
+                addPropertyToStructure(lastParsedProperties, key, {
                     value: val
-                };
+                });
 
                 // Re-render property list
                 const responseEl = document.getElementById('response');
@@ -1853,10 +3347,13 @@
             
             clearAllBtn.onclick = () => {
                 // Remove all candidates from the property data
-                if (lastParsedProperties && lastParsedProperties[propertyKey]) {
-                    delete lastParsedProperties[propertyKey].candidates;
-                    console.log('All candidates cleared for property:', propertyKey);
-                    console.log('Updated properties:', lastParsedProperties);
+                if (lastParsedProperties) {
+                    const requirements = getRequirementsFromProperties(lastParsedProperties);
+                    if (requirements[propertyKey]) {
+                        delete requirements[propertyKey].candidates;
+                        console.log('All candidates cleared for property:', propertyKey);
+                        console.log('Updated properties:', lastParsedProperties);
+                    }
                 }
                 
                 // Remove the candidates display
@@ -1941,14 +3438,17 @@
 
                 deleteCandidateBtn.onclick = () => {
                     // Remove this specific candidate from the property data
-                    if (lastParsedProperties && lastParsedProperties[propertyKey] && lastParsedProperties[propertyKey].candidates) {
-                        const updatedCandidates = lastParsedProperties[propertyKey].candidates.filter(c => c !== candidate);
-                        if (updatedCandidates.length === 0) {
-                            delete lastParsedProperties[propertyKey].candidates;
-                            candidatesDisplay.remove();
-                        } else {
-                            lastParsedProperties[propertyKey].candidates = updatedCandidates;
-                            displayCandidates(propertyKey, updatedCandidates, propertyItem);
+                    if (lastParsedProperties) {
+                        const requirements = getRequirementsFromProperties(lastParsedProperties);
+                        if (requirements[propertyKey] && requirements[propertyKey].candidates) {
+                            const updatedCandidates = requirements[propertyKey].candidates.filter(c => c !== candidate);
+                            if (updatedCandidates.length === 0) {
+                                delete requirements[propertyKey].candidates;
+                                candidatesDisplay.remove();
+                            } else {
+                                requirements[propertyKey].candidates = updatedCandidates;
+                                displayCandidates(propertyKey, updatedCandidates, propertyItem);
+                            }
                         }
                     }
                 };
@@ -1967,6 +3467,167 @@
             }
             
             propertyItem.appendChild(candidatesDisplay);
+        }
+
+        // Base Class Save and Load Functions
+        async function saveBaseClass() {
+            if (!lastParsedProperties) {
+                showNotification('No properties available to save. Please generate properties first.', 'error');
+                return;
+            }
+
+            // Show save modal
+            document.getElementById('saveBaseClassModal').style.display = 'flex';
+            document.getElementById('baseClassNameInput').focus();
+        }
+
+        function closeSaveBaseClassModal() {
+            document.getElementById('saveBaseClassModal').style.display = 'none';
+            document.getElementById('baseClassNameInput').value = '';
+        }
+
+        async function confirmSaveBaseClass() {
+            const fileName = document.getElementById('baseClassNameInput').value.trim();
+            
+            if (!fileName) {
+                showNotification('Please enter a name for the base class.', 'error');
+                return;
+            }
+
+            // Validate filename (no special characters except hyphens and underscores)
+            if (!/^[a-zA-Z0-9_-]+$/.test(fileName)) {
+                showNotification('Please use only letters, numbers, hyphens, and underscores in the name.', 'error');
+                return;
+            }
+
+            try {
+                // Prepare the data structure for saving (using consistent format)
+                const promptData = {
+                    mainTask: lastParsedProperties.mainTask || "",
+                    audience: lastParsedProperties.audience || [],
+                    requirements: {}
+                };
+
+                // Convert requirements to the expected format
+                if (lastParsedProperties.requirements) {
+                    Object.keys(lastParsedProperties.requirements).forEach(key => {
+                        promptData.requirements[key] = {
+                            property_name: key,
+                            value: lastParsedProperties.requirements[key].value
+                        };
+                    });
+                }
+
+                const response = await fetch('/api/save-base-class', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ promptData, fileName })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'error');
+                } else {
+                    showNotification(data.message, 'success');
+                    closeSaveBaseClassModal();
+                }
+            } catch (error) {
+                console.error('Error saving base class:', error);
+                showNotification('Error: Failed to save base class. Please try again.', 'error');
+            }
+        }
+
+        async function loadBaseClass() {
+            try {
+                const response = await fetch('/api/base-classes');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'error');
+                    return;
+                }
+
+                const baseClassList = document.getElementById('baseClassList');
+                baseClassList.innerHTML = '';
+
+                if (data.baseClasses.length === 0) {
+                    baseClassList.innerHTML = '<p style="text-align: center; color: #6c757d;">No base classes found. Save some first!</p>';
+                } else {
+                    data.baseClasses.forEach(className => {
+                        const item = document.createElement('div');
+                        item.className = 'base-class-item';
+                        item.textContent = className;
+                        item.onclick = () => selectBaseClass(className, item);
+                        baseClassList.appendChild(item);
+                    });
+                }
+
+                // Show modal
+                const modal = document.getElementById('baseClassModal');
+                modal.style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error loading base classes:', error);
+                showNotification('Error: Failed to load base classes. Please try again.', 'error');
+            }
+        }
+
+        function selectBaseClass(className, element) {
+            // Remove previous selection
+            document.querySelectorAll('.base-class-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Select current item
+            element.classList.add('selected');
+            selectedBaseClass = className;
+        }
+
+        function closeBaseClassModal() {
+            document.getElementById('baseClassModal').style.display = 'none';
+            selectedBaseClass = null;
+        }
+
+        async function loadSelectedBaseClass() {
+            if (!selectedBaseClass) {
+                showNotification('Please select a base class to load.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/base-classes/${selectedBaseClass}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'error');
+                    return;
+                }
+
+                // Load the base class (now in consistent format)
+                const baseClass = data.baseClass;
+                
+                // Convert to the expected structure format
+                const newStructure = convertBaseClassToStructure(baseClass);
+
+                // Update the UI with the loaded base class
+                lastParsedProperties = newStructure;
+                
+                // Hide initialization module and show object panel
+                showObjectPanel();
+                
+                // Render the loaded properties using the modular function
+                renderPropertiesToUI(newStructure);
+                
+                showNotification(`Loaded base class: ${selectedBaseClass}`, 'success');
+                closeBaseClassModal();
+                
+            } catch (error) {
+                console.error('Error loading base class:', error);
+                showNotification('Error: Failed to load base class. Please try again.', 'error');
+            }
         }
 
 

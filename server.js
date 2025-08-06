@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 require('dotenv').config();
 
@@ -10,8 +11,8 @@ const PORT = process.env.PORT || 3000;
 // Check for required environment variables
 const requiredEnvVars = [
     'OPENAI_API_KEY',
-    'FEATURE_GENERATOR',
-    'PROMPT_GENERATOR',
+    'PROPERTY_GENERATOR',
+    'PROMPT_OPTIMIZER',
     'CANDIDATE_GENERATOR',
     'GENERAL_GPT'
 ];
@@ -35,6 +36,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Simple fetch function
+async function simpleFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`❌ API call failed for ${url}:`, error.message);
+        throw error;
+    }
+}
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -45,15 +62,41 @@ app.post('/api/query', async (req, res) => {
     try {
         const { prompt } = req.body;
         
+        console.log('🚀 Starting property extraction for prompt:', prompt.substring(0, 100) + '...');
+        const startTime = Date.now();
+        
         // Check if environment variables are set
-        if (!process.env.OPENAI_API_KEY || !process.env.FEATURE_GENERATOR) {
+        if (!process.env.OPENAI_API_KEY || !process.env.PROPERTY_GENERATOR) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',
-                details: 'OPENAI_API_KEY and FEATURE_GENERATOR are required.'
+                details: 'OPENAI_API_KEY and PROPERTY_GENERATOR are required.'
             });
         }
         
-        const response = await queryCustomGPT(prompt);
+        let response;
+        try {
+            response = await queryCustomGPT(prompt);
+        } catch (error) {
+            console.error('❌ Property extraction failed:', error.message);
+            
+            // Fallback: return a simple structure if the assistant is too slow
+            const fallbackResponse = {
+                "Main Task": "task",
+                "Audience": ["everyone"],
+                "Requirements": [
+                    {
+                        "property_name": "prompt",
+                        "value": prompt
+                    }
+                ]
+            };
+            
+            console.log('🔄 Using fallback response');
+            response = JSON.stringify(fallbackResponse);
+        }
+        
+        const endTime = Date.now();
+        console.log(`✅ Property extraction completed in ${endTime - startTime}ms`);
         
         // Try to parse the response as JSON if it's a JSON string
         let parsedResponse = response;
@@ -67,40 +110,44 @@ app.post('/api/query', async (req, res) => {
             console.log('Failed to parse response as JSON, keeping as string:', parseError.message);
         }
         
-        res.json({ type: 'response', text: parsedResponse });
+        res.json({ 
+            type: 'properties', 
+            text: response,
+            parsed: parsedResponse
+        });
+        
     } catch (error) {
-        console.error('Error in query endpoint:', error);
+        console.error('Error in /api/query:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
 // API endpoint to regenerate prompt from features
-app.post('/api/regenerate', async (req, res) => {
+app.post('/api/regenerate-prompt', async (req, res) => {
     try {
         const { features } = req.body;
         
-        // Check if environment variables are set
-        if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_GENERATOR) {
+        if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',
-                details: 'OPENAI_API_KEY and PROMPT_GENERATOR are required.'
+                details: 'OPENAI_API_KEY and PROMPT_OPTIMIZER are required.'
             });
         }
         
         const response = await regeneratePromptFromFeatures(features);
-        res.json({ type: 'optimized', text: response });
+        res.json({ type: 'regenerated-prompt', text: response });
+        
     } catch (error) {
-        console.error('Error in regenerate endpoint:', error);
+        console.error('Error in /api/regenerate-prompt:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
-// API endpoint to generate candidates
-app.post('/api/candidates', async (req, res) => {
+// API endpoint to query candidate generator
+app.post('/api/candidate-generator', async (req, res) => {
     try {
         const { features } = req.body;
         
-        // Check if environment variables are set
         if (!process.env.OPENAI_API_KEY || !process.env.CANDIDATE_GENERATOR) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',
@@ -110,18 +157,18 @@ app.post('/api/candidates', async (req, res) => {
         
         const response = await queryCandidateGenerator(features);
         res.json({ type: 'candidates', text: response });
+        
     } catch (error) {
-        console.error('Error in candidates endpoint:', error);
+        console.error('Error in /api/candidate-generator:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
-// API endpoint to generate candidates for individual properties
+// API endpoint to generate candidates for a term
 app.post('/api/generate-candidates', async (req, res) => {
     try {
-        const { term, propertyKey } = req.body;
+        const { term } = req.body;
         
-        // Check if environment variables are set
         if (!process.env.OPENAI_API_KEY || !process.env.CANDIDATE_GENERATOR) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',
@@ -130,19 +177,19 @@ app.post('/api/generate-candidates', async (req, res) => {
         }
         
         const candidates = await generateCandidatesForTerm(term);
-        res.json({ candidates });
+        res.json({ type: 'candidates', candidates });
+        
     } catch (error) {
-        console.error('Error in generate-candidates endpoint:', error);
+        console.error('Error in /api/generate-candidates:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
-// API endpoint to send prompt to general GPT
-app.post('/api/send-to-gpt', async (req, res) => {
+// API endpoint to send message to general GPT
+app.post('/api/general-gpt', async (req, res) => {
     try {
         const { prompt } = req.body;
         
-        // Check if environment variables are set
         if (!process.env.OPENAI_API_KEY || !process.env.GENERAL_GPT) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',
@@ -151,17 +198,142 @@ app.post('/api/send-to-gpt', async (req, res) => {
         }
         
         const response = await sendToGeneralGPT(prompt);
-        res.json({ type: 'gpt-response', text: response });
+        res.json({ type: 'general-gpt', text: response });
+        
     } catch (error) {
-        console.error('Error in send-to-gpt endpoint:', error);
+        console.error('Error in /api/general-gpt:', error);
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
-// Function to query ChatGPT API
+// API endpoint for prompt optimizer
+app.post('/api/prompt-optimizer', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        
+        if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER) {
+            return res.status(500).json({ 
+                error: 'Missing environment variables. Please check your .env file.',
+                details: 'OPENAI_API_KEY and PROMPT_OPTIMIZER are required.'
+            });
+        }
+        
+        const response = await sendToPromptOptimizer(prompt);
+        res.json({ type: 'optimized-prompt', text: response });
+        
+    } catch (error) {
+        console.error('Error in prompt-optimizer endpoint:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+    }
+});
+
+// API endpoint to clear context
+app.post('/api/clear-context', async (req, res) => {
+    try {
+        // Clear any server-side cache or context
+        console.log('🧹 Clearing server context...');
+        res.json({ message: 'Context cleared successfully' });
+    } catch (error) {
+        console.error('Error clearing context:', error);
+        res.status(500).json({ error: 'Failed to clear context: ' + error.message });
+    }
+});
+
+// API endpoint to save prompt object as base class
+app.post('/api/save-base-class', async (req, res) => {
+    try {
+        const { promptData, fileName } = req.body;
+        
+        if (!promptData || !fileName) {
+            return res.status(400).json({ error: 'Missing promptData or fileName' });
+        }
+        
+        // Create base classes directory if it doesn't exist
+        const baseClassesDir = path.join(__dirname, 'base classes');
+        if (!fs.existsSync(baseClassesDir)) {
+            fs.mkdirSync(baseClassesDir, { recursive: true });
+        }
+        
+        // Create the base class object (using consistent format)
+        const baseClass = {
+            mainTask: promptData.mainTask || "",
+            requirements: {},
+            audience: promptData.audience || ["everyone"]
+        };
+        
+        // Convert requirements to the expected format
+        if (promptData.requirements) {
+            Object.keys(promptData.requirements).forEach(key => {
+                baseClass.requirements[key] = {
+                    property_name: key,
+                    value: ""
+                };
+            });
+        }
+        
+        // Save to file
+        const filePath = path.join(baseClassesDir, `${fileName}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(baseClass, null, 2));
+        
+        console.log(`💾 Saved base class: ${fileName}.json`);
+        res.json({ message: `Base class saved as ${fileName}.json` });
+        
+    } catch (error) {
+        console.error('Error saving base class:', error);
+        res.status(500).json({ error: 'Failed to save base class: ' + error.message });
+    }
+});
+
+// API endpoint to get list of available base classes
+app.get('/api/base-classes', async (req, res) => {
+    try {
+        const baseClassesDir = path.join(__dirname, 'base classes');
+        
+        if (!fs.existsSync(baseClassesDir)) {
+            return res.json({ baseClasses: [] });
+        }
+        
+        const files = fs.readdirSync(baseClassesDir);
+        const baseClasses = files
+            .filter(file => file.endsWith('.json'))
+            .map(file => file.replace('.json', ''));
+        
+        console.log(`📁 Found ${baseClasses.length} base classes`);
+        res.json({ baseClasses });
+        
+    } catch (error) {
+        console.error('Error getting base classes:', error);
+        res.status(500).json({ error: 'Failed to get base classes: ' + error.message });
+    }
+});
+
+// API endpoint to load a specific base class
+app.get('/api/base-classes/:fileName', async (req, res) => {
+    try {
+        const { fileName } = req.params;
+        const baseClassesDir = path.join(__dirname, 'base classes');
+        const filePath = path.join(baseClassesDir, `${fileName}.json`);
+        
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Base class not found' });
+        }
+        
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const baseClass = JSON.parse(fileContent);
+        
+        console.log(`📂 Loaded base class: ${fileName}.json`);
+        res.json({ baseClass });
+        
+    } catch (error) {
+        console.error('Error loading base class:', error);
+        res.status(500).json({ error: 'Failed to load base class: ' + error.message });
+    }
+});
+
+// Function to query custom GPT
 async function queryCustomGPT(prompt) {
     const apiKey = process.env.OPENAI_API_KEY;
-    const featureGenerator = process.env.FEATURE_GENERATOR;
+    const featureGenerator = process.env.PROPERTY_GENERATOR;
 
     if (!apiKey || !featureGenerator) {
         return 'Missing API key or Assistant ID';
@@ -173,67 +345,83 @@ async function queryCustomGPT(prompt) {
         'OpenAI-Beta': 'assistants=v2'
     };
 
-    // 1. Create a thread
-    const threadRes = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers,
-    });
-
-    const threadData = await threadRes.json();
-    const threadId = threadData.id;
-
-    // 2. Add user message to the thread
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            role: 'user',
-            content: prompt
-        })
-    });
-
-    // 3. Run the assistant on the thread
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            assistant_id: featureGenerator,
-        })
-    });
-
-    const runData = await runRes.json();
-    const runId = runData.id;
-
-    // 4. Poll until the run is complete
-    let status = 'in_progress';
-    while (status !== 'completed') {
-        await new Promise(res => setTimeout(res, 1000));
-        const checkRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
-            headers
+    try {
+        console.log('📝 Creating thread...');
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers,
         });
-        const checkData = await checkRes.json();
-        status = checkData.status;
-        if (status === 'failed' || status === 'cancelled') {
-            return `Error: Assistant run ${status}`;
+        const threadId = threadData.id;
+        console.log('✅ Thread created:', threadId);
+
+        console.log('📤 Adding message to thread...');
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: prompt })
+        });
+        console.log('✅ Message added to thread');
+
+        console.log('🤖 Starting assistant run...');
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: featureGenerator })
+        });
+        const runId = runData.id;
+        console.log('✅ Run started:', runId);
+
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
         }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in queryCustomGPT:', error);
+        return `Error: ${error.message}`;
     }
-
-    // 5. Retrieve the messages
-    const messagesRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        headers
-    });
-
-    const messagesData = await messagesRes.json();
-    const messages = messagesData.data;
-
-    const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
-
-    return assistantReply || 'No response from assistant.';
 }
 
 async function regeneratePromptFromFeatures(features) {
     const apiKey = process.env.OPENAI_API_KEY;
-    const promptGenerator = process.env.PROMPT_GENERATOR;
+    const promptGenerator = process.env.PROMPT_OPTIMIZER;
 
     if (!apiKey || !promptGenerator) {
         return 'Missing API key or Prompt Generator Assistant ID';
@@ -245,38 +433,39 @@ async function regeneratePromptFromFeatures(features) {
         'OpenAI-Beta': 'assistants=v2'
     };
 
-    const threadRes = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers
-    });
-    const threadId = (await threadRes.json()).id;
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
 
-    // Handle both array and object formats
-    let rankedFeatures;
-                    if (Array.isArray(features)) {
-                    // Convert array format to ranked object format
-                    rankedFeatures = {};
-                    features.forEach((item, index) => {
-                        if (item.feature_name && item.value !== undefined) {
-                            rankedFeatures[item.feature_name] = {
-                                value: item.value,
-                                candidates: item.candidates || [],
-                                rank: index + 1
-                            };
-                        }
-                    });
-                } else {
-                    // Handle existing object format
-                    rankedFeatures = {};
-                    Object.keys(features).forEach((key, index) => {
-                        rankedFeatures[key] = {
-                            ...features[key],
-                            rank: index + 1
-                        };
-                    });
+        // Handle both array and object formats
+        let rankedFeatures;
+        if (Array.isArray(features)) {
+            // Convert array format to ranked object format
+            rankedFeatures = {};
+            features.forEach((item, index) => {
+                if (item.feature_name && item.value !== undefined) {
+                    rankedFeatures[item.feature_name] = {
+                        value: item.value,
+                        candidates: item.candidates || [],
+                        rank: index + 1
+                    };
                 }
+            });
+        } else {
+            // Handle existing object format
+            rankedFeatures = {};
+            Object.keys(features).forEach((key, index) => {
+                rankedFeatures[key] = {
+                    ...features[key],
+                    rank: index + 1
+                };
+            });
+        }
 
-    const messageContent = `Generate 5 different optimized prompts using the following JSON features, including possible candidate options. The features are ranked by importance (rank 1 is most important). You may consider the candidates, but only use the "value" field content (with grammatical variations only, no synonyms). Do not use alternatives from "candidates" directly. Prioritize higher-ranked features in the generated prompts.
+        const messageContent = `Generate 5 different optimized prompts using the following JSON features, including possible candidate options. The features are ranked by importance (rank 1 is most important). You may consider the candidates, but only use the "value" field content (with grammatical variations only, no synonyms). Do not use alternatives from "candidates" directly. Prioritize higher-ranked features in the generated prompts.
 
 Please return the response in this exact JSON format:
 {
@@ -292,45 +481,75 @@ Please return the response in this exact JSON format:
 Ranked JSON input:
 ${JSON.stringify(rankedFeatures, null, 2)}`;
 
-    console.log('=== SENDING TO PROMPT_GENERATOR ===');
-    console.log('Ranked Features JSON:');
-    console.log(JSON.stringify(rankedFeatures, null, 2));
-    console.log('=== END OF JSON ===');
+        console.log('=== SENDING TO PROMPT_OPTIMIZER ===');
+        console.log('Ranked Features JSON:');
+        console.log(JSON.stringify(rankedFeatures, null, 2));
+        console.log('=== END OF JSON ===');
 
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ role: 'user', content: messageContent })
-    });
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: messageContent })
+        });
 
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ assistant_id: promptGenerator })
-    });
-    const runId = (await runRes.json()).id;
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: promptGenerator })
+        });
+        const runId = runData.id;
 
-    let status = 'in_progress';
-    while (status !== 'completed') {
-        await new Promise(res => setTimeout(res, 1000));
-        const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
-        status = (await check.json()).status;
-        if (status === 'failed' || status === 'cancelled') {
-            return `Error: Assistant run ${status}`;
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
         }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        console.log('=== RESPONSE FROM PROMPT_OPTIMIZER ===');
+        console.log('Assistant Response:');
+        console.log(assistantReply);
+        console.log('=== END OF RESPONSE ===');
+        
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in regeneratePromptFromFeatures:', error);
+        return `Error: ${error.message}`;
     }
-
-    const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
-    const msgData = await msgRes.json();
-
-    const assistantResponse = msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No optimized prompt.';
-    
-    console.log('=== RESPONSE FROM PROMPT_GENERATOR ===');
-    console.log('Assistant Response:');
-    console.log(assistantResponse);
-    console.log('=== END OF RESPONSE ===');
-    
-    return assistantResponse;
 }
 
 async function queryCandidateGenerator(features) {
@@ -347,40 +566,73 @@ async function queryCandidateGenerator(features) {
         'OpenAI-Beta': 'assistants=v2'
     };
 
-    const threadRes = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers
-    });
-    const threadId = (await threadRes.json()).id;
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
 
-    const messageContent = `Given these base features, generate a new set of candidate features:\n${JSON.stringify(features, null, 2)}`;
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ role: 'user', content: messageContent })
-    });
+        const messageContent = `Given these base features, generate a new set of candidate features:\n${JSON.stringify(features, null, 2)}`;
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: messageContent })
+        });
 
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ assistant_id: candidateGenerator })
-    });
-    const runId = (await runRes.json()).id;
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: candidateGenerator })
+        });
+        const runId = runData.id;
 
-    let status = 'in_progress';
-    while (status !== 'completed') {
-        await new Promise(res => setTimeout(res, 1000));
-        const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
-        status = (await check.json()).status;
-        if (status === 'failed' || status === 'cancelled') {
-            return `Error: Assistant run ${status}`;
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
         }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in queryCandidateGenerator:', error);
+        return `Error: ${error.message}`;
     }
-
-    const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
-    const msgData = await msgRes.json();
-
-    return msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No candidate features returned.';
 }
 
 async function generateCandidatesForTerm(term) {
@@ -397,16 +649,17 @@ async function generateCandidatesForTerm(term) {
         'OpenAI-Beta': 'assistants=v2'
     };
 
-    const threadRes = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers
-    });
-    const threadId = (await threadRes.json()).id;
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
 
-    // Format the term as requested: "term/sentence"
-    const formattedTerm = `"${term}"`;
-    
-    const messageContent = `Generate 5-8 candidate alternatives for this term/sentence: ${formattedTerm}
+        // Format the term as requested: "term/sentence"
+        const formattedTerm = `"${term}"`;
+        
+        const messageContent = `Generate 5-8 candidate alternatives for this term/sentence: ${formattedTerm}
 
 Please return only a JSON array of strings, like this:
 ["candidate1", "candidate2", "candidate3", "candidate4", "candidate5"]
@@ -417,54 +670,75 @@ The candidates should be:
 - Suitable for use in prompts
 - No more than 3-4 words each`;
 
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ role: 'user', content: messageContent })
-    });
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: messageContent })
+        });
 
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ assistant_id: candidateGenerator })
-    });
-    const runId = (await runRes.json()).id;
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: candidateGenerator })
+        });
+        const runId = runData.id;
 
-    let status = 'in_progress';
-    while (status !== 'completed') {
-        await new Promise(res => setTimeout(res, 1000));
-        const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
-        status = (await check.json()).status;
-        if (status === 'failed' || status === 'cancelled') {
-            throw new Error(`Assistant run ${status}`);
-        }
-    }
-
-    const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
-    const msgData = await msgRes.json();
-
-    const response = msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value;
-    
-    if (!response) {
-        throw new Error('No response from assistant');
-    }
-
-    try {
-        // Try to parse as JSON array
-        const candidates = JSON.parse(response);
-        if (Array.isArray(candidates)) {
-            return candidates;
-        } else {
-            throw new Error('Response is not an array');
-        }
-    } catch (parseError) {
-        // If JSON parsing fails, try to extract candidates from text
-        const lines = response.split('\n').filter(line => line.trim());
-        const candidates = lines
-            .map(line => line.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim())
-            .filter(candidate => candidate.length > 0);
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
         
-        return candidates.length > 0 ? candidates : [term]; // Fallback to original term
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
+        }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        // Parse the response as JSON array
+        try {
+            const candidates = JSON.parse(assistantReply);
+            if (Array.isArray(candidates)) {
+                return candidates;
+            }
+        } catch (parseError) {
+            console.log('Failed to parse candidates as JSON array:', parseError.message);
+        }
+        
+        // Fallback to original term if parsing fails
+        return [term];
+    } catch (error) {
+        console.error('Error in generateCandidatesForTerm:', error);
+        throw error;
     }
 }
 
@@ -482,41 +756,157 @@ async function sendToGeneralGPT(prompt) {
         'OpenAI-Beta': 'assistants=v2'
     };
 
-    const threadRes = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers
-    });
-    const threadId = (await threadRes.json()).id;
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
 
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ role: 'user', content: prompt })
-    });
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: prompt })
+        });
 
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ assistant_id: generalGPT })
-    });
-    const runId = (await runRes.json()).id;
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: generalGPT })
+        });
+        const runId = runData.id;
 
-    let status = 'in_progress';
-    while (status !== 'completed') {
-        await new Promise(res => setTimeout(res, 1000));
-        const check = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, { headers });
-        status = (await check.json()).status;
-        if (status === 'failed' || status === 'cancelled') {
-            return `Error: Assistant run ${status}`;
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
         }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in sendToGeneralGPT:', error);
+        return `Error: ${error.message}`;
     }
-
-    const msgRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, { headers });
-    const msgData = await msgRes.json();
-
-    return msgData.data.find((m) => m.role === 'assistant')?.content?.[0]?.text?.value || 'No response from General GPT.';
 }
 
+async function sendToPromptOptimizer(prompt) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const promptOptimizer = process.env.PROMPT_OPTIMIZER;
+
+    if (!apiKey || !promptOptimizer) {
+        return 'Missing API key or Prompt Optimizer Assistant ID';
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+    };
+
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
+
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: prompt })
+        });
+
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: promptOptimizer })
+        });
+        const runId = runData.id;
+
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Run completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
+        }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in sendToPromptOptimizer:', error);
+        return `Error: ${error.message}`;
+    }
+}
+
+// Start the server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log('🚀 Simple server is running on http://localhost:3000');
 }); 
