@@ -14,7 +14,8 @@ const requiredEnvVars = [
     'PROPERTY_GENERATOR',
     'PROMPT_OPTIMIZER',
     'CANDIDATE_GENERATOR',
-    'GENERAL_GPT'
+    'GENERAL_GPT',
+    'TASK_IDENTIFIER'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -236,6 +237,41 @@ app.post('/api/clear-context', async (req, res) => {
     } catch (error) {
         console.error('Error clearing context:', error);
         res.status(500).json({ error: 'Failed to clear context: ' + error.message });
+    }
+});
+
+// API endpoint for task identification
+app.post('/api/task-identifier', async (req, res) => {
+    try {
+        const { initial_prompt, main_task, base_classes } = req.body;
+        
+        if (!initial_prompt && !main_task) {
+            return res.status(400).json({ error: 'Missing both initial_prompt and main_task' });
+        }
+        
+        if (!base_classes || !Array.isArray(base_classes)) {
+            return res.status(400).json({ error: 'Missing or invalid base_classes array' });
+        }
+        
+        const taskData = {
+            initial_prompt: initial_prompt || '',
+            main_task: main_task || '',
+            base_classes: base_classes
+        };
+        
+        console.log('🔍 Identifying task type for:', taskData);
+        
+        const taskType = await sendToTaskIdentifier(taskData);
+        
+        console.log('✅ Task type identified:', taskType);
+        
+        res.json({ 
+            task_type: taskType.trim(),
+            success: true 
+        });
+    } catch (error) {
+        console.error('Error in task identification:', error);
+        res.status(500).json({ error: 'Failed to identify task type: ' + error.message });
     }
 });
 
@@ -903,6 +939,91 @@ async function sendToPromptOptimizer(prompt) {
     } catch (error) {
         console.error('Error in sendToPromptOptimizer:', error);
         return `Error: ${error.message}`;
+    }
+}
+
+async function sendToTaskIdentifier(taskData) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const taskIdentifier = process.env.TASK_IDENTIFIER;
+
+    if (!apiKey || !taskIdentifier) {
+        return 'Missing API key or Task Identifier Assistant ID';
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+    };
+
+    try {
+        // Convert taskData object to JSON string for sending to the assistant
+        const prompt = JSON.stringify(taskData);
+        
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
+
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: prompt })
+        });
+
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: taskIdentifier })
+        });
+        const runId = runData.id;
+
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for task identification completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Task identification attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ Task identification completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Task identification ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
+        }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Task identification timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving task identification results...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ Task identification results retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        return assistantReply || 'base';
+    } catch (error) {
+        console.error('Error in sendToTaskIdentifier:', error);
+        return 'base'; // Default fallback
     }
 }
 

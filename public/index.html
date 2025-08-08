@@ -1255,21 +1255,21 @@
                 <!-- Step 1: Initialization Options -->
                 <div id="step1" class="step-section show">
                     <h3>Choose Your Starting Point:</h3>
-                    
+
                     <!-- Option 1: Unstructured Input -->
                     <div class="input-option">
                         <h4>📝 Unstructured Input</h4>
                         <p style="color: #6c757d; font-size: 14px; margin-bottom: 15px;">Start with a natural language prompt and let AI extract the structure.</p>
                         <textarea id="query" placeholder="Enter your prompt here..."></textarea>
-                        <div style="margin-top: 10px;">
-                            <button onclick="sendQuery()" id="generateBtn">Generate Properties</button>
+                <div style="margin-top: 10px;">
+                            <button onclick="sendQuery()" id="generateBtn">Create Prompt Object</button>
                             <div class="progress-indicator" id="generateProgress" style="display: none;">
                                 <div class="progress-spinner"></div>
-                                <span>Generating properties...</span>
+                                <span>Creating prompt object...</span>
                             </div>
                         </div>
-                    </div>
-                    
+                </div>
+
                     <!-- Option 2: Structured Input -->
                     <div class="input-option">
                         <h4>🏗️ Structured Input</h4>
@@ -1284,10 +1284,10 @@
 
                 <!-- Step 2: Extracted Properties (initially hidden) -->
                 <div id="step2" class="step-section" style="display: none;">
-                    <h3>Extracted Properties:</h3>
-                    <div id="response"><em>Waiting for response...</em></div>
+                <h3>Extracted Properties:</h3>
+                <div id="response"><em>Waiting for response...</em></div>
 
-                    <div style="margin-top: 10px;">
+                <div style="margin-top: 10px;">
                         <button id="sendToChatBtn" onclick="sendOptimizedPromptToChat()">Send to Chat</button>
                         <button id="saveBaseClassBtn" onclick="saveBaseClass()" style="margin-left: 10px; background-color: #28a745;">Save as Base Class</button>
                         <button id="oopLoadBaseClassBtn" onclick="loadBaseClass()" style="margin-left: 10px; background-color: #17a2b8;">Load Base Class</button>
@@ -1299,7 +1299,7 @@
                 </div>
             </div>
         </div>
-    </div>
+                </div>
 
     <!-- Base Class Selection Modal -->
     <div class="base-class-modal" id="baseClassModal">
@@ -1335,12 +1335,20 @@
 
         // Modular utility functions
         function showObjectPanel() {
+            console.log('showObjectPanel called');
             const step1 = document.getElementById('step1');
             const step2 = document.getElementById('step2');
-            step1.style.display = 'none';
-            step2.style.display = 'block';
-            step2.style.visibility = 'visible';
-            step2.style.opacity = '1';
+            console.log('step1 element:', step1);
+            console.log('step2 element:', step2);
+            
+            if (step1) step1.style.display = 'none';
+            if (step2) {
+                step2.style.display = 'block';
+                step2.style.visibility = 'visible';
+                step2.style.opacity = '1';
+                step2.classList.add('show');
+            }
+            console.log('showObjectPanel completed');
         }
 
         function showInitializationPanel() {
@@ -1351,16 +1359,57 @@
             step2.classList.remove('show');
         }
 
+        function addBaseClassTitle(baseClassName) {
+            const responseEl = document.getElementById('response');
+            
+            // Create the title element
+            const titleElement = document.createElement('div');
+            titleElement.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 8px 15px;
+                margin-bottom: 15px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: bold;
+                text-align: center;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            `;
+            
+            // Format the base class name for display
+            let displayName = baseClassName;
+            if (baseClassName === 'base') {
+                displayName = 'Base Class';
+            } else if (baseClassName === 'custom') {
+                displayName = 'Custom Properties';
+            } else {
+                // Convert snake_case to Title Case
+                displayName = baseClassName
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ') + ' Class';
+            }
+            
+            titleElement.textContent = displayName;
+            
+            // Add the title to the response element
+            responseEl.appendChild(titleElement);
+        }
+
         function renderPropertiesToUI(properties) {
             const responseEl = document.getElementById('response');
-            responseEl.innerHTML = '';
+            // Note: responseEl should already have title as first child, we just append the rest
             
             const renderedValue = renderValue(properties, '', true, 'properties');
             
             if (renderedValue && renderedValue.childNodes.length > 0) {
                 responseEl.appendChild(renderedValue);
             } else {
-                responseEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">No content to display. The base class may be empty.</div>';
+                const emptyMessage = document.createElement('div');
+                emptyMessage.style.cssText = 'padding: 20px; text-align: center; color: #6c757d;';
+                emptyMessage.textContent = 'No content to display. The base class may be empty.';
+                responseEl.appendChild(emptyMessage);
             }
             
             // Add the property form container
@@ -1380,6 +1429,7 @@
                 Object.keys(baseClass.requirements).forEach(key => {
                     const req = baseClass.requirements[key];
                     newStructure.requirements[key] = {
+                        property_name: req.property_name || key,
                         value: req.value || '',
                         candidates: req.candidates || []
                     };
@@ -1491,7 +1541,7 @@
             if (sender === 'assistant') {
                 formatAssistantMessage(messageContent, content);
             } else {
-                messageContent.textContent = content;
+            messageContent.textContent = content;
             }
             
             messageDiv.appendChild(avatar);
@@ -1653,9 +1703,9 @@
             
             navigator.clipboard.writeText(textToCopy).then(() => {
                 button.textContent = 'Copied!';
-                setTimeout(() => {
+            setTimeout(() => {
                     button.textContent = 'Copy';
-                }, 2000);
+            }, 2000);
             }).catch(err => {
                 console.error('Failed to copy code:', err);
                 alert('Failed to copy code to clipboard');
@@ -2031,8 +2081,6 @@
             generateProgress.style.display = 'inline-flex';
             generateBtn.disabled = true;
             
-
-            
             // Hide step 2 until content is generated
             const step2 = document.getElementById('step2');
             step2.style.display = 'none';
@@ -2041,7 +2089,9 @@
             lastParsedProperties = null;
 
             try {
-                const response = await fetch('/api/query', {
+                // Step 1: Generate properties first
+                console.log('Step 1: Generating properties...');
+                const propertiesResponse = await fetch('/api/query', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2049,14 +2099,239 @@
                     body: JSON.stringify({ prompt: query })
                 });
 
-                const data = await response.json();
-                handleResponse(data);
+                const propertiesData = await propertiesResponse.json();
+                // Don't render properties yet - wait for base class inheritance
+                
+                // Parse the properties but don't display them
+                console.log('Properties API response:', propertiesData);
+                
+                // Try to use the parsed response first, then fall back to text
+                let rawProperties = null;
+                if (propertiesData.parsed && typeof propertiesData.parsed === 'object') {
+                    rawProperties = propertiesData.parsed;
+                    console.log('Used parsed response from API:', rawProperties);
+                } else if (propertiesData.text) {
+                    try {
+                        const cleanedResponse = propertiesData.text.replace(/```json\s*/, '').replace(/```$/, '').trim();
+                        rawProperties = JSON.parse(cleanedResponse);
+                        console.log('Parsed text response from API:', rawProperties);
+                    } catch (parseError) {
+                        console.error('JSON parsing error:', parseError);
+                        throw new Error('Failed to parse properties from AI response');
+                    }
+                } else {
+                    throw new Error('No response from property generator');
+                }
+                
+                // Convert the raw properties to the expected format if needed
+                if (rawProperties) {
+                    // Check if it's in the old format with "Main Task", "Audience", "Requirements"
+                    if (rawProperties["Main Task"] !== undefined || rawProperties["Audience"] !== undefined || rawProperties["Requirements"] !== undefined) {
+                        // Convert to new format
+                        lastParsedProperties = {
+                            mainTask: rawProperties["Main Task"] || '',
+                            audience: rawProperties["Audience"] || [],
+                            requirements: {}
+                        };
+                        
+                        // Convert Requirements array to object format
+                        if (Array.isArray(rawProperties["Requirements"])) {
+                            rawProperties["Requirements"].forEach(req => {
+                                if (req.property_name) {
+                                    lastParsedProperties.requirements[req.property_name] = {
+                                        property_name: req.property_name,
+                                        value: req.value || ''
+                                    };
+                                }
+                            });
+                        }
+                    } else {
+                        // Already in new format
+                        lastParsedProperties = rawProperties;
+                    }
+                    console.log('Final parsed properties:', lastParsedProperties);
+                }
+                
+                // Step 2: Get list of base classes
+                console.log('Step 2: Getting base classes...');
+                const baseClassesResponse = await fetch('/api/base-classes');
+                const baseClassesData = await baseClassesResponse.json();
+                
+                // Step 3: Identify task type
+                console.log('Step 3: Identifying task type...');
+                const taskData = {
+                    initial_prompt: query,
+                    main_task: lastParsedProperties?.mainTask || '',
+                    base_classes: baseClassesData.baseClasses || ['base']
+                };
+                
+                console.log('Sending task identification data:', taskData);
+                
+                const taskResponse = await fetch('/api/task-identifier', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(taskData)
+                });
+                
+                const taskResult = await taskResponse.json();
+                console.log('Task identification result:', taskResult);
+                
+                // Display the task type result for testing
+                const responseEl = document.getElementById('response');
+                const taskTypeDisplay = document.createElement('div');
+                taskTypeDisplay.style.cssText = `
+                    background: #e3f2fd;
+                    border: 1px solid #2196f3;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-top: 15px;
+                    font-weight: bold;
+                    color: #1976d2;
+                `;
+                taskTypeDisplay.innerHTML = `
+                    <strong>🔍 Identified Task Type:</strong> ${taskResult.task_type || 'base'}
+                `;
+                responseEl.appendChild(taskTypeDisplay);
+                
+                // Step 4: Automatically load the corresponding base class
+                const identifiedTaskType = taskResult.task_type || 'base';
+                console.log('Step 4: Loading base class for task type:', identifiedTaskType);
+                
+                try {
+                    // Load the corresponding base class file
+                    const baseClassResponse = await fetch(`/api/base-classes/${identifiedTaskType}`);
+                    if (baseClassResponse.ok) {
+                        const baseClassData = await baseClassResponse.json();
+                        console.log('Loaded base class data:', baseClassData);
+                        console.log('Base class data structure:', baseClassData.baseClass || baseClassData);
+                        
+                        // Convert the base class to proper structure
+                        const actualBaseClass = baseClassData.baseClass || baseClassData;
+                        const convertedStructure = convertBaseClassToStructure(actualBaseClass);
+                        console.log('Converted base class structure:', convertedStructure);
+                        console.log('Base class requirements:', convertedStructure.requirements);
+                        
+                        // Create the final merged structure
+                        const finalStructure = {
+                            mainTask: '',
+                            requirements: {},
+                            audience: []
+                        };
+                        
+                        // Start with base class structure
+                        if (convertedStructure) {
+                            finalStructure.mainTask = convertedStructure.mainTask || '';
+                            finalStructure.audience = convertedStructure.audience || [];
+                            finalStructure.requirements = { ...convertedStructure.requirements } || {};
+                        }
+                        
+                        // Add ALL requirements from extracted properties
+                        if (lastParsedProperties && lastParsedProperties.requirements) {
+                            Object.keys(lastParsedProperties.requirements).forEach(key => {
+                                finalStructure.requirements[key] = {
+                                    property_name: key,
+                                    value: lastParsedProperties.requirements[key].value || ''
+                                };
+                            });
+                        }
+                        
+                        // Overwrite main_task and audience with extracted values
+                        if (lastParsedProperties) {
+                            if (lastParsedProperties.mainTask) {
+                                finalStructure.mainTask = lastParsedProperties.mainTask;
+                            }
+                            if (lastParsedProperties.audience && lastParsedProperties.audience.length > 0) {
+                                finalStructure.audience = lastParsedProperties.audience;
+                            }
+                        }
+                        
+                        console.log('Final merged structure:', finalStructure);
+                        console.log('Final merged requirements:', finalStructure.requirements);
+                        
+                        // Update the global variable
+                        lastParsedProperties = finalStructure;
+                        
+                        // Now show the object panel and render the merged structure
+                        console.log('About to show object panel and render properties...');
+                        showObjectPanel();
+                        
+                        // Clear response and add base class title before rendering properties
+                        const responseEl = document.getElementById('response');
+                        responseEl.innerHTML = '';
+                        addBaseClassTitle(identifiedTaskType);
+                        renderPropertiesToUI(finalStructure);
+                        console.log('Object panel shown and properties rendered successfully');
+                        
+                        // Base class inherited successfully (no UI notification needed)
+                        
+                    } else {
+                        console.log('Base class file not found for task type:', identifiedTaskType);
+                        
+                        // Try to fall back to "base" class, or just use extracted properties
+                        try {
+                            const fallbackResponse = await fetch('/api/base-classes/base');
+                            if (fallbackResponse.ok) {
+                                const fallbackData = await fallbackResponse.json();
+                                const actualFallbackClass = fallbackData.baseClass || fallbackData;
+                                const fallbackStructure = convertBaseClassToStructure(actualFallbackClass);
+                                
+                                // Use fallback base class with extracted properties
+                                const finalStructure = {
+                                    mainTask: lastParsedProperties?.mainTask || '',
+                                    requirements: { ...fallbackStructure.requirements, ...(lastParsedProperties?.requirements || {}) },
+                                    audience: lastParsedProperties?.audience || fallbackStructure.audience || []
+                                };
+                                
+                                lastParsedProperties = finalStructure;
+                                console.log('About to show object panel (fallback to base)...');
+                                showObjectPanel();
+                                const responseEl = document.getElementById('response');
+                                responseEl.innerHTML = '';
+                                addBaseClassTitle('base');
+                                renderPropertiesToUI(finalStructure);
+                                console.log('Object panel shown (fallback to base)');
+                            } else {
+                                // No base class at all, just use extracted properties
+                                console.log('No base class found, showing extracted properties only...');
+                                showObjectPanel();
+                                const responseEl = document.getElementById('response');
+                                responseEl.innerHTML = '';
+                                addBaseClassTitle('custom');
+                                renderPropertiesToUI(lastParsedProperties);
+                                console.log('Object panel shown (no base class)');
+                            }
+                        } catch (fallbackError) {
+                            console.error('Error with fallback base class:', fallbackError);
+                            // Just use extracted properties
+                            console.log('Fallback error, showing extracted properties only...');
+                            showObjectPanel();
+                            const responseEl = document.getElementById('response');
+                            responseEl.innerHTML = '';
+                            addBaseClassTitle('custom');
+                            renderPropertiesToUI(lastParsedProperties);
+                            console.log('Object panel shown (fallback error)');
+                        }
+                    }
+                } catch (baseClassError) {
+                    console.error('Error loading base class:', baseClassError);
+                    // Continue without base class inheritance - just show extracted properties
+                    console.log('Base class error, showing extracted properties only...');
+                    showObjectPanel();
+                    const responseEl = document.getElementById('response');
+                    responseEl.innerHTML = '';
+                    addBaseClassTitle('custom');
+                    renderPropertiesToUI(lastParsedProperties);
+                    console.log('Object panel shown (base class error)');
+                }
+                
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('response').innerHTML = '<div class="error">Error: Failed to generate properties. Please try again.</div>';
+                document.getElementById('response').innerHTML = '<div class="error">Error: Failed to create prompt object. Please try again.</div>';
                 // Don't show step 2 if there's an error
             } finally {
-                // Hide progress indicator and reset button
+                // Hide progress indicator and reset button (only after everything is complete)
                 generateBtn.classList.remove('button-loading');
                 generateProgress.style.display = 'none';
                 generateBtn.disabled = false;
@@ -2700,16 +2975,16 @@
                             requirementsLabel.style.color = '#495057';
                             requirementsSection.appendChild(requirementsLabel);
                             
-                            const propertiesContainer = document.createElement('div');
-                            propertiesContainer.id = 'propertiesContainer';
-                            
-                            // Add ranking info
-                            const rankingInfo = document.createElement('div');
-                            rankingInfo.className = 'ranking-info';
+                    const propertiesContainer = document.createElement('div');
+                    propertiesContainer.id = 'propertiesContainer';
+                        
+                        // Add ranking info
+                        const rankingInfo = document.createElement('div');
+                        rankingInfo.className = 'ranking-info';
                             rankingInfo.innerHTML = '<strong>Property Ranking:</strong> Drag requirements to reorder by importance. Higher ranked requirements will be prioritized in prompt generation.';
                             rankingInfo.style.marginBottom = '15px';
-                            propertiesContainer.appendChild(rankingInfo);
-                            
+                        propertiesContainer.appendChild(rankingInfo);
+
                             // Create property items for requirements
                             const propertyKeys = Object.keys(value.requirements);
                             console.log('Creating requirement items in order:', propertyKeys);
@@ -2765,7 +3040,7 @@
                                 }
                             });
                         }
-                    }
+                        }
                     } else {
                         // Original rendering for non-properties context
                         for (const [key, val] of Object.entries(value)) {
@@ -2899,8 +3174,8 @@
                                         const requirements = getRequirementsFromProperties(lastParsedProperties);
                                         if (requirements[parentKey]) {
                                             requirements[parentKey].value = valueInput.value;
-                                            console.log('Updated property value:', parentKey, '=', valueInput.value);
-                                            console.log('Current properties:', lastParsedProperties);
+                                        console.log('Updated property value:', parentKey, '=', valueInput.value);
+                                        console.log('Current properties:', lastParsedProperties);
                                         }
                                     }
                                 });
@@ -3351,8 +3626,8 @@
                     const requirements = getRequirementsFromProperties(lastParsedProperties);
                     if (requirements[propertyKey]) {
                         delete requirements[propertyKey].candidates;
-                        console.log('All candidates cleared for property:', propertyKey);
-                        console.log('Updated properties:', lastParsedProperties);
+                    console.log('All candidates cleared for property:', propertyKey);
+                    console.log('Updated properties:', lastParsedProperties);
                     }
                 }
                 
@@ -3442,12 +3717,12 @@
                         const requirements = getRequirementsFromProperties(lastParsedProperties);
                         if (requirements[propertyKey] && requirements[propertyKey].candidates) {
                             const updatedCandidates = requirements[propertyKey].candidates.filter(c => c !== candidate);
-                            if (updatedCandidates.length === 0) {
+                        if (updatedCandidates.length === 0) {
                                 delete requirements[propertyKey].candidates;
-                                candidatesDisplay.remove();
-                            } else {
+                            candidatesDisplay.remove();
+                        } else {
                                 requirements[propertyKey].candidates = updatedCandidates;
-                                displayCandidates(propertyKey, updatedCandidates, propertyItem);
+                            displayCandidates(propertyKey, updatedCandidates, propertyItem);
                             }
                         }
                     }
@@ -3617,6 +3892,11 @@
                 
                 // Hide initialization module and show object panel
                 showObjectPanel();
+                
+                // Clear response and add base class title before rendering properties
+                const responseEl = document.getElementById('response');
+                responseEl.innerHTML = '';
+                addBaseClassTitle(selectedBaseClass);
                 
                 // Render the loaded properties using the modular function
                 renderPropertiesToUI(newStructure);
