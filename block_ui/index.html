@@ -62,7 +62,7 @@
     .trash.active{background:rgba(239,68,68,.25); box-shadow:0 0 0 3px rgba(239,68,68,.5) inset}
 
     .status{margin-left:auto; color:var(--muted)}
-    .log{position:absolute; top:24px; right:24px; width:300px; height:240px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; overflow:auto; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+    .log{position:absolute; top:24px; right:24px; width:400px; height:360px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; overflow:auto; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
     .log h4{margin:4px 6px 8px; font-size:12px; color:var(--muted)}
     .log pre{margin:0; white-space:pre-wrap}
 
@@ -100,6 +100,313 @@
       box-shadow: 0 0 8px rgba(255,255,255,0.5) !important;
     }
     
+    /* Resizable blocks */
+          .block.resizable {
+        position: relative;
+        min-width: 120px;
+        min-height: 48px;
+        max-width: 500px;
+        max-height: 300px;
+        width: auto;
+      }
+    
+    /* Resize handles for manual implementation */
+    .resize-handle {
+      position: absolute;
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .block:hover .resize-handle,
+    .block.resizing .resize-handle {
+      opacity: 0.85;
+    }
+    
+    .resize-handle:hover {
+      opacity: 1;
+      background: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.9));
+      border-color: rgba(255,255,255,0.6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transform: scale(1.1);
+    }
+    
+    /* Right edge handle - elegant vertical grip */
+    .resize-handle.edge-right {
+      top: 50%;
+      right: -3px;
+      width: 4px;
+      height: 24px;
+      cursor: e-resize;
+      transform: translateY(-50%);
+      border-radius: 2px;
+    }
+    
+    .resize-handle.edge-right:hover {
+      transform: translateY(-50%) scale(1.1);
+    }
+    
+    /* Bottom edge handle - elegant horizontal grip */
+    .resize-handle.edge-bottom {
+      bottom: -3px;
+      left: 50%;
+      width: 24px;
+      height: 4px;
+      cursor: s-resize;
+      transform: translateX(-50%);
+      border-radius: 2px;
+    }
+    
+    .resize-handle.edge-bottom:hover {
+      transform: translateX(-50%) scale(1.1);
+    }
+    
+    /* Corner handle - sophisticated corner grip */
+    .resize-handle.corner {
+      bottom: -3px;
+      right: -3px;
+      width: 8px;
+      height: 8px;
+      cursor: se-resize;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      border: 2px solid rgba(255,255,255,0.8);
+    }
+    
+    .resize-handle.corner:hover {
+      transform: scale(1.2);
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+          }
+      
+      /* Block context menu overlay */
+      .block-context-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.4);
+        z-index: 9998;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+      
+      .block-context-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      
+      /* Block context menu */
+      .block-context-menu {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: rgba(255,255,255,0.98);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 12px;
+        color: #333;
+        z-index: 9999;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        min-width: 220px;
+        max-width: 300px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      }
+      
+      .block-context-menu.visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        pointer-events: auto;
+      }
+      
+      .menu-field {
+        margin-bottom: 8px;
+      }
+      
+      .menu-field:last-child {
+        margin-bottom: 0;
+      }
+      
+      .menu-field label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 3px;
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .menu-field input,
+      .menu-field select {
+        width: 100%;
+        padding: 4px 6px;
+        border: 1px solid rgba(0,0,0,0.2);
+        border-radius: 4px;
+        font-size: 11px;
+        background: rgba(255,255,255,0.8);
+        color: #333;
+        outline: none;
+      }
+      
+      .menu-field input:focus,
+      .menu-field select:focus {
+        border-color: var(--accent-2);
+        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+      }
+      
+      .menu-buttons {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(0,0,0,0.1);
+      }
+      
+      .menu-btn {
+        flex: 1;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .menu-btn.save {
+        background: var(--accent);
+        color: white;
+      }
+      
+      .menu-btn.save:hover {
+        background: #16a34a;
+      }
+      
+      .menu-btn.cancel {
+        background: rgba(0,0,0,0.1);
+        color: #666;
+      }
+      
+      .menu-btn.cancel:hover {
+        background: rgba(0,0,0,0.2);
+      }
+      
+      /* Block property display */
+    .block .property-field {
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .block .property-field:last-child {
+      margin-bottom: 0;
+    }
+    
+    .block .property-label {
+      color: rgba(15, 23, 42, 0.7);
+      white-space: nowrap;
+      min-width: fit-content;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .block .property-input {
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(15, 23, 42, 0.15);
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      min-width: 60px;
+      width: auto;
+      height: 22px;
+      box-sizing: border-box;
+    }
+    
+    .block .property-input:focus {
+      outline: none;
+      border-color: rgba(15, 23, 42, 0.3);
+      background: rgba(255,255,255,1);
+    }
+    
+    /* Ensure block content respects custom dimensions */
+    .block.custom-size .label {
+      width: 100%;
+      min-height: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 6px 10px;
+      box-sizing: border-box;
+    }
+    
+    /* Default block label styling */
+    .block .label {
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 36px;
+    }
+    
+    .block.custom-size.cblock .label {
+      height: auto;
+      flex-shrink: 0;
+    }
+    
+    .block.custom-size .slot {
+      width: calc(100% - 24px);
+      flex: 1;
+      min-height: 40px;
+      margin: 8px 12px 10px;
+    }
+    
+    /* Maintain original styling for resized blocks */
+    .block.custom-size.stack {
+      background: var(--accent-2);
+      border-radius: 14px;
+      box-shadow: 0 8px 16px rgba(59,130,246,.35);
+    }
+    
+    .block.custom-size.stack::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      bottom: -8px;
+      width: 36px;
+      height: 16px;
+      background: linear-gradient(#0000,#0000), var(--accent-2);
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 6px 0 0 var(--accent-2), 0 8px 0 0 #0000;
+      clip-path: path('M0,0 h8 q4,0 4,4 v4 h12 v-4 q0,-4 4,-4 h8 v8 h-36 z');
+    }
+    
+    .block.custom-size.cblock {
+      background: var(--accent);
+      border-radius: 14px;
+      padding-bottom: 26px;
+      box-shadow: 0 8px 16px rgba(34,197,94,.35);
+      display: flex;
+      flex-direction: column;
+    }
+    
     /* Connection lines for visual feedback */
     .connection-line{position:absolute; background:rgba(255,255,255,.15); z-index:1; pointer-events:none; border-radius:1px}
     .connection-line.horizontal{height:2px}
@@ -114,28 +421,49 @@
       <button class="btn run" id="runBtn">Run</button>
       <button class="btn clear" id="clearBtn">Clear</button>
       <button class="btn test" id="testBtn">Run Tests</button>
+      <button class="btn clear" id="clearLogBtn">Clear Log</button>
+      <button class="btn test" id="generateJsonBtn">Generate JSON</button>
       <div class="status" id="status">Ready</div>
     </header>
 
     <aside class="sidebar">
       <div class="group">
-        <h3>Events</h3>
         <div class="palette">
           <!-- Removed "when clicked" block -->
         </div>
       </div>
       <div class="group">
-        <h3>Actions</h3>
         <div class="palette">
-          <div class="block stack" data-type="stack" data-op="leaf"><div class="label">leaf <span class="arg" contenteditable></span></div></div>
+          <div class="block stack resizable" data-type="stack" data-op="leaf">
+            <div class="label">
+              <div class="property-field">
+                <span class="property-label">Property name:</span>
+                <input type="text" class="property-input property-name" value="new_leaf" onchange="updateBlockProperty(this)" oninput="resizeInputToContent(this)">
+              </div>
+              <div class="property-field">
+                <span class="property-label">Property value:</span>
+                <input type="text" class="property-input property-value" value="" onchange="updateBlockValue(this)" oninput="resizeInputToContent(this)">
+              </div>
+            </div>
+            <div class="resize-handle edge-right"></div>
+            <div class="resize-handle edge-bottom"></div>
+            <div class="resize-handle corner"></div>
+          </div>
         </div>
       </div>
       <div class="group">
-        <h3>Control</h3>
         <div class="palette">
-          <div class="block cblock" data-type="c" data-op="branch">
-            <div class="label">branch <span class="arg" contenteditable></span></div>
+          <div class="block cblock resizable" data-type="c" data-op="branch">
+            <div class="label">
+              <div class="property-field">
+                <span class="property-label">Property name:</span>
+                <input type="text" class="property-input property-name" value="new_branch" onchange="updateBlockProperty(this)" oninput="resizeInputToContent(this)">
+              </div>
+            </div>
             <div class="slot" data-slot></div>
+            <div class="resize-handle edge-right"></div>
+            <div class="resize-handle edge-bottom"></div>
+            <div class="resize-handle corner"></div>
           </div>
           <!-- Removed "stop" block -->
         </div>
@@ -146,6 +474,14 @@
       <div class="workspace" id="workspace">
         <div class="script-area" id="script"><div class="script-title">Script 1</div></div>
         <div class="trash" id="trash">TRASH</div>
+        <div class="log" id="log">
+          <h4>Console</h4>
+          <pre id="logContent"></pre>
+        </div>
+        <div class="block-context-overlay" id="blockContextOverlay"></div>
+        <div class="block-context-menu" id="blockContextMenu">
+          <!-- Dynamic content will be populated by JavaScript -->
+        </div>
       </div>
     </main>
   </div>
@@ -159,11 +495,28 @@
   const runBtn = document.getElementById('runBtn');
   const clearBtn = document.getElementById('clearBtn');
   const testBtn = document.getElementById('testBtn');
+  const clearLogBtn = document.getElementById('clearLogBtn');
+  const generateJsonBtn = document.getElementById('generateJsonBtn');
+  const logElement = document.getElementById('log');
+  const logContent = document.getElementById('logContent');
+  const blockContextMenu = document.getElementById('blockContextMenu');
+  const blockContextOverlay = document.getElementById('blockContextOverlay');
 
   const SNAP_TOL = 28; // generous snapping
   let idSeq = 1;
 
   function setStatus(m){ status.textContent = m; }
+  
+  function log(message) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logLine = `[${timestamp}] ${message}\n`;
+    logContent.textContent += logLine;
+    logContent.scrollTop = logContent.scrollHeight; // Auto-scroll to bottom
+  }
+  
+  function clearLog() {
+    logContent.textContent = '';
+  }
 
   function newId(p){ return p + (idSeq++); }
   function assignIds(root){
@@ -193,7 +546,722 @@
     if (!e.target.closest('.block')) {
       clearAllSelections();
     }
+    
+    // Hide context menu when clicking elsewhere
+    if (!e.target.closest('.block-context-menu') || e.target.closest('.block-context-overlay')) {
+      hideBlockContextMenu();
+    }
   });
+  
+  // ==== Block Context Menu System ====
+  let currentMenuBlock = null;
+  
+  function showBlockContextMenu(block) {
+    currentMenuBlock = block;
+    
+    // Get block analysis for dynamic menu content
+    const blockAnalysis = analyzeBlockForMenu(block);
+    
+    // Build menu content
+    const menuContent = buildMenuContent(blockAnalysis);
+    blockContextMenu.innerHTML = menuContent;
+    
+    // Show overlay and menu
+    blockContextOverlay.classList.add('visible');
+    blockContextMenu.classList.add('visible');
+    
+    // Focus first input
+    const firstInput = blockContextMenu.querySelector('input, select');
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 150);
+    }
+    
+    log(`📝 Opened context menu for block: ${getBlockText(block)}`);
+  }
+  
+  function hideBlockContextMenu() {
+    blockContextOverlay.classList.remove('visible');
+    blockContextMenu.classList.remove('visible');
+    currentMenuBlock = null;
+  }
+  
+  function analyzeBlockForMenu(block) {
+    const blockText = getBlockText(block);
+    const blockType = block.dataset.op;
+    const isInSlot = !!block.closest('[data-slot]');
+    
+    // Determine node type based on connections and structure
+    let nodeType = 'leaf';
+    let hasVerticalConnections = false;
+    let orderType = 'spatial';
+    
+    if (isInSlot) {
+      // Analyze within slot context
+      const slotBlocks = [...block.closest('[data-slot]').querySelectorAll('.block')];
+      const connections = findSlotBlockConnections(block, slotBlocks);
+      hasVerticalConnections = connections.vertical.length > 0;
+      
+      // Check if block has slot (branch type)
+      const slot = block.querySelector('[data-slot]');
+      if (slot && slot.children.length > 0) {
+        nodeType = 'branch';
+      } else if (hasVerticalConnections || connections.horizontal.length > 0) {
+        nodeType = 'cluster';
+      }
+    } else {
+      // Analyze in main script context
+      const scriptBlocks = [...script.children].filter(el => 
+        el.classList && el.classList.contains('block') && el.classList.contains('positioned')
+      );
+      
+      const connections = findBlockConnections(block, scriptBlocks);
+      hasVerticalConnections = connections.vertical.length > 0;
+      
+      // Check if block has slot (branch type)
+      const slot = block.querySelector('[data-slot]');
+      if (slot && slot.children.length > 0) {
+        nodeType = 'branch';
+      } else if (hasVerticalConnections || connections.horizontal.length > 0) {
+        nodeType = 'cluster';
+      }
+    }
+    
+    return {
+      blockText,
+      blockType,
+      nodeType,
+      hasVerticalConnections,
+      orderType: getBlockOrderType(block),
+      customOrder: getBlockCustomOrder(block),
+      isLeaf: nodeType === 'leaf',
+      isInSlot,
+      blockValue: getBlockValue(block)
+    };
+  }
+  
+  function buildMenuContent(analysis) {
+    let content = '';
+    
+    // Property Name field
+    content += `
+      <div class="menu-field">
+        <label>Property Name</label>
+        <input type="text" id="menuPropertyName" value="${analysis.blockText}" placeholder="Enter property name">
+      </div>
+    `;
+    
+    // Node Type field
+    content += `
+      <div class="menu-field">
+        <label>Node Type</label>
+        <select id="menuNodeType" onchange="handleNodeTypeChange()">
+          <option value="leaf" ${analysis.nodeType === 'leaf' || !analysis.nodeType.startsWith('branch') ? 'selected' : ''}>Leaf</option>
+          <option value="branch" ${analysis.nodeType === 'branch' || analysis.blockType === 'branch' ? 'selected' : ''}>Branch</option>
+        </select>
+      </div>
+    `;
+    
+    // Order Type field (only for blocks with vertical connections)
+    if (analysis.hasVerticalConnections) {
+      content += `
+        <div class="menu-field">
+          <label>Order Type</label>
+          <select id="menuOrderType" onchange="handleOrderTypeChange()">
+            <option value="spatial" ${analysis.orderType === 'spatial' ? 'selected' : ''}>Spatial</option>
+            <option value="priority" ${analysis.orderType === 'priority' ? 'selected' : ''}>Priority</option>
+            <option value="time" ${analysis.orderType === 'time' ? 'selected' : ''}>Time</option>
+            <option value="custom" ${analysis.orderType === 'custom' ? 'selected' : ''}>Custom</option>
+          </select>
+        </div>
+        <div class="menu-field" id="customOrderField" style="display: ${analysis.orderType === 'custom' ? 'flex' : 'none'}">
+          <label>Custom Order</label>
+          <input type="text" id="menuCustomOrder" class="property-input" value="${analysis.customOrder || ''}" placeholder="Enter custom order type" oninput="resizeInputToContent(this)" onchange="handleCustomOrderChange()">
+        </div>
+      `;
+    }
+    
+    // Value field (only for leaf blocks)
+    if (analysis.isLeaf) {
+      content += `
+        <div class="menu-field">
+          <label>Value</label>
+          <input type="text" id="menuValue" value="" placeholder="Enter value">
+        </div>
+      `;
+    }
+    
+    // Buttons
+    content += `
+      <div class="menu-buttons">
+        <button class="menu-btn save" onclick="saveBlockProperties()">Save</button>
+        <button class="menu-btn cancel" onclick="hideBlockContextMenu()">Cancel</button>
+      </div>
+    `;
+    
+    return content;
+  }
+  
+  function saveBlockProperties() {
+    if (!currentMenuBlock) return;
+    
+    const propertyName = document.getElementById('menuPropertyName')?.value || '';
+    const nodeType = document.getElementById('menuNodeType')?.value || 'leaf';
+    const orderType = document.getElementById('menuOrderType')?.value || 'spatial';
+    const value = document.getElementById('menuValue')?.value || '';
+    
+    // Update block's editable content with property name
+    const argElement = currentMenuBlock.querySelector('[contenteditable]');
+    if (argElement && propertyName) {
+      argElement.textContent = propertyName;
+    }
+    
+    // Store metadata on the block for JSON generation
+    currentMenuBlock.dataset.nodeType = nodeType;
+    currentMenuBlock.dataset.orderType = orderType;
+    currentMenuBlock.dataset.blockValue = value;
+    
+    log(`✅ Updated block properties: ${propertyName} (${nodeType})`);
+    setStatus('Block properties saved');
+    
+    hideBlockContextMenu();
+  }
+  
+  function handleNodeTypeChange() {
+    if (!currentMenuBlock) return;
+    
+    const newNodeType = document.getElementById('menuNodeType')?.value;
+    const currentNodeType = getCurrentBlockNodeType(currentMenuBlock);
+    
+    if (newNodeType === currentNodeType) return;
+    
+    const propertyName = document.getElementById('menuPropertyName')?.value || getBlockText(currentMenuBlock);
+    
+    log(`🔄 Converting block from ${currentNodeType} to ${newNodeType}`);
+    
+    if (newNodeType === 'branch' && currentNodeType === 'leaf') {
+      convertLeafToBranch(currentMenuBlock, propertyName);
+    } else if (newNodeType === 'leaf' && currentNodeType === 'branch') {
+      convertBranchToLeaf(currentMenuBlock, propertyName);
+    }
+    
+    // Refresh the menu content to update available fields
+    const blockAnalysis = analyzeBlockForMenu(currentMenuBlock);
+    const menuContent = buildMenuContent(blockAnalysis);
+    blockContextMenu.innerHTML = menuContent;
+    
+    // Restore the property name
+    document.getElementById('menuPropertyName').value = propertyName;
+  }
+  
+  function getCurrentBlockNodeType(block) {
+    // Check if block has a slot (branch type)
+    const slot = block.querySelector('[data-slot]');
+    if (slot) {
+      return 'branch';
+    }
+    return 'leaf';
+  }
+  
+  function convertLeafToBranch(block, propertyName) {
+    // Save the current position and styling
+    const currentLeft = block.style.left;
+    const currentTop = block.style.top;
+    const currentWidth = block.style.width;
+    const currentHeight = block.style.height;
+    const isPositioned = block.classList.contains('positioned');
+    const isCustomSize = block.classList.contains('custom-size');
+    
+    // Create new branch block
+    const newBlock = createBranchBlock(propertyName);
+    
+    // Copy positioning and styling
+    if (isPositioned) {
+      newBlock.classList.add('positioned');
+      newBlock.style.left = currentLeft;
+      newBlock.style.top = currentTop;
+    }
+    
+    if (isCustomSize) {
+      newBlock.classList.add('custom-size');
+      if (currentWidth) newBlock.style.width = currentWidth;
+      if (currentHeight) newBlock.style.height = currentHeight;
+    }
+    
+    // Copy any stored metadata
+    if (block.dataset.nodeType) newBlock.dataset.nodeType = 'branch';
+    if (block.dataset.orderType) newBlock.dataset.orderType = block.dataset.orderType;
+    
+    // Replace the block
+    const parent = block.parentElement;
+    parent.insertBefore(newBlock, block);
+    block.remove();
+    
+    // Update the current menu block reference
+    currentMenuBlock = newBlock;
+    
+    // Add resize handles if it was a positioned block
+    if (isPositioned) {
+      addResizeHandles(newBlock);
+    }
+    
+    log(`✅ Converted leaf to branch: ${propertyName}`);
+  }
+  
+  function convertBranchToLeaf(block, propertyName) {
+    // Extract blocks from the slot first
+    const slot = block.querySelector('[data-slot]');
+    const slotBlocks = slot ? [...slot.querySelectorAll('.block')] : [];
+    
+    // Save the current position and styling
+    const currentLeft = block.style.left;
+    const currentTop = block.style.top;
+    const currentWidth = block.style.width;
+    const currentHeight = block.style.height;
+    const isPositioned = block.classList.contains('positioned');
+    const isCustomSize = block.classList.contains('custom-size');
+    
+    // Create new leaf block
+    const newBlock = createLeafBlock(propertyName);
+    
+    // Copy positioning and styling
+    if (isPositioned) {
+      newBlock.classList.add('positioned');
+      newBlock.style.left = currentLeft;
+      newBlock.style.top = currentTop;
+    }
+    
+    if (isCustomSize) {
+      newBlock.classList.add('custom-size');
+      if (currentWidth) newBlock.style.width = currentWidth;
+      if (currentHeight) newBlock.style.height = currentHeight;
+    }
+    
+    // Copy any stored metadata (clear block value since it's a new leaf)
+    if (block.dataset.nodeType) newBlock.dataset.nodeType = 'leaf';
+    if (block.dataset.orderType) newBlock.dataset.orderType = block.dataset.orderType;
+    newBlock.dataset.blockValue = ''; // Clear value for new leaf
+    
+    // Replace the block
+    const parent = block.parentElement;
+    parent.insertBefore(newBlock, block);
+    block.remove();
+    
+    // Move slot blocks to script area
+    if (slotBlocks.length > 0 && parent === script) {
+      relocateSlotBlocks(slotBlocks, newBlock);
+    }
+    
+    // Update the current menu block reference
+    currentMenuBlock = newBlock;
+    
+    // Add resize handles if it was a positioned block
+    if (isPositioned) {
+      addResizeHandles(newBlock);
+    }
+    
+    log(`✅ Converted branch to leaf: ${propertyName}, relocated ${slotBlocks.length} blocks`);
+  }
+  
+  function createLeafBlock(propertyName, value = '') {
+    const block = document.createElement('div');
+    block.className = 'block stack resizable';
+    block.dataset.type = 'stack';
+    block.dataset.op = 'leaf';
+    
+    block.innerHTML = `
+                  <div class="label">
+              <div class="property-field">
+                <span class="property-label">Property name:</span>
+                <input type="text" class="property-input property-name" value="${propertyName}" onchange="updateBlockProperty(this)" oninput="resizeInputToContent(this)">
+              </div>
+              <div class="property-field">
+                <span class="property-label">Property value:</span>
+                <input type="text" class="property-input property-value" value="${value}" onchange="updateBlockValue(this)" oninput="resizeInputToContent(this)">
+              </div>
+            </div>
+      <div class="resize-handle edge-right"></div>
+      <div class="resize-handle edge-bottom"></div>
+      <div class="resize-handle corner"></div>
+    `;
+    
+    assignIds(block);
+    
+    // Initialize auto-resize for the new inputs
+    setTimeout(() => {
+      block.querySelectorAll('.property-input').forEach(input => {
+        resizeInputToContent(input);
+      });
+    }, 0);
+    
+    return block;
+  }
+  
+  function createBranchBlock(propertyName) {
+    const block = document.createElement('div');
+    block.className = 'block cblock resizable';
+    block.dataset.type = 'c';
+    block.dataset.op = 'branch';
+    
+    block.innerHTML = `
+                  <div class="label">
+              <div class="property-field">
+                <span class="property-label">Property name:</span>
+                <input type="text" class="property-input property-name" value="${propertyName}" onchange="updateBlockProperty(this)" oninput="resizeInputToContent(this)">
+              </div>
+            </div>
+      <div class="slot" data-slot></div>
+      <div class="resize-handle edge-right"></div>
+      <div class="resize-handle edge-bottom"></div>
+      <div class="resize-handle corner"></div>
+    `;
+    
+    assignIds(block);
+    
+    // Initialize auto-resize for the new inputs
+    setTimeout(() => {
+      block.querySelectorAll('.property-input').forEach(input => {
+        resizeInputToContent(input);
+      });
+    }, 0);
+    
+    return block;
+  }
+  
+  function relocateSlotBlocks(slotBlocks, nearBlock) {
+    const nearRect = nearBlock.getBoundingClientRect();
+    const scriptRect = script.getBoundingClientRect();
+    
+    // Position blocks to the right of the converted block
+    let offsetX = parseFloat(nearBlock.style.left) + nearRect.width + 20;
+    let offsetY = parseFloat(nearBlock.style.top);
+    
+    slotBlocks.forEach((slotBlock, index) => {
+      // Remove from slot and add to script
+      script.appendChild(slotBlock);
+      
+      // Position block
+      slotBlock.classList.add('positioned');
+      slotBlock.style.left = offsetX + 'px';
+      slotBlock.style.top = (offsetY + (index * 60)) + 'px';
+      
+      // Clear slot-specific styling
+      slotBlock.style.position = 'absolute';
+      
+      // Add resize handles
+      addResizeHandles(slotBlock);
+      
+      assignIds(slotBlock);
+    });
+  }
+  
+  function updateBlockProperty(input) {
+    const block = input.closest('.block');
+    if (!block) return;
+    
+    const newPropertyName = input.value;
+    log(`📝 Updated block property name: ${newPropertyName}`);
+    
+    // Store the property name for JSON generation
+    block.dataset.propertyName = newPropertyName;
+    
+    // Auto-resize input based on content
+    resizeInputToContent(input);
+  }
+  
+  function updateBlockValue(input) {
+    const block = input.closest('.block');
+    if (!block) return;
+    
+    const newValue = input.value;
+    log(`📝 Updated block value: ${newValue}`);
+    
+    // Store the value for JSON generation
+    block.dataset.blockValue = newValue;
+    
+    // Auto-resize input based on content
+    resizeInputToContent(input);
+  }
+  
+  function resizeInputToContent(input) {
+    // Create a temporary span to measure text width
+    const tempSpan = document.createElement('span');
+    tempSpan.style.visibility = 'hidden';
+    tempSpan.style.position = 'absolute';
+    tempSpan.style.whiteSpace = 'nowrap';
+    tempSpan.style.fontSize = getComputedStyle(input).fontSize;
+    tempSpan.style.fontWeight = getComputedStyle(input).fontWeight;
+    tempSpan.style.fontFamily = getComputedStyle(input).fontFamily;
+    tempSpan.style.padding = getComputedStyle(input).padding;
+    tempSpan.textContent = input.value || input.placeholder || 'placeholder';
+    
+    document.body.appendChild(tempSpan);
+    const textWidth = tempSpan.offsetWidth;
+    document.body.removeChild(tempSpan);
+    
+    // Set input width with some padding
+    const newWidth = Math.max(60, textWidth + 16); // 60px minimum, 16px padding
+    input.style.width = newWidth + 'px';
+  }
+  
+  function initializeInputAutoResize() {
+    // Add event listeners for all existing property inputs
+    document.querySelectorAll('.property-input').forEach(input => {
+      // Resize on input
+      input.addEventListener('input', function() {
+        resizeInputToContent(this);
+      });
+      
+      // Initial resize
+      resizeInputToContent(input);
+    });
+  }
+  
+  function handleOrderTypeChange() {
+    if (!currentMenuBlock) return;
+    
+    const orderTypeSelect = document.getElementById('menuOrderType');
+    const customOrderField = document.getElementById('customOrderField');
+    const newOrderType = orderTypeSelect?.value;
+    
+    if (!newOrderType) return;
+    
+    // Show/hide custom order field
+    if (customOrderField) {
+      customOrderField.style.display = newOrderType === 'custom' ? 'flex' : 'none';
+    }
+    
+    // Find all blocks in the same sequence as the current block
+    const sequenceBlocks = findBlocksInSameSequence(currentMenuBlock);
+    
+    // Apply order type to all blocks in the sequence
+    sequenceBlocks.forEach(block => {
+      block.dataset.orderType = newOrderType;
+      if (newOrderType !== 'custom') {
+        // Clear custom order if not custom type
+        delete block.dataset.customOrder;
+      }
+    });
+    
+    log(`🔄 Applied order type "${newOrderType}" to ${sequenceBlocks.length} blocks in sequence`);
+  }
+  
+  function handleCustomOrderChange() {
+    if (!currentMenuBlock) return;
+    
+    const customOrderInput = document.getElementById('menuCustomOrder');
+    const customOrderValue = customOrderInput?.value || '';
+    
+    // Find all blocks in the same sequence as the current block
+    const sequenceBlocks = findBlocksInSameSequence(currentMenuBlock);
+    
+    // Apply custom order to all blocks in the sequence
+    sequenceBlocks.forEach(block => {
+      block.dataset.customOrder = customOrderValue;
+    });
+    
+    log(`📝 Applied custom order "${customOrderValue}" to ${sequenceBlocks.length} blocks in sequence`);
+  }
+  
+  function findBlocksInSameSequence(targetBlock) {
+    const blocks = [targetBlock];
+    const isInSlot = !!targetBlock.closest('[data-slot]');
+    
+    if (isInSlot) {
+      // Find sequence within slot
+      const slot = targetBlock.closest('[data-slot]');
+      const slotBlocks = [...slot.querySelectorAll('.block')];
+      const connections = findSlotBlockConnections(targetBlock, slotBlocks);
+      
+      // Find all vertically connected blocks (sequence)
+      const visited = new Set();
+      const queue = [targetBlock];
+      
+      while (queue.length > 0) {
+        const currentBlock = queue.shift();
+        if (visited.has(currentBlock)) continue;
+        visited.add(currentBlock);
+        
+        const currentConnections = findSlotBlockConnections(currentBlock, slotBlocks);
+        
+        // Add vertically connected blocks to queue
+        currentConnections.vertical.forEach(connectedBlock => {
+          if (!visited.has(connectedBlock) && !queue.includes(connectedBlock)) {
+            queue.push(connectedBlock);
+            if (!blocks.includes(connectedBlock)) {
+              blocks.push(connectedBlock);
+            }
+          }
+        });
+      }
+    } else {
+      // Find sequence in main script
+      const scriptBlocks = [...script.children].filter(el => 
+        el.classList && el.classList.contains('block') && el.classList.contains('positioned')
+      );
+      
+      const visited = new Set();
+      const queue = [targetBlock];
+      
+      while (queue.length > 0) {
+        const currentBlock = queue.shift();
+        if (visited.has(currentBlock)) continue;
+        visited.add(currentBlock);
+        
+        const currentConnections = findBlockConnections(currentBlock, scriptBlocks);
+        
+        // Add vertically connected blocks to queue
+        currentConnections.vertical.forEach(connectedBlock => {
+          if (!visited.has(connectedBlock) && !queue.includes(connectedBlock)) {
+            queue.push(connectedBlock);
+            if (!blocks.includes(connectedBlock)) {
+              blocks.push(connectedBlock);
+            }
+          }
+        });
+      }
+    }
+    
+    return blocks;
+  }
+  
+  // Add double-click event listener for blocks
+  document.addEventListener('dblclick', (e) => {
+    const block = e.target.closest('.block');
+    if (!block) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    showBlockContextMenu(block);
+  });
+  
+  // ==== Resize system ====
+  let resizing = null;
+  
+  function initializeBlockResize() {
+    // Add resize handles to existing blocks when they're cloned or moved
+    // Use capture phase to ensure this runs before the drag handler
+    document.addEventListener('pointerdown', startResize, true);
+  }
+  
+  function startResize(e) {
+    const handle = e.target.closest('.resize-handle');
+    if (!handle) return;
+    
+    // Prevent any other event handlers from running
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    
+    console.log('Resize handle clicked:', handle.className);
+    
+    const block = handle.closest('.block');
+    if (!block) return;
+    
+    const handleType = handle.classList.contains('corner') ? 'corner' : 
+                      handle.classList.contains('edge-right') ? 'right' : 'bottom';
+    
+    const rect = block.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = rect.width;
+    const startHeight = rect.height;
+    
+    resizing = {
+      block,
+      handle,
+      handleType,
+      startX,
+      startY,
+      startWidth,
+      startHeight,
+      minWidth: 120,
+      minHeight: 40,
+      maxWidth: 500,
+      maxHeight: 300
+    };
+    
+    block.classList.add('resizing');
+    block.classList.add('custom-size');
+    
+    // Set initial dimensions
+    block.style.setProperty('width', startWidth + 'px', 'important');
+    block.style.setProperty('height', startHeight + 'px', 'important');
+    
+    setStatus('Resizing block...');
+    
+    document.addEventListener('pointermove', onResizeMove, true);
+    document.addEventListener('pointerup', onResizeEnd, { once: true, capture: true });
+  }
+  
+  function onResizeMove(e) {
+    if (!resizing) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const { block, handleType, startX, startY, startWidth, startHeight, minWidth, minHeight, maxWidth, maxHeight } = resizing;
+    
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    
+    if (handleType === 'right' || handleType === 'corner') {
+      newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + deltaX));
+    }
+    
+    if (handleType === 'bottom' || handleType === 'corner') {
+      newHeight = Math.max(minHeight, Math.min(maxHeight, startHeight + deltaY));
+    }
+    
+    block.style.setProperty('width', newWidth + 'px', 'important');
+    block.style.setProperty('height', newHeight + 'px', 'important');
+    
+    // Debug output
+    console.log('Resizing:', handleType, 'newWidth:', newWidth, 'newHeight:', newHeight);
+    console.log('Block current dimensions:', block.style.width, block.style.height);
+  }
+  
+  function onResizeEnd(e) {
+    if (!resizing) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Resize ended');
+    
+    resizing.block.classList.remove('resizing');
+    document.removeEventListener('pointermove', onResizeMove, true);
+    resizing = null;
+    setStatus('Resize complete');
+  }
+  
+  // Initialize resize system
+  initializeBlockResize();
+  
+  // Add resize handles to dynamically created blocks
+  function addResizeHandles(block) {
+    if (!block.classList.contains('resizable')) {
+      block.classList.add('resizable');
+    }
+    
+    // Remove existing handles to avoid duplicates
+    block.querySelectorAll('.resize-handle').forEach(h => h.remove());
+    
+    // Add new handles
+    const handles = [
+      { class: 'resize-handle edge-right', type: 'right' },
+      { class: 'resize-handle edge-bottom', type: 'bottom' },
+      { class: 'resize-handle corner', type: 'corner' }
+    ];
+    
+    handles.forEach(({ class: className }) => {
+      const handle = document.createElement('div');
+      handle.className = className;
+      block.appendChild(handle);
+    });
+  }
   
   // ==== Block connection detection ====
   function getConnectedBlocks(startBlock) {
@@ -284,10 +1352,19 @@
     const block = e.target.closest('.block');
     if(!block) return;
     
-    // Don't start drag if clicking on contenteditable elements (args)
-    if(e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]')) {
+    // Don't start drag if clicking on editable elements
+    if(e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]') || 
+       e.target.classList.contains('property-input') || e.target.closest('.property-input')) {
       return;
     }
+    
+    // Don't start drag if clicking on resize handles
+    if(e.target.closest('.resize-handle')) {
+      console.log('Drag blocked - resize handle detected');
+      return;
+    }
+    
+    console.log('Starting drag operation');
     
     // Prevent any default behavior including text selection and contenteditable focus
     e.preventDefault();
@@ -443,6 +1520,8 @@
     if(fromPalette) {
       moving.removeAttribute('data-id');
       moving.querySelectorAll('[data-id]').forEach(el => el.removeAttribute('data-id'));
+      // Add resize handles to cloned blocks
+      addResizeHandles(moving);
     }
     assignIds(moving);
 
@@ -571,6 +1650,11 @@
       node.removeAttribute('data-id');
       node.querySelectorAll('[data-id]').forEach(n=>n.removeAttribute('data-id'));
       assignIds(node);
+      
+      // Ensure resize handles are present after drop
+      if (drag.fromPalette) {
+        addResizeHandles(node);
+      }
 
       const target = document.querySelector(`[data-id="${a.dataset.ref}"]`);
       const direction = a.dataset.where;
@@ -1339,24 +2423,45 @@
   // ==== Toy interpreter ====
   async function run(){
     setStatus('Running…'); setStatus('--- Run ---');
+    log('🚀 Starting execution...');
     const blocks = [...script.children].filter(el=> el.classList && el.classList.contains('block'));
+    log(`Found ${blocks.length} blocks to execute`);
     for(const b of blocks){ await execBlock(b); }
     setStatus('Done');
+    log('✅ Execution completed');
   }
   async function execBlock(b){
     const op = b.dataset.op; highlight(b,true); await sleep(150);
     if(op==='leaf'){ 
       const arg = readArg(b,0);
-      if(arg.includes('move')) setStatus('➡️ move steps');
-      if(arg.includes('turn')) setStatus('↩️ turn degrees');
-      if(arg.includes('say')) setStatus('💬 say message');
+      if(arg.includes('move')) {
+        setStatus('➡️ move steps');
+        log(`📦 Executing leaf: move ${arg}`);
+      }
+      if(arg.includes('turn')) {
+        setStatus('↩️ turn degrees');
+        log(`📦 Executing leaf: turn ${arg}`);
+      }
+      if(arg.includes('say')) {
+        setStatus('💬 say message');
+        log(`📦 Executing leaf: say "${arg}"`);
+      }
+      if(!arg.includes('move') && !arg.includes('turn') && !arg.includes('say')) {
+        log(`📦 Executing leaf: ${arg || 'empty'}`);
+      }
       await sleep(200); 
     }
     else if(op==='branch'){
       const n=Math.max(0,Math.min(50, Number(readArg(b,0)||0)));
       const slot=b.querySelector('[data-slot]');
       const inner=[...slot.children].filter(c=> c.classList && c.classList.contains('block'));
-      for(let i=0;i<n;i++){ setStatus('🔁 loop '+(i+1)+'/'+n); for(const c of inner){ await execBlock(c);} }
+      log(`🔄 Starting branch loop: ${n} iterations with ${inner.length} blocks`);
+      for(let i=0;i<n;i++){ 
+        setStatus('🔁 loop '+(i+1)+'/'+n); 
+        log(`  🔁 Loop iteration ${i+1}/${n}`);
+        for(const c of inner){ await execBlock(c);} 
+      }
+      log(`🔄 Branch loop completed`);
     }
     highlight(b,false); await sleep(60);
   }
@@ -1364,11 +2469,38 @@
   function sleep(ms){ return new Promise(r=> setTimeout(r, ms)); }
   function highlight(el,on){ el.classList.toggle('highlight', !!on); }
 
-  runBtn.addEventListener('click', ()=>{ run().catch(err=> { log('! Error: '+err.message); setStatus('Stopped'); }); });
-  clearBtn.addEventListener('click', ()=>{ [...script.querySelectorAll('.block')].forEach(el=>el.remove()); setStatus('Cleared'); });
+  runBtn.addEventListener('click', ()=>{ run().catch(err=> { log('❌ Error: '+err.message); setStatus('Stopped'); }); });
+  clearBtn.addEventListener('click', ()=>{ 
+    [...script.querySelectorAll('.block')].forEach(el=>el.remove()); 
+    setStatus('Cleared'); 
+    log('🧹 Workspace cleared');
+  });
+  
+  clearLogBtn.addEventListener('click', ()=>{ 
+    clearLog(); 
+    log('📋 Console cleared');
+  });
+  
+  generateJsonBtn.addEventListener('click', generateBlockGraphJson);
+  
+  // Make functions global for button onclick handlers
+  window.saveBlockProperties = saveBlockProperties;
+  window.hideBlockContextMenu = hideBlockContextMenu;
+  window.handleNodeTypeChange = handleNodeTypeChange;
+  window.handleOrderTypeChange = handleOrderTypeChange;
+  window.handleCustomOrderChange = handleCustomOrderChange;
+  window.updateBlockProperty = updateBlockProperty;
+  window.updateBlockValue = updateBlockValue;
+  window.resizeInputToContent = resizeInputToContent;
 
   (function seed(){ 
     // No initial block to seed since we removed the "when clicked" block
+    log('🎉 Welcome to Mini Scratch-like Blocks!');
+    log('💡 Drag blocks from the sidebar to build programs');
+    log('🔧 Use resize handles to adjust block dimensions');
+    
+    // Initialize auto-resize for existing inputs
+    initializeInputAutoResize();
   })();
 
   // ==== Minimal Test Runner (adds alignment test) ====
@@ -1436,6 +2568,672 @@
     setStatus('--- Tests Done ---');
   }
   testBtn.addEventListener('click', runTests);
+  
+  // ==== JSON Generation System ====
+  function generateBlockGraphJson() {
+    log('🔍 Analyzing block graph...');
+    
+    try {
+      const jsonStructure = analyzeBlockGraph();
+      const jsonString = JSON.stringify(jsonStructure, null, 2);
+      
+      log('📄 Generated JSON:');
+      log(jsonString);
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(JSON.stringify(jsonStructure)).then(() => {
+        log('📋 JSON copied to clipboard');
+        setStatus('JSON generated and copied');
+      }).catch(() => {
+        log('❌ Failed to copy to clipboard');
+        setStatus('JSON generated (copy failed)');
+      });
+      
+    } catch (error) {
+      log('❌ Error generating JSON: ' + error.message);
+      setStatus('JSON generation failed');
+    }
+  }
+  
+  function analyzeBlockGraph() {
+    // Get all positioned blocks in the script area
+    const scriptBlocks = [...script.children].filter(el => 
+      el.classList && el.classList.contains('block') && el.classList.contains('positioned')
+    );
+    
+    if (scriptBlocks.length === 0) {
+      return {
+        "Main Task": "empty",
+        "Requirements": [],
+        "Audience": ["everyone"]
+      };
+    }
+    
+    // Determine the main task from the first block or most common block type
+    const mainTask = determineMainTask(scriptBlocks);
+    
+    // Find root blocks (blocks that aren't connected from above or left)
+    const rootBlocks = findRootBlocks(scriptBlocks);
+    
+    // Build the requirements tree
+    const requirements = rootBlocks.map(block => buildBlockNode(block, scriptBlocks));
+    
+    return {
+      "Main Task": mainTask,
+      "Requirements": requirements.length > 0 ? requirements : [],
+      "Audience": ["everyone"]
+    };
+  }
+  
+  function determineMainTask(blocks) {
+    if (blocks.length === 0) return "empty";
+    
+    // Count block types
+    const blockTypes = {};
+    blocks.forEach(block => {
+      const op = block.dataset.op || 'unknown';
+      blockTypes[op] = (blockTypes[op] || 0) + 1;
+    });
+    
+    // Map block operations to task types
+    const taskMapping = {
+      'leaf': 'execution',
+      'branch': 'control',
+      'say': 'writing',
+      'move': 'action',
+      'turn': 'action'
+    };
+    
+    // Find the most common task type
+    let mainTaskType = 'execution';
+    let maxCount = 0;
+    
+    Object.entries(blockTypes).forEach(([op, count]) => {
+      const taskType = taskMapping[op] || 'execution';
+      if (count > maxCount) {
+        maxCount = count;
+        mainTaskType = taskType;
+      }
+    });
+    
+    return mainTaskType;
+  }
+  
+  function findRootBlocks(blocks) {
+    return blocks.filter(block => {
+      // A block is a root if no other block is positioned directly above it or to its left
+      const blockRect = block.getBoundingClientRect();
+      const scriptRect = script.getBoundingClientRect();
+      const blockLeft = parseFloat(block.style.left);
+      const blockTop = parseFloat(block.style.top);
+      
+      return !blocks.some(otherBlock => {
+        if (otherBlock === block) return false;
+        
+        const otherRect = otherBlock.getBoundingClientRect();
+        const otherLeft = parseFloat(otherBlock.style.left);
+        const otherTop = parseFloat(otherBlock.style.top);
+        
+        const tolerance = 12;
+        
+        // Check if other block is directly above (vertical connection)
+        const directlyAbove = Math.abs((otherTop + otherRect.height) - blockTop) <= tolerance &&
+                             Math.abs(otherLeft - blockLeft) <= Math.max(blockRect.width, otherRect.width) * 0.3;
+        
+        // Check if other block is directly to the left (horizontal connection)
+        const directlyLeft = Math.abs((otherLeft + otherRect.width) - blockLeft) <= tolerance &&
+                            Math.abs(otherTop - blockTop) <= Math.max(blockRect.height, otherRect.height) * 0.3;
+        
+        return directlyAbove || directlyLeft;
+      });
+    });
+  }
+  
+  function buildBlockNode(block, allBlocks) {
+    const blockText = getBlockText(block);
+    const blockType = block.dataset.op;
+    
+    // Find connected blocks with priority: sequential > parallel > inclusion
+    const connections = findBlockConnections(block, allBlocks);
+    
+    // Priority 1: Sequential (vertical connections)
+    if (connections.vertical.length > 0) {
+      const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockOrderType(block),
+        "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "top to bottom execution",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 2: Parallel (horizontal connections)
+    if (connections.horizontal.length > 0) {
+      const allConnectedBlocks = [block, ...connections.horizontal];
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": allConnectedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 3: Inclusion (slot/container)
+    const slot = block.querySelector('[data-slot]');
+    if (slot && slot.children.length > 0) {
+      // This is a branch node with children in the slot
+      const slotBlocks = [...slot.querySelectorAll('.block')];
+      const children = analyzeSlotBlocks(slotBlocks);
+      
+      return {
+        "node_type": "branch",
+        "property_name": blockText || "container",
+        "children": children
+      };
+    }
+    
+    // Single block with no connections - leaf node
+    return {
+      "node_type": "leaf",
+      "property_name": blockText || "single_item",
+      "value": ""
+    };
+  }
+  
+  function analyzeSlotBlocks(slotBlocks) {
+    if (slotBlocks.length === 0) return [];
+    if (slotBlocks.length === 1) {
+      return [buildSlotBlockNode(slotBlocks[0], slotBlocks)];
+    }
+    
+    // Build connection graph for all blocks
+    const connectionGraph = buildConnectionGraph(slotBlocks);
+    
+    // Find connected components (groups of blocks that are connected to each other)
+    const components = findConnectedComponents(slotBlocks, connectionGraph);
+    
+    // Analyze each component separately
+    const children = [];
+    components.forEach(component => {
+      if (component.length === 1) {
+        // Single isolated block
+        children.push({
+          "node_type": "leaf",
+          "property_name": getBlockText(component[0]) || "isolated_item",
+          "value": getBlockValue(b)
+        });
+      } else {
+        // Multi-block component - analyze its structure
+        const componentNode = analyzeComponentStructure(component, connectionGraph);
+        children.push(componentNode);
+      }
+    });
+    
+    return children;
+  }
+  
+  function buildSlotBlockNode(block, allSlotBlocks) {
+    const blockText = getBlockText(block);
+    
+    // Apply the same priority detection logic as main blocks but within the slot context
+    const connections = findSlotBlockConnections(block, allSlotBlocks);
+    
+    // Priority 1: Sequential (vertical connections)
+    if (connections.vertical.length > 0) {
+      const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockOrderType(block),
+        "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "top to bottom execution within slot",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 2: Parallel (horizontal connections or horizontal groups)
+    if (connections.horizontal.length > 0) {
+      const allConnectedBlocks = [block, ...connections.horizontal];
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": allConnectedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Check for horizontal groupings (existing UI feature)
+    const horizontalGroup = block.closest('.horizontal-group');
+    if (horizontalGroup) {
+      const groupBlocks = [...horizontalGroup.querySelectorAll('.block')];
+      if (groupBlocks.length > 1) {
+        return {
+          "node_type": "cluster", 
+          "operator": "parallel",
+          "children": groupBlocks.map(b => ({
+            "node_type": "leaf",
+            "property_name": getBlockText(b) || "group_item",
+            "value": getBlockValue(b)
+          }))
+        };
+      }
+    }
+    
+    // Priority 3: Inclusion (nested slots - recursive)
+    const nestedSlot = block.querySelector('[data-slot]');
+    if (nestedSlot && nestedSlot.children.length > 0) {
+      const nestedSlotBlocks = [...nestedSlot.querySelectorAll('.block')];
+      const nestedChildren = analyzeSlotBlocks(nestedSlotBlocks);
+      
+      return {
+        "node_type": "branch",
+        "property_name": blockText || "nested_container",
+        "children": nestedChildren
+      };
+    }
+    
+    // Single block with no connections - leaf node
+    return {
+      "node_type": "leaf",
+      "property_name": blockText || "slot_item",
+      "value": ""
+    };
+  }
+  
+  function findRootBlocksInSlot(slotBlocks) {
+    return slotBlocks.filter(block => {
+      // A block is a root if no other block in the slot is positioned directly above it or to its left
+      const blockRect = block.getBoundingClientRect();
+      const blockPos = getBlockPositionInSlot(block);
+      
+      return !slotBlocks.some(otherBlock => {
+        if (otherBlock === block) return false;
+        
+        const otherPos = getBlockPositionInSlot(otherBlock);
+        const tolerance = 12;
+        
+        // Check if other block is directly above (vertical connection)
+        const directlyAbove = Math.abs((otherPos.bottom) - blockPos.top) <= tolerance &&
+                             Math.abs(otherPos.left - blockPos.left) <= Math.max(blockPos.width, otherPos.width) * 0.3;
+        
+        // Check if other block is directly to the left (horizontal connection)
+        const directlyLeft = Math.abs((otherPos.right) - blockPos.left) <= tolerance &&
+                            Math.abs(otherPos.top - blockPos.top) <= Math.max(blockPos.height, otherPos.height) * 0.3;
+        
+        return directlyAbove || directlyLeft;
+      });
+    });
+  }
+  
+  function findSlotBlockConnections(block, allSlotBlocks) {
+    const connections = { horizontal: [], vertical: [] };
+    const blockPos = getBlockPositionInSlot(block);
+    
+    allSlotBlocks.forEach(otherBlock => {
+      if (otherBlock === block) return;
+      
+      const otherPos = getBlockPositionInSlot(otherBlock);
+      const tolerance = 12;
+      
+      // Check for horizontal connection (side by side)
+      const horizontallyConnected = (
+        (Math.abs(blockPos.right - otherPos.left) <= tolerance || Math.abs(otherPos.right - blockPos.left) <= tolerance) &&
+        Math.abs(blockPos.top - otherPos.top) <= Math.max(blockPos.height, otherPos.height) * 0.3
+      );
+      
+      // Check for vertical connection (stacked)
+      const verticallyConnected = (
+        (Math.abs(blockPos.bottom - otherPos.top) <= tolerance || Math.abs(otherPos.bottom - blockPos.top) <= tolerance) &&
+        Math.abs(blockPos.left - otherPos.left) <= Math.max(blockPos.width, otherPos.width) * 0.3
+      );
+      
+      if (horizontallyConnected) {
+        connections.horizontal.push(otherBlock);
+      } else if (verticallyConnected) {
+        connections.vertical.push(otherBlock);
+      }
+    });
+    
+    return connections;
+  }
+  
+  function getBlockPositionInSlot(block) {
+    const rect = block.getBoundingClientRect();
+    const slot = block.closest('[data-slot]');
+    
+    if (slot) {
+      const slotRect = slot.getBoundingClientRect();
+      return {
+        left: rect.left - slotRect.left,
+        top: rect.top - slotRect.top,
+        right: rect.left - slotRect.left + rect.width,
+        bottom: rect.top - slotRect.top + rect.height,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+    
+    // Fallback to absolute position
+    return {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+  
+  function buildConnectionGraph(slotBlocks) {
+    const graph = new Map();
+    
+    // Initialize graph with empty connection lists for each block
+    slotBlocks.forEach(block => {
+      graph.set(block, { horizontal: [], vertical: [] });
+    });
+    
+    // Build bidirectional connections
+    slotBlocks.forEach(block => {
+      const connections = findSlotBlockConnections(block, slotBlocks);
+      graph.get(block).horizontal = connections.horizontal;
+      graph.get(block).vertical = connections.vertical;
+    });
+    
+    return graph;
+  }
+  
+  function findConnectedComponents(slotBlocks, connectionGraph) {
+    const visited = new Set();
+    const components = [];
+    
+    slotBlocks.forEach(block => {
+      if (!visited.has(block)) {
+        const component = [];
+        exploreComponent(block, connectionGraph, visited, component);
+        components.push(component);
+      }
+    });
+    
+    return components;
+  }
+  
+  function exploreComponent(block, connectionGraph, visited, component) {
+    if (visited.has(block)) return;
+    
+    visited.add(block);
+    component.push(block);
+    
+    const connections = connectionGraph.get(block);
+    if (connections) {
+      // Explore all connected blocks (both horizontal and vertical)
+      [...connections.horizontal, ...connections.vertical].forEach(connectedBlock => {
+        exploreComponent(connectedBlock, connectionGraph, visited, component);
+      });
+    }
+  }
+  
+  function analyzeComponentStructure(component, connectionGraph) {
+    if (component.length === 1) {
+      return {
+        "node_type": "leaf",
+        "property_name": getBlockText(component[0]) || "single_item",
+        "value": ""
+      };
+    }
+    
+    // Check if component has both horizontal and vertical connections
+    const hasHorizontal = component.some(block => 
+      connectionGraph.get(block).horizontal.length > 0
+    );
+    const hasVertical = component.some(block => 
+      connectionGraph.get(block).vertical.length > 0
+    );
+    
+    if (hasHorizontal && hasVertical) {
+      // Mixed connections - need to identify sub-structures
+      return analyzeMixedConnections(component, connectionGraph);
+    } else if (hasVertical) {
+      // Pure sequential
+      const sortedBlocks = sortBlocksVertically(component);
+      const firstBlock = component[0];
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(firstBlock) === 'custom' ? getBlockCustomOrder(firstBlock) : getBlockOrderType(firstBlock),
+        "order_note": getBlockOrderType(firstBlock) === 'custom' && getBlockCustomOrder(firstBlock) ? getBlockCustomOrder(firstBlock) : "top to bottom execution within slot",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    } else if (hasHorizontal) {
+      // Pure parallel
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": component.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Fallback - shouldn't happen
+    return {
+      "node_type": "cluster",
+      "operator": "parallel",
+      "children": component.map(b => ({
+        "node_type": "leaf",
+        "property_name": getBlockText(b) || "fallback_item",
+        "value": ""
+      }))
+    };
+  }
+  
+  function analyzeMixedConnections(component, connectionGraph) {
+    // For mixed connections, we need to identify vertical chains and horizontal groups
+    const processed = new Set();
+    const subStructures = [];
+    
+    component.forEach(block => {
+      if (processed.has(block)) return;
+      
+      // Check if this block is part of a vertical chain
+      const verticalChain = findVerticalChain(block, component, connectionGraph);
+      if (verticalChain.length > 1) {
+        // This is a vertical chain
+        verticalChain.forEach(b => processed.add(b));
+        const sortedChain = sortBlocksVertically(verticalChain);
+        subStructures.push({
+          "node_type": "cluster",
+          "operator": "sequential",
+          "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockOrderType(block),
+          "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "vertical chain within parallel structure",
+          "sequence": sortedChain.map(b => ({
+            "node_type": "leaf",
+            "property_name": getBlockText(b) || "chain_item",
+            "value": getBlockValue(b)
+          }))
+        });
+      } else {
+        // Single block (horizontally connected but not vertically)
+        processed.add(block);
+        subStructures.push({
+          "node_type": "leaf",
+          "property_name": getBlockText(block) || "parallel_item",
+          "value": getBlockValue(b)
+        });
+      }
+    });
+    
+    // If we have multiple sub-structures, wrap them in a parallel cluster
+    if (subStructures.length > 1) {
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": subStructures
+      };
+    } else {
+      return subStructures[0];
+    }
+  }
+  
+  function findVerticalChain(startBlock, component, connectionGraph) {
+    const chain = [startBlock];
+    const visited = new Set([startBlock]);
+    
+    // Walk up the chain
+    let current = startBlock;
+    while (true) {
+      const connections = connectionGraph.get(current);
+      const upBlock = connections.vertical.find(block => {
+        const blockPos = getBlockPositionInSlot(block);
+        const currentPos = getBlockPositionInSlot(current);
+        return blockPos.bottom <= currentPos.top + 12; // Block is above
+      });
+      
+      if (upBlock && component.includes(upBlock) && !visited.has(upBlock)) {
+        chain.unshift(upBlock);
+        visited.add(upBlock);
+        current = upBlock;
+      } else {
+        break;
+      }
+    }
+    
+    // Walk down the chain
+    current = startBlock;
+    while (true) {
+      const connections = connectionGraph.get(current);
+      const downBlock = connections.vertical.find(block => {
+        const blockPos = getBlockPositionInSlot(block);
+        const currentPos = getBlockPositionInSlot(current);
+        return blockPos.top >= currentPos.bottom - 12; // Block is below
+      });
+      
+      if (downBlock && component.includes(downBlock) && !visited.has(downBlock)) {
+        chain.push(downBlock);
+        visited.add(downBlock);
+        current = downBlock;
+      } else {
+        break;
+      }
+    }
+    
+    return chain;
+  }
+  
+  function getBlockText(block) {
+    // Try to get from the new property name input
+    const propertyNameInput = block.querySelector('.property-name');
+    if (propertyNameInput) {
+      const text = propertyNameInput.value.trim();
+      if (text) return text;
+    }
+    
+    // Fallback to stored property name
+    if (block.dataset.propertyName) {
+      return block.dataset.propertyName;
+    }
+    
+    // Legacy fallback to contenteditable
+    const argElement = block.querySelector('[contenteditable]');
+    if (argElement) {
+      const text = argElement.textContent.trim();
+      if (text) return text;
+    }
+    
+    // Final fallback to block operation
+    const op = block.dataset.op;
+    return op || "unnamed";
+  }
+  
+  function getBlockValue(block) {
+    // Try to get from the new property value input
+    const propertyValueInput = block.querySelector('.property-value');
+    if (propertyValueInput) {
+      return propertyValueInput.value.trim();
+    }
+    
+    // Fallback to stored block value
+    return block.dataset.blockValue || "";
+  }
+  
+  function getBlockOrderType(block) {
+    // Get order type from context menu or default spatial
+    return block.dataset.orderType || "spatial";
+  }
+  
+  function getBlockCustomOrder(block) {
+    // Get custom order from block dataset
+    return block.dataset.customOrder || "";
+  }
+  
+  function findBlockConnections(block, allBlocks) {
+    const connections = { horizontal: [], vertical: [] };
+    const blockRect = block.getBoundingClientRect();
+    const scriptRect = script.getBoundingClientRect();
+    const blockLeft = parseFloat(block.style.left);
+    const blockTop = parseFloat(block.style.top);
+    const blockRight = blockLeft + blockRect.width;
+    const blockBottom = blockTop + blockRect.height;
+    
+    allBlocks.forEach(otherBlock => {
+      if (otherBlock === block) return;
+      
+      const otherRect = otherBlock.getBoundingClientRect();
+      const otherLeft = parseFloat(otherBlock.style.left);
+      const otherTop = parseFloat(otherBlock.style.top);
+      const otherRight = otherLeft + otherRect.width;
+      const otherBottom = otherTop + otherRect.height;
+      
+      const tolerance = 12;
+      
+      // Check for horizontal connection (side by side)
+      const horizontallyConnected = (
+        (Math.abs(blockRight - otherLeft) <= tolerance || Math.abs(otherRight - blockLeft) <= tolerance) &&
+        Math.abs(blockTop - otherTop) <= Math.max(blockRect.height, otherRect.height) * 0.3
+      );
+      
+      // Check for vertical connection (stacked)
+      const verticallyConnected = (
+        (Math.abs(blockBottom - otherTop) <= tolerance || Math.abs(otherBottom - blockTop) <= tolerance) &&
+        Math.abs(blockLeft - otherLeft) <= Math.max(blockRect.width, otherRect.width) * 0.3
+      );
+      
+      if (horizontallyConnected) {
+        connections.horizontal.push(otherBlock);
+      } else if (verticallyConnected) {
+        connections.vertical.push(otherBlock);
+      }
+    });
+    
+    return connections;
+  }
+  
+  function sortBlocksVertically(blocks) {
+    return blocks.sort((a, b) => {
+      const aTop = parseFloat(a.style.top);
+      const bTop = parseFloat(b.style.top);
+      return aTop - bTop;
+    });
+  }
 })();
 </script>
 </body>
