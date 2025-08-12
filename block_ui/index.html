@@ -121,30 +121,23 @@
       <div class="group">
         <h3>Events</h3>
         <div class="palette">
-          <div class="block hat" data-type="hat" data-op="whenFlag"><div class="label">when ▶️ clicked</div></div>
+          <!-- Removed "when clicked" block -->
         </div>
       </div>
       <div class="group">
-        <h3>Motion</h3>
+        <h3>Actions</h3>
         <div class="palette">
-          <div class="block stack" data-type="stack" data-op="move"><div class="label">move <span class="arg" contenteditable>10</span> steps</div></div>
-          <div class="block stack" data-type="stack" data-op="turn"><div class="label">turn <span class="arg" contenteditable>15</span>°</div></div>
-        </div>
-      </div>
-      <div class="group">
-        <h3>Looks</h3>
-        <div class="palette">
-          <div class="block stack" data-type="stack" data-op="say"><div class="label">say <span class="arg" contenteditable>Hello!</span></div></div>
+          <div class="block stack" data-type="stack" data-op="leaf"><div class="label">leaf <span class="arg" contenteditable></span></div></div>
         </div>
       </div>
       <div class="group">
         <h3>Control</h3>
         <div class="palette">
-          <div class="block cblock" data-type="c" data-op="repeat">
-            <div class="label">repeat <span class="arg" contenteditable>5</span></div>
+          <div class="block cblock" data-type="c" data-op="branch">
+            <div class="label">branch <span class="arg" contenteditable></span></div>
             <div class="slot" data-slot></div>
           </div>
-          <div class="block cap" data-type="cap" data-op="stop"><div class="label">stop</div></div>
+          <!-- Removed "stop" block -->
         </div>
       </div>
     </aside>
@@ -152,7 +145,6 @@
     <main class="workspace-wrap">
       <div class="workspace" id="workspace">
         <div class="script-area" id="script"><div class="script-title">Script 1</div></div>
-        <div class="log" id="log"><h4>Console</h4><pre></pre></div>
         <div class="trash" id="trash">TRASH</div>
       </div>
     </main>
@@ -163,7 +155,6 @@
   const workspace = document.getElementById('workspace');
   const script = document.getElementById('script');
   const trash = document.getElementById('trash');
-  const logBox = document.querySelector('#log pre');
   const status = document.getElementById('status');
   const runBtn = document.getElementById('runBtn');
   const clearBtn = document.getElementById('clearBtn');
@@ -172,8 +163,6 @@
   const SNAP_TOL = 28; // generous snapping
   let idSeq = 1;
 
-  // FIX: use \n for line breaks in strings
-  function log(m){ logBox.textContent += m + "\n"; logBox.scrollTop = logBox.scrollHeight; }
   function setStatus(m){ status.textContent = m; }
 
   function newId(p){ return p + (idSeq++); }
@@ -857,13 +846,13 @@
         }
         setStatus('Dropped after ✓');
       } else if(direction === 'inside') {
-        // Handle slot insertion with support for connected block groups
-        // Remove positioning styles since slots use normal document flow
+        // Generalized slot insertion - works for single blocks or chains
+        // Remove all positioning styles since slots use normal document flow
         node.style.left = '';
         node.style.top = '';
         node.classList.remove('positioned');
         
-        // If this was a group drag, preserve the group structure
+        // If this was a group drag, preserve the chain structure with original positioning
         if (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
           // Create a container to preserve the group's original layout
           const groupContainer = document.createElement('div');
@@ -880,10 +869,11 @@
             connectedBlock.classList.remove('positioned');
           });
           
-          // Use helper function to add blocks with proper sizing
+          // Use helper function to add blocks with proper sizing and original positioning
           const mainStartPos = drag.startPositions.get(node);
           addBlocksToGroupContainer(groupContainer, node, drag.connectedBlocks, mainStartPos, drag.startPositions);
-          setStatus(`Dropped group inside slot ✓`);
+          
+          setStatus(`Dropped chain inside slot ✓`);
         } else {
           // Single block - add directly to slot
           target.appendChild(node);
@@ -1348,23 +1338,26 @@
 
   // ==== Toy interpreter ====
   async function run(){
-    setStatus('Running…'); log('--- Run ---');
+    setStatus('Running…'); setStatus('--- Run ---');
     const blocks = [...script.children].filter(el=> el.classList && el.classList.contains('block'));
     for(const b of blocks){ await execBlock(b); }
     setStatus('Done');
   }
   async function execBlock(b){
     const op = b.dataset.op; highlight(b,true); await sleep(150);
-    if(op==='whenFlag'){ log('▶️ Start'); }
-    else if(op==='say'){ log('💬 '+readArg(b,0)); await sleep(200); }
-    else if(op==='move'){ log('➡️ move '+Number(readArg(b,0)||0)+' steps'); }
-    else if(op==='turn'){ log('↩️ turn '+Number(readArg(b,0)||0)+'°'); }
-    else if(op==='repeat'){
+    if(op==='leaf'){ 
+      const arg = readArg(b,0);
+      if(arg.includes('move')) setStatus('➡️ move steps');
+      if(arg.includes('turn')) setStatus('↩️ turn degrees');
+      if(arg.includes('say')) setStatus('💬 say message');
+      await sleep(200); 
+    }
+    else if(op==='branch'){
       const n=Math.max(0,Math.min(50, Number(readArg(b,0)||0)));
       const slot=b.querySelector('[data-slot]');
       const inner=[...slot.children].filter(c=> c.classList && c.classList.contains('block'));
-      for(let i=0;i<n;i++){ log('🔁 loop '+(i+1)+'/'+n); for(const c of inner){ await execBlock(c);} }
-    } else if(op==='stop'){ log('⏹ stop'); highlight(b,false); throw new Error('Stop'); }
+      for(let i=0;i<n;i++){ setStatus('🔁 loop '+(i+1)+'/'+n); for(const c of inner){ await execBlock(c);} }
+    }
     highlight(b,false); await sleep(60);
   }
   function readArg(b,i){ const el=b.querySelectorAll('[contenteditable]')[i]; return el?el.textContent.trim():''; }
@@ -1375,9 +1368,7 @@
   clearBtn.addEventListener('click', ()=>{ [...script.querySelectorAll('.block')].forEach(el=>el.remove()); setStatus('Cleared'); });
 
   (function seed(){ 
-    const hat=document.querySelector('.sidebar .hat').cloneNode(true); 
-    assignIds(hat); 
-    script.appendChild(hat);
+    // No initial block to seed since we removed the "when clicked" block
   })();
 
   // ==== Minimal Test Runner (adds alignment test) ====
@@ -1392,10 +1383,8 @@
     return x*y;
   }
   function runTests(){
-    log('--- Tests ---');
-    log('TST');
-    test('log() adds a trailing newline', ()=>{ assert(logBox.textContent.endsWith('\n'), 'missing trailing newline'); });
-
+    setStatus('--- Tests ---');
+    setStatus('TST');
     test('assignIds() assigns data-id to .block and [data-slot]', ()=>{
       const temp=document.createElement('div');
       temp.innerHTML = '<div class="block"><div class="slot" data-slot></div></div>';
@@ -1444,7 +1433,7 @@
       document.querySelectorAll('.anchor').forEach(a=>a.remove());
     });
 
-    log('--- Tests Done ---');
+    setStatus('--- Tests Done ---');
   }
   testBtn.addEventListener('click', runTests);
 })();
