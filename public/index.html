@@ -28,7 +28,7 @@
 
         /* Left Side - Chat Interface */
         .chat-container {
-            flex: 1;
+            width: 30%;
             display: flex;
             flex-direction: column;
             background: rgba(255, 255, 255, 0.95);
@@ -524,7 +524,7 @@
 
         /* Right Side - Prompt Optimization */
         .optimization-container {
-            flex: 1;
+            width: 70%;
             display: flex;
             flex-direction: column;
             background: rgba(255, 255, 255, 0.95);
@@ -556,6 +556,329 @@
             overflow-y: auto;
             background: rgba(255, 255, 255, 0.8);
         }
+
+        /* Lego Block Visualization System - Main Requirements Interface */
+        .lego-canvas {
+            position: relative;
+            min-height: 600px;
+            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .lego-content-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            transition: transform 0.2s ease;
+        }
+
+        .lego-block {
+            position: absolute;
+            min-width: 120px;
+            min-height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid #4a5568;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: move;
+            user-select: none;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        .lego-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            z-index: 20;
+        }
+
+        .lego-block.selected {
+            border-color: #f39c12;
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3);
+        }
+
+        .lego-block.leaf {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .lego-block.branch {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .lego-block.container {
+            background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+        }
+        
+        .container-block {
+            position: relative;
+            padding: 10px;
+        }
+        
+        .contained-block {
+            /* Styles for blocks that are contained within others */
+        }
+        
+        .block-socket {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 2px dashed #9f7aea !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease;
+        }
+        
+        .block-socket:hover {
+            background: rgba(159, 122, 234, 0.1) !important;
+            border-color: #8b5cf6 !important;
+        }
+        
+        .block-socket.occupied {
+            border-style: solid !important;
+            background: rgba(159, 122, 234, 0.05) !important;
+        }
+        
+        .interior-container {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 2px dashed rgba(155, 89, 182, 0.5) !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease;
+        }
+        
+        .interior-container:hover {
+            background: rgba(155, 89, 182, 0.05) !important;
+            border-color: rgba(155, 89, 182, 0.8) !important;
+        }
+        
+        .connection-zone {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .connection-zone.zone-top,
+        .connection-zone.zone-bottom {
+            cursor: ns-resize;
+        }
+        
+        .connection-zone.zone-left,
+        .connection-zone.zone-right {
+            cursor: ew-resize;
+        }
+        
+        .connection-zone.zone-embed {
+            cursor: copy;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .connected-block {
+            /* TEMPORARILY DISABLED FOR DEBUGGING
+            border: 4px solid #2980b9 !important;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3), 0 6px 12px rgba(0,0,0,0.15) !important;
+            position: relative;
+            box-sizing: border-box !important;
+            */
+        }
+        
+        .connected-block::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2));
+            border-radius: 8px;
+            z-index: -1;
+            animation: connectedGlow 2s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        
+        @keyframes connectedGlow {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.6; }
+        }
+
+        .lego-block-content {
+            padding: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .lego-block-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .lego-block-value {
+            font-size: 11px;
+            opacity: 0.9;
+            word-break: break-word;
+        }
+
+        .lego-block-operator {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d3748;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 15;
+        }
+
+        .lego-connection {
+            position: absolute;
+            background: #4a5568;
+            z-index: 5;
+        }
+
+        .lego-connection.vertical {
+            width: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .lego-connection.horizontal {
+            height: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .lego-connection.diagonal {
+            width: 4px;
+            transform-origin: 0 0;
+        }
+
+        .lego-connection.containment {
+            border: 3px dashed #4a5568;
+            border-radius: 8px;
+            background: transparent;
+        }
+
+        .lego-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 25;
+        }
+
+        .lego-control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #333;
+        }
+
+        .lego-control-btn:hover {
+            background: white;
+            border-color: #999;
+        }
+
+        .add-block-btn {
+            font-size: 18px !important;
+            width: 32px;
+            height: 32px;
+            padding: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50% !important;
+        }
+
+        .add-block-btn:hover {
+            background: #218838 !important;
+            transform: scale(1.1);
+        }
+
+        .lego-zoom-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #333;
+            z-index: 25;
+        }
+
+        .requirements-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .requirements-section h4 {
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .lego-connection-preview {
+            transition: all 0.2s ease;
+        }
+
+        .connection-preview {
+            transition: all 0.3s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        .inclusion-preview {
+            transition: all 0.3s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        .disconnect-indicator {
+            transition: all 0.3s ease;
+        }
+
+        .disconnect-indicator:hover {
+            transform: scale(1.1);
+            background: #c0392b !important;
+        }
+
+
 
         h3 {
             color: #2c3e50;
@@ -1279,6 +1602,7 @@
                     
                     <div style="margin-top: 20px;">
                         <button onclick="resetWorkflow()" id="resetBtn" style="background-color: #6c757d;">Reset</button>
+                        <button onclick="testLegoVisualization()" id="testLegoBtn" style="background-color: #e74c3c; margin-left: 10px;">Test Lego View</button>
                     </div>
                 </div>
 
@@ -1419,22 +1743,10 @@
 
         function convertBaseClassToStructure(baseClass) {
             const newStructure = {
-                mainTask: baseClass.mainTask || '',
-                audience: baseClass.audience || [],
-                requirements: {}
+                mainTask: baseClass['Main Task'] || baseClass.mainTask || '',
+                requirements: baseClass['Requirements'] || baseClass.requirements || [],
+                audience: baseClass['Audience'] || baseClass.audience || []
             };
-            
-            // Convert requirements to the expected format
-            if (baseClass.requirements) {
-                Object.keys(baseClass.requirements).forEach(key => {
-                    const req = baseClass.requirements[key];
-                    newStructure.requirements[key] = {
-                        property_name: req.property_name || key,
-                        value: req.value || '',
-                        candidates: req.candidates || []
-                    };
-                });
-            }
             
             return newStructure;
         }
@@ -1945,6 +2257,19 @@
         // Helper functions for new three-part structure
         function getRequirementsFromProperties(properties) {
             if (properties.requirements) {
+                // For new hierarchical structure, convert to flat object for compatibility
+                if (Array.isArray(properties.requirements)) {
+                    const flatRequirements = {};
+                    properties.requirements.forEach(req => {
+                        if (req.property_name) {
+                            flatRequirements[req.property_name] = {
+                                value: req.value || '',
+                                candidates: req.candidates || []
+                            };
+                        }
+                    });
+                    return flatRequirements;
+                }
                 return properties.requirements;
             }
             return properties; // Legacy format
@@ -1953,33 +2278,1737 @@
         function updatePropertyInStructure(properties, oldKey, newKey, value) {
             if (properties.requirements) {
                 // New structure
+                if (Array.isArray(properties.requirements)) {
+                    // For hierarchical structure, find and update the requirement
+                    const reqIndex = properties.requirements.findIndex(req => req.property_name === oldKey);
+                    if (reqIndex !== -1) {
+                        if (oldKey !== newKey) {
+                            properties.requirements[reqIndex].property_name = newKey;
+                        }
+                        properties.requirements[reqIndex].value = value;
+                    }
+                } else {
+                    // Legacy object structure
                 if (oldKey !== newKey) {
                     delete properties.requirements[oldKey];
                 }
                 properties.requirements[newKey] = value;
+                }
             } else {
                 // Legacy structure
                 if (oldKey !== newKey) {
                     delete properties[oldKey];
                 }
-                properties[newKey] = value;
+                properties[oldKey] = value;
             }
         }
 
         function deletePropertyFromStructure(properties, key) {
+            console.log('deletePropertyFromStructure called with:', { properties, key });
             if (properties.requirements) {
                 // New structure
+                if (Array.isArray(properties.requirements)) {
+                    // For hierarchical structure, find and remove the requirement
+                    const reqIndex = properties.requirements.findIndex(req => req.property_name === key);
+                    if (reqIndex !== -1) {
+                        console.log('Deleting from hierarchical requirements structure:', key);
+                        console.log('Before deletion:', properties.requirements[reqIndex]);
+                        properties.requirements.splice(reqIndex, 1);
+                        console.log('After deletion, requirements count:', properties.requirements.length);
+                    }
+                } else {
+                    // Legacy object structure
+                    console.log('Deleting from requirements object structure:', key);
+                    console.log('Before deletion:', properties.requirements[key]);
                 delete properties.requirements[key];
+                    console.log('After deletion:', properties.requirements[key]);
+                    console.log('Updated requirements:', Object.keys(properties.requirements));
+                }
             } else {
                 // Legacy structure
+                console.log('Deleting from legacy structure:', key);
+                console.log('Before deletion:', properties[key]);
                 delete properties[key];
+                console.log('After deletion:', properties[key]);
+                console.log('Updated properties:', Object.keys(properties));
             }
+        }
+
+        // Helper function to flatten hierarchical requirements into a simple array
+        function flattenRequirements(requirements) {
+            const flattened = [];
+            
+            function traverse(node, path = '') {
+                if (node.node_type === 'leaf' || !node.node_type) {
+                    // Leaf node or simple requirement
+                    flattened.push({
+                        property_name: node.property_name || path,
+                        value: node.value || '',
+                        candidates: node.candidates || []
+                    });
+                } else if (node.node_type === 'branch') {
+                    if (node.operator === 'parallel' && node.children) {
+                        node.children.forEach(child => traverse(child, path));
+                    } else if (node.operator === 'sequential' && node.sequence) {
+                        node.sequence.forEach(child => traverse(child, path));
+                    }
+                } else if (node.node_type === 'container' && node.children) {
+                    node.children.forEach(child => traverse(child, node.property_name));
+                }
+            }
+            
+            requirements.forEach(req => traverse(req));
+            return flattened;
+        }
+
+        // Lego Block Visualization System
+        let legoCanvas = null;
+        let legoBlocks = [];
+        let legoConnections = [];
+        let selectedBlock = null;
+        let zoomLevel = 1;
+        let detailLevel = 2; // 0=minimal, 1=basic, 2=full
+        
+        // Advanced connection and grouping system
+        let blockGroups = new Map(); // Maps block index to group ID
+        let groupCounter = 0;
+        let disconnectIndicator = null;
+
+        function createLegoVisualization(requirements, container = null) {
+            if (!requirements || !Array.isArray(requirements)) return;
+            
+            // Clear existing visualization
+            clearLegoVisualization();
+            
+            // Create canvas if it doesn't exist
+            if (!legoCanvas) {
+                createLegoCanvas(container);
+            }
+            
+            // Create blocks for each requirement
+            requirements.forEach((req, index) => {
+                createLegoBlock(req, index);
+            });
+            
+            // Create connections between blocks
+            createLegoConnections(requirements);
+            
+            // Position blocks automatically
+            autoLayoutBlocks();
+        }
+
+        function createLegoCanvas(container = null) {
+            // Create canvas container
+            legoCanvas = document.createElement('div');
+            legoCanvas.className = 'lego-canvas';
+            legoCanvas.id = 'legoCanvas';
+            
+            // Create separate content layer for blocks (this will be zoomed)
+            const contentLayer = document.createElement('div');
+            contentLayer.className = 'lego-content-layer';
+            contentLayer.id = 'legoContentLayer';
+            legoCanvas.appendChild(contentLayer);
+            
+            // Add enhanced controls for the main requirements interface (these won't be zoomed)
+            const controls = document.createElement('div');
+            controls.className = 'lego-controls';
+            controls.innerHTML = `
+                <button class="lego-control-btn" onclick="resetLegoLayout()">Reset Layout</button>
+                <button class="lego-control-btn" onclick="toggleDetailLevel()">Toggle Detail</button>
+                <button class="lego-control-btn" onclick="exportLegoStructure()">Export</button>
+                <button class="lego-control-btn add-block-btn" onclick="addNewBlock()" style="background: #28a745; color: white; font-weight: bold;">+</button>
+                <button class="lego-control-btn" onclick="saveCurrentStructure()" style="background: #17a2b8; color: white;">Save</button>
+            `;
+            legoCanvas.appendChild(controls);
+            
+            // Add zoom info
+            const zoomInfo = document.createElement('div');
+            zoomInfo.className = 'lego-zoom-info';
+            zoomInfo.innerHTML = `Zoom: ${Math.round(zoomLevel * 100)}% | Detail: ${detailLevel === 0 ? 'Minimal' : detailLevel === 1 ? 'Basic' : 'Full'}`;
+            legoCanvas.appendChild(zoomInfo);
+            
+            // Add mouse wheel zoom
+            legoCanvas.addEventListener('wheel', handleLegoZoom);
+            
+            // Append to the specified container or fallback to response element
+            if (container) {
+                container.appendChild(legoCanvas);
+            } else {
+                const responseEl = document.getElementById('response');
+                responseEl.appendChild(legoCanvas);
+            }
+        }
+
+        function createLegoBlock(requirement, index) {
+            const block = document.createElement('div');
+            block.className = 'lego-block';
+            block.dataset.index = index;
+            block.dataset.requirement = JSON.stringify(requirement);
+            
+            // Determine block type and styling
+            if (requirement.node_type === 'branch') {
+                block.classList.add('branch');
+            } else if (requirement.node_type === 'container') {
+                block.classList.add('container');
+            } else {
+                block.classList.add('leaf');
+            }
+            
+            // Create block content
+            const content = document.createElement('div');
+            content.className = 'lego-block-content';
+            
+            const title = document.createElement('div');
+            title.className = 'lego-block-title';
+            title.textContent = requirement.property_name || 'Requirement';
+            
+            const value = document.createElement('div');
+            value.className = 'lego-block-value';
+            value.textContent = requirement.value || 'No value set';
+            
+            content.appendChild(title);
+            content.appendChild(value);
+            
+            // Add operator label for branch nodes
+            if (requirement.node_type === 'branch') {
+                const operator = document.createElement('div');
+                operator.className = 'lego-block-operator';
+                operator.textContent = requirement.operator || 'branch';
+                block.appendChild(operator);
+            }
+            
+            block.appendChild(content);
+            
+            // Add event listeners
+            block.addEventListener('click', () => selectLegoBlock(block));
+            block.addEventListener('dblclick', () => editLegoBlock(block));
+            
+            // Make block draggable
+            makeBlockDraggable(block);
+            
+            legoBlocks.push(block);
+            
+            // Add block to content layer instead of main canvas
+            const contentLayer = document.getElementById('legoContentLayer');
+            if (contentLayer) {
+                contentLayer.appendChild(block);
+            } else {
+                legoCanvas.appendChild(block);
+            }
+            
+            return block;
+        }
+
+        function createLegoConnections(requirements) {
+            requirements.forEach((req, index) => {
+                if (req.node_type === 'branch') {
+                    if (req.operator === 'sequential' && req.sequence) {
+                        // Create vertical connections for sequential
+                        req.sequence.forEach((child, childIndex) => {
+                            if (childIndex < req.sequence.length - 1) {
+                                createConnection(index, index + childIndex + 1, 'vertical');
+                            }
+                        });
+                    } else if (req.operator === 'parallel' && req.children) {
+                        // Create horizontal connections for parallel
+                        req.children.forEach((child, childIndex) => {
+                            if (childIndex < req.children.length - 1) {
+                                createConnection(index, index + childIndex + 1, 'horizontal');
+                            }
+                        });
+                    }
+                } else if (req.node_type === 'container' && req.children) {
+                    // Create containment connections
+                    req.children.forEach((child, childIndex) => {
+                        createConnection(index, index + childIndex + 1, 'containment');
+                    });
+                }
+            });
+        }
+
+
+
+        function updateConnectionPosition(connection) {
+            const fromBlock = legoBlocks[connection.dataset.from];
+            const toBlock = legoBlocks[connection.dataset.to];
+            
+            if (!fromBlock || !toBlock) return;
+            
+            const fromRect = fromBlock.getBoundingClientRect();
+            const toRect = toBlock.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            
+            const type = connection.dataset.type;
+            
+            if (type === 'vertical') {
+                connection.style.left = (fromRect.left + fromRect.width / 2 - canvasRect.left) + 'px';
+                connection.style.top = (fromRect.bottom - canvasRect.top) + 'px';
+                connection.style.height = (toRect.top - fromRect.bottom) + 'px';
+            } else if (type === 'horizontal') {
+                connection.style.top = (fromRect.top + fromRect.height / 2 - canvasRect.top) + 'px';
+                connection.style.left = (fromRect.right - canvasRect.left) + 'px';
+                connection.style.width = (toRect.left - fromRect.right) + 'px';
+            } else if (type === 'containment') {
+                // Containment is handled by positioning blocks inside containers
+            }
+        }
+
+        function autoLayoutBlocks() {
+            let currentX = 50;
+            let currentY = 50;
+            const blockSpacing = 150;
+            
+            legoBlocks.forEach((block, index) => {
+                const requirement = JSON.parse(block.dataset.requirement);
+                
+                if (requirement.node_type === 'branch') {
+                    if (requirement.operator === 'sequential') {
+                        // Stack vertically
+                        block.style.left = currentX + 'px';
+                        block.style.top = currentY + 'px';
+                        currentY += blockSpacing;
+                    } else if (requirement.operator === 'parallel') {
+                        // Arrange horizontally
+                        block.style.left = currentX + 'px';
+                        block.style.top = currentY + 'px';
+                        currentX += blockSpacing;
+                    }
+                } else if (requirement.node_type === 'container') {
+                    // Place container and arrange children inside
+                    block.style.left = currentX + 'px';
+                    block.style.top = currentY + 'px';
+                    currentX += blockSpacing;
+                } else {
+                    // Leaf node
+                    block.style.left = currentX + 'px';
+                    block.style.top = currentY + 'px';
+                    currentX += blockSpacing;
+                }
+                
+                // Reset position for new row
+                if (currentX > 800) {
+                    currentX = 50;
+                    currentY += blockSpacing;
+                }
+            });
+            
+            // No more connection updates needed - using visual concatenation
+        }
+
+        function makeBlockDraggable(block) {
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+            // Connection preview removed
+            let groupStartPositions = new Map();
+            
+            block.addEventListener('mousedown', (e) => {
+                if (e.target === block || block.contains(e.target)) {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startLeft = parseInt(block.style.left) || 0;
+                    startTop = parseInt(block.style.top) || 0;
+                    block.style.cursor = 'grabbing';
+                    
+                    // Store starting positions for all blocks in the group
+                    const group = blockGroups.get(block.dataset.index);
+                    if (group) {
+                        group.forEach(blockIndex => {
+                            const groupBlock = legoBlocks[blockIndex];
+                            if (groupBlock) {
+                                groupStartPositions.set(blockIndex, {
+                                    left: parseInt(groupBlock.style.left) || 0,
+                                    top: parseInt(groupBlock.style.top) || 0
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Connection preview removed
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    // Move the dragged block
+                    block.style.left = (startLeft + deltaX) + 'px';
+                    block.style.top = (startTop + deltaY) + 'px';
+                    
+                    // Move all blocks in the same group
+                    const group = blockGroups.get(block.dataset.index);
+                    if (group) {
+                        group.forEach(blockIndex => {
+                            const groupBlock = legoBlocks[blockIndex];
+                            if (groupBlock && groupBlock !== block) {
+                                const startPos = groupStartPositions.get(blockIndex);
+                                if (startPos) {
+                                    groupBlock.style.left = (startPos.left + deltaX) + 'px';
+                                    groupBlock.style.top = (startPos.top + deltaY) + 'px';
+                                }
+                            }
+                        });
+                    }
+                    
+                    // NEW CONNECTION SYSTEM: Show connection zones for nearby blocks
+                    isDraggingForConnection = true;
+                    
+                    // Check if we're near other blocks and show connection zones
+                    legoBlocks.forEach(otherBlock => {
+                        if (otherBlock === block) return;
+                        
+                        const otherRect = otherBlock.getBoundingClientRect();
+                        const blockRect = block.getBoundingClientRect();
+                        const distance = Math.sqrt(
+                            Math.pow(blockRect.left - otherRect.left, 2) + 
+                            Math.pow(blockRect.top - otherRect.top, 2)
+                        );
+                        
+                        // Show connection zones if close enough (within 80px)
+                        if (distance < 80) {
+                            createConnectionZones(otherBlock);
+                            highlightActiveZone(block, e.clientX, e.clientY);
+                        }
+                    });
+                    
+                    // No more connection updates needed - using visual concatenation
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    block.style.cursor = 'grab';
+                    
+                    // Remove connection preview
+                    // Connection preview removed
+                    
+                    // NEW CONNECTION SYSTEM: Execute connection if over a zone
+                    if (activeConnectionZone && isDraggingForConnection) {
+                        const targetBlockIndex = activeConnectionZone.dataset.targetBlock;
+                        const targetBlock = legoBlocks[targetBlockIndex];
+                        const connectionType = activeConnectionZone.dataset.type;
+                        
+                        if (targetBlock) {
+                            executeConnection(block, targetBlock, connectionType);
+                        }
+                    }
+                    
+                    // Clean up connection zones
+                    clearConnectionZones();
+                    isDraggingForConnection = false;
+                    
+                    // Clear group positions
+                    groupStartPositions.clear();
+                }
+            });
+            
+            // Add hover events for disconnect indicator
+            block.addEventListener('mouseenter', () => {
+                const group = blockGroups.get(block.dataset.index);
+                if (group && group.size > 1) {
+                    showDisconnectIndicator(block);
+                }
+            });
+            
+            // Don't hide immediately on mouseleave - add a small delay
+            block.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    // Only hide if we're not hovering over the disconnect button
+                    if (disconnectIndicator && !disconnectIndicator.matches(':hover')) {
+                        hideDisconnectIndicator();
+                    }
+                }, 100);
+            });
+        }
+
+        function selectLegoBlock(block) {
+            // Deselect previous block
+            if (selectedBlock) {
+                selectedBlock.classList.remove('selected');
+            }
+            
+            // Select new block
+            selectedBlock = block;
+            block.classList.add('selected');
+            
+            // Show block details
+            showBlockDetails(block);
+        }
+
+        function editLegoBlock(block) {
+            const requirement = JSON.parse(block.dataset.requirement);
+            
+            // Create edit form
+            const form = document.createElement('div');
+            form.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                z-index: 1000;
+                min-width: 300px;
+            `;
+            
+            form.innerHTML = `
+                <h3>Edit Requirement</h3>
+                <div style="margin: 10px 0;">
+                    <label>Property Name:</label>
+                    <input type="text" id="editPropName" value="${requirement.property_name || ''}" style="width: 100%; margin-top: 5px;">
+                </div>
+                <div style="margin: 10px 0;">
+                    <label>Value:</label>
+                    <input type="text" id="editValue" value="${requirement.value || ''}" style="width: 100%; margin-top: 5px;">
+                </div>
+                <div style="margin: 10px 0;">
+                    <label>Node Type:</label>
+                    <select id="editNodeType" style="width: 100%; margin-top: 5px;">
+                        <option value="leaf" ${!requirement.node_type || requirement.node_type === 'leaf' ? 'selected' : ''}>Leaf</option>
+                        <option value="branch" ${requirement.node_type === 'branch' ? 'selected' : ''}>Branch</option>
+                        <option value="container" ${requirement.node_type === 'container' ? 'selected' : ''}>Container</option>
+                    </select>
+                </div>
+                <div style="margin: 10px 0;">
+                    <button onclick="saveBlockEdit()" style="margin-right: 10px;">Save</button>
+                    <button onclick="closeBlockEdit()">Cancel</button>
+                </div>
+            `;
+            
+            document.body.appendChild(form);
+        }
+
+        function saveBlockEdit() {
+            const form = document.querySelector('div[style*="position: fixed"]');
+            if (!form) return;
+            
+            const propName = document.getElementById('editPropName').value;
+            const value = document.getElementById('editValue').value;
+            const nodeType = document.getElementById('editNodeType').value;
+            
+            // Find the block that was being edited
+            const block = selectedBlock;
+            if (!block) {
+                closeBlockEdit();
+                return;
+            }
+            
+            // Update the requirement data
+            const requirement = JSON.parse(block.dataset.requirement);
+            requirement.property_name = propName;
+            requirement.value = value;
+            requirement.node_type = nodeType;
+            
+            // Update the block's dataset
+            block.dataset.requirement = JSON.stringify(requirement);
+            
+            // Update the block display
+            updateBlockDisplay(block, requirement);
+            
+            // Update block styling based on node type
+            block.className = `lego-block ${nodeType}`;
+            
+            closeBlockEdit();
+        }
+
+        function closeBlockEdit() {
+            const form = document.querySelector('div[style*="position: fixed"]');
+            if (form) form.remove();
+        }
+
+        function showBlockDetails(block) {
+            const requirement = JSON.parse(block.dataset.requirement);
+            console.log('Selected block details:', requirement);
+        }
+
+        function handleLegoZoom(e) {
+            e.preventDefault();
+            
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            zoomLevel = Math.max(0.5, Math.min(2, zoomLevel * delta));
+            
+            // Apply zoom ONLY to the content layer, not the entire canvas
+            const contentLayer = document.getElementById('legoContentLayer');
+            if (contentLayer) {
+                contentLayer.style.transform = `scale(${zoomLevel})`;
+                contentLayer.style.transformOrigin = 'center center';
+            }
+            
+            // Update zoom info (this won't be scaled since it's outside the content layer)
+            const zoomInfo = legoCanvas.querySelector('.lego-zoom-info');
+            if (zoomInfo) {
+                zoomInfo.innerHTML = `Zoom: ${Math.round(zoomLevel * 100)}% | Detail: ${detailLevel === 0 ? 'Minimal' : detailLevel === 1 ? 'Basic' : 'Full'}`;
+            }
+        }
+
+        function toggleDetailLevel() {
+            detailLevel = (detailLevel + 1) % 3;
+            
+            // Update block display based on detail level
+            legoBlocks.forEach(block => {
+                const requirement = JSON.parse(block.dataset.requirement);
+                const content = block.querySelector('.lego-block-content');
+                
+                if (detailLevel === 0) {
+                    // Minimal: only show property name
+                    content.innerHTML = `<div class="lego-block-title">${requirement.property_name || 'Requirement'}</div>`;
+                } else if (detailLevel === 1) {
+                    // Basic: show property name and value
+                    content.innerHTML = `
+                        <div class="lego-block-title">${requirement.property_name || 'Requirement'}</div>
+                        <div class="lego-block-value">${requirement.value || 'No value set'}</div>
+                    `;
+                } else {
+                    // Full: show all details
+                    content.innerHTML = `
+                        <div class="lego-block-title">${requirement.property_name || 'Requirement'}</div>
+                        <div class="lego-block-value">${requirement.value || 'No value set'}</div>
+                        ${requirement.node_type ? `<div class="lego-block-value">Type: ${requirement.node_type}</div>` : ''}
+                    `;
+                }
+            });
+            
+            // Update zoom info
+            const zoomInfo = legoCanvas.querySelector('.lego-zoom-info');
+            if (zoomInfo) {
+                zoomInfo.innerHTML = `Zoom: ${Math.round(zoomLevel * 100)}% | Detail: ${detailLevel === 0 ? 'Minimal' : detailLevel === 1 ? 'Basic' : 'Full'}`;
+            }
+        }
+
+        function resetLegoLayout() {
+            // Clear all connections and groupings
+            blockGroups.clear();
+            groupCounter = 0;
+            
+            // Hide disconnect indicator if visible
+            hideDisconnectIndicator();
+            
+            // Clear any connection zones
+            clearConnectionZones();
+            
+            // Reset all block styles and positions
+            legoBlocks.forEach((block, index) => {
+                // Reset position
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                block.style.left = (col * 200 + 50) + 'px';
+                block.style.top = (row * 150 + 50) + 'px';
+                
+                // Reset styling
+                block.style.transform = 'scale(1)';
+                block.style.zIndex = '10';
+                
+                // Remove connected styling (includes width/height reset)
+                removeConnectedStyling(block);
+                
+                // Remove any inclusion classes
+                block.classList.remove('contained-block', 'container-block');
+            });
+            
+            console.log('Layout and connections reset');
+        }
+
+        function exportLegoStructure() {
+            const structure = {
+                blocks: legoBlocks.map(block => JSON.parse(block.dataset.requirement)),
+                connections: legoConnections.map(conn => ({
+                    from: conn.dataset.from,
+                    to: conn.dataset.to,
+                    type: conn.dataset.type
+                }))
+            };
+            
+            console.log('Exported structure:', structure);
+            // You can implement actual export functionality here
+        }
+
+        function clearLegoVisualization() {
+            if (legoCanvas) {
+                legoCanvas.remove();
+                legoCanvas = null;
+            }
+            legoBlocks = [];
+            legoConnections = [];
+            selectedBlock = null;
+            blockGroups.clear();
+            groupCounter = 0;
+            if (disconnectIndicator) {
+                disconnectIndicator.remove();
+                disconnectIndicator = null;
+            }
+        }
+
+        // Auto-connection and inclusion system
+        // Connection preview functions removed - no yellow box needed
+
+        // Old auto-connection system removed
+
+        // Old inclusion system removed
+
+        function getDistance(rect1, rect2) {
+            const center1 = { x: rect1.left + rect1.width / 2, y: rect1.top + rect1.height / 2 };
+            const center2 = { x: rect2.left + rect2.width / 2, y: rect2.top + rect2.height / 2 };
+            
+            return Math.sqrt(Math.pow(center2.x - center1.x, 2) + Math.pow(center2.y - center1.y, 2));
+        }
+
+        function getOverlapRatio(rect1, rect2) {
+            const left = Math.max(rect1.left, rect2.left);
+            const right = Math.min(rect1.right, rect2.right);
+            const top = Math.max(rect1.top, rect2.top);
+            const bottom = Math.min(rect1.bottom, rect2.bottom);
+            
+            if (left >= right || top >= bottom) return 0;
+            
+            const overlapArea = (right - left) * (bottom - top);
+            const blockArea = rect1.width * rect1.height;
+            
+            return overlapArea / blockArea;
+        }
+
+        // Connection preview functions removed - no blue blocks needed
+
+        function showInclusionPreview(block1, block2) {
+            // Remove existing preview
+            hideInclusionPreview(block1, block2);
+            
+            const preview = document.createElement('div');
+            preview.className = 'inclusion-preview';
+            preview.dataset.block1 = block1.dataset.index;
+            preview.dataset.block2 = block2.dataset.index;
+            preview.style.cssText = `
+                position: absolute;
+                background: #e74c3c;
+                border: 2px solid #c0392b;
+                border-radius: 8px;
+                pointer-events: none;
+                z-index: 25;
+                opacity: 0.8;
+            `;
+            
+            // Position preview around the target block
+            const rect = block2.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            
+            preview.style.left = (rect.left - canvasRect.left - 10) + 'px';
+            preview.style.top = (rect.top - canvasRect.top - 10) + 'px';
+            preview.style.width = (rect.width + 20) + 'px';
+            preview.style.height = (rect.height + 20) + 'px';
+            
+            // No icon needed - just the preview box
+            
+            legoCanvas.appendChild(preview);
+        }
+
+        function hideInclusionPreview(block1, block2) {
+            const preview = legoCanvas.querySelector(`.inclusion-preview[data-block1="${block1.dataset.index}"][data-block2="${block2.dataset.index}"]`);
+            if (preview) preview.remove();
+        }
+
+        // NEW DIRECTIONAL CONNECTION SYSTEM
+        // ================================
+        
+        let isDraggingForConnection = false;
+        let connectionZones = [];
+        let activeConnectionZone = null;
+        
+        function createConnectionZones(targetBlock) {
+            // Remove existing zones
+            clearConnectionZones();
+            
+            // Get block position relative to content layer (not canvas)
+            const contentLayer = document.getElementById('legoContentLayer');
+            if (!contentLayer) return;
+            
+            // Use the block's style position (which is relative to content layer) instead of getBoundingClientRect
+            const blockLeft = parseInt(targetBlock.style.left) || 0;
+            const blockTop = parseInt(targetBlock.style.top) || 0;
+            const blockRect = targetBlock.getBoundingClientRect();
+            const blockWidth = blockRect.width / zoomLevel;  // Adjust for zoom
+            const blockHeight = blockRect.height / zoomLevel; // Adjust for zoom
+            
+            console.log(`Creating zones for block at ${blockLeft}, ${blockTop} (${blockWidth}x${blockHeight}) with zoom ${zoomLevel}`);
+            
+            // Create 4 directional zones + 1 embed zone using content layer coordinates
+            const zones = [
+                {
+                    type: 'top',
+                    x: blockLeft - 10,
+                    y: blockTop - 30,
+                    width: blockWidth + 20,
+                    height: 20,
+                    color: '#e74c3c'
+                },
+                {
+                    type: 'bottom', 
+                    x: blockLeft - 10,
+                    y: blockTop + blockHeight + 10,
+                    width: blockWidth + 20,
+                    height: 20,
+                    color: '#e74c3c'
+                },
+                {
+                    type: 'left',
+                    x: blockLeft - 30,
+                    y: blockTop - 10,
+                    width: 20,
+                    height: blockHeight + 20,
+                    color: '#f39c12'
+                },
+                {
+                    type: 'right',
+                    x: blockLeft + blockWidth + 10,
+                    y: blockTop - 10,
+                    width: 20,
+                    height: blockHeight + 20,
+                    color: '#f39c12'
+                },
+                {
+                    type: 'embed',
+                    x: blockLeft + 10,
+                    y: blockTop + 10,
+                    width: blockWidth - 20,
+                    height: blockHeight - 20,
+                    color: '#9b59b6'
+                }
+            ];
+            
+            zones.forEach(zone => {
+                const zoneEl = document.createElement('div');
+                zoneEl.className = `connection-zone zone-${zone.type}`;
+                zoneEl.dataset.type = zone.type;
+                zoneEl.dataset.targetBlock = targetBlock.dataset.index;
+                zoneEl.style.cssText = `
+                    position: absolute;
+                    left: ${zone.x}px;
+                    top: ${zone.y}px;
+                    width: ${zone.width}px;
+                    height: ${zone.height}px;
+                    background: ${zone.color};
+                    border: 2px dashed white;
+                    border-radius: 4px;
+                    opacity: 0.7;
+                    z-index: 100;
+                    pointer-events: none;
+                    transition: all 0.2s ease;
+                `;
+                
+                // Add connection zone to content layer
+                const contentLayer = document.getElementById('legoContentLayer');
+                if (contentLayer) {
+                    contentLayer.appendChild(zoneEl);
+                } else {
+                    legoCanvas.appendChild(zoneEl);
+                }
+                connectionZones.push(zoneEl);
+            });
+        }
+        
+        function clearConnectionZones() {
+            connectionZones.forEach(zone => zone.remove());
+            connectionZones = [];
+            activeConnectionZone = null;
+        }
+        
+        function highlightActiveZone(draggedBlock, mouseX, mouseY) {
+            // Reset all zones
+            connectionZones.forEach(zone => {
+                zone.style.opacity = '0.7';
+                zone.style.transform = 'scale(1)';
+            });
+            
+            activeConnectionZone = null;
+            
+            // Find which zone the mouse is over
+            connectionZones.forEach(zone => {
+                const zoneRect = zone.getBoundingClientRect();
+                if (mouseX >= zoneRect.left && mouseX <= zoneRect.right &&
+                    mouseY >= zoneRect.top && mouseY <= zoneRect.bottom) {
+                    
+                    // Highlight this zone
+                    zone.style.opacity = '1';
+                    zone.style.transform = 'scale(1.1)';
+                    activeConnectionZone = zone;
+                }
+            });
+        }
+        
+        function executeConnection(draggedBlock, targetBlock, connectionType) {
+            console.log(`Connecting block ${draggedBlock.dataset.index} to ${targetBlock.dataset.index} via ${connectionType}`);
+            
+            const draggedRect = draggedBlock.getBoundingClientRect();
+            const targetRect = targetBlock.getBoundingClientRect();
+            
+            console.log('Before connection - Dragged block width:', draggedRect.width, 'Target block width:', targetRect.width);
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            
+            // Convert screen coordinates to canvas coordinates
+            const targetLeft = parseInt(targetBlock.style.left) || (targetRect.left - canvasRect.left);
+            const targetTop = parseInt(targetBlock.style.top) || (targetRect.top - canvasRect.top);
+            
+            switch(connectionType) {
+                case 'top':
+                    // Push UP any existing blocks that are above the target
+                    pushConnectedBlocksUp(targetBlock, draggedRect.height);
+                    // Position dragged block above target
+                    draggedBlock.style.left = targetLeft + 'px';
+                    draggedBlock.style.top = (targetTop - draggedRect.height) + 'px';
+                    break;
+                    
+                case 'bottom':
+                    // Push DOWN any existing blocks that are below the target
+                    pushConnectedBlocksDown(targetBlock, draggedRect.height);
+                    // Position dragged block below target
+                    draggedBlock.style.left = targetLeft + 'px';
+                    draggedBlock.style.top = (targetTop + targetRect.height) + 'px';
+                    break;
+                    
+                case 'left':
+                    // Push LEFT any existing blocks that are to the left of the target
+                    pushConnectedBlocksLeft(targetBlock, draggedRect.width);
+                    // Position dragged block to the left of target
+                    draggedBlock.style.left = (targetLeft - draggedRect.width) + 'px';
+                    draggedBlock.style.top = targetTop + 'px';
+                    break;
+                    
+                case 'right':
+                    // Push RIGHT any existing blocks that are to the right of the target
+                    pushConnectedBlocksRight(targetBlock, draggedRect.width);
+                    // Position dragged block to the right of target
+                    draggedBlock.style.left = (targetLeft + targetRect.width) + 'px';
+                    draggedBlock.style.top = targetTop + 'px';
+                    break;
+                    
+                case 'embed':
+                    // Embed dragged block inside target
+                    embedBlockInside(draggedBlock, targetBlock);
+                    break;
+            }
+            
+            // Group the blocks together
+            groupBlocks(draggedBlock, targetBlock);
+            
+            // Apply connected styling to both blocks
+            applyConnectedStyling(draggedBlock);
+            applyConnectedStyling(targetBlock);
+            
+            // Debug: Check widths after connection
+            const newDraggedRect = draggedBlock.getBoundingClientRect();
+            const newTargetRect = targetBlock.getBoundingClientRect();
+            console.log('After connection - Dragged block width:', newDraggedRect.width, 'Target block width:', newTargetRect.width);
+            
+            // Clear connection zones
+            clearConnectionZones();
+        }
+        
+        function pushConnectedBlocksDown(referenceBlock, pushDistance) {
+            console.log(`pushConnectedBlocksDown called - Reference: ${referenceBlock.dataset.index}, Distance: ${pushDistance}`);
+            
+            const referenceGroup = blockGroups.get(referenceBlock.dataset.index);
+            if (!referenceGroup) {
+                console.log('No reference group found for pushConnectedBlocksDown');
+                return;
+            }
+            
+            const referenceRect = referenceBlock.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            const referenceTop = parseInt(referenceBlock.style.top) || (referenceRect.top - canvasRect.top);
+            
+            console.log(`Reference block top: ${referenceTop}`);
+            
+            // Find all blocks in the group that are below the reference block
+            referenceGroup.forEach(blockIndex => {
+                const block = legoBlocks[blockIndex];
+                if (block && block !== referenceBlock) {
+                    const blockRect = block.getBoundingClientRect();
+                    const blockTop = parseInt(block.style.top) || (blockRect.top - canvasRect.top);
+                    
+                    console.log(`Checking block ${blockIndex}: top=${blockTop}, referenceTop=${referenceTop}`);
+                    
+                    // If this block is below the reference block, push it down
+                    if (blockTop > referenceTop) {
+                        const newTop = blockTop + pushDistance;
+                        console.log(`Pushing block ${blockIndex} from ${blockTop} to ${newTop}`);
+                        block.style.top = newTop + 'px';
+                    }
+                }
+            });
+        }
+        
+        function pushConnectedBlocksUp(referenceBlock, pushDistance) {
+            console.log(`pushConnectedBlocksUp called - Reference: ${referenceBlock.dataset.index}, Distance: ${pushDistance}`);
+            
+            const referenceGroup = blockGroups.get(referenceBlock.dataset.index);
+            if (!referenceGroup) {
+                console.log('No reference group found for pushConnectedBlocksUp');
+                return;
+            }
+            
+            const referenceRect = referenceBlock.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            const referenceTop = parseInt(referenceBlock.style.top) || (referenceRect.top - canvasRect.top);
+            
+            console.log(`Reference block top: ${referenceTop}`);
+            
+            // Find all blocks in the group that are above the reference block
+            referenceGroup.forEach(blockIndex => {
+                const block = legoBlocks[blockIndex];
+                if (block && block !== referenceBlock) {
+                    const blockRect = block.getBoundingClientRect();
+                    const blockTop = parseInt(block.style.top) || (blockRect.top - canvasRect.top);
+                    
+                    console.log(`Checking block ${blockIndex}: top=${blockTop}, referenceTop=${referenceTop}`);
+                    
+                    // If this block is above the reference block, push it up
+                    if (blockTop < referenceTop) {
+                        const newTop = blockTop - pushDistance;
+                        console.log(`Pushing block ${blockIndex} UP from ${blockTop} to ${newTop}`);
+                        block.style.top = newTop + 'px';
+                    }
+                }
+            });
+        }
+        
+        function pushConnectedBlocksLeft(referenceBlock, pushDistance) {
+            console.log(`pushConnectedBlocksLeft called - Reference: ${referenceBlock.dataset.index}, Distance: ${pushDistance}`);
+            
+            const referenceGroup = blockGroups.get(referenceBlock.dataset.index);
+            if (!referenceGroup) {
+                console.log('No reference group found for pushConnectedBlocksLeft');
+                return;
+            }
+            
+            const referenceRect = referenceBlock.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            const referenceLeft = parseInt(referenceBlock.style.left) || (referenceRect.left - canvasRect.left);
+            
+            console.log(`Reference block left: ${referenceLeft}`);
+            
+            // Find all blocks in the group that are to the left of the reference block
+            referenceGroup.forEach(blockIndex => {
+                const block = legoBlocks[blockIndex];
+                if (block && block !== referenceBlock) {
+                    const blockRect = block.getBoundingClientRect();
+                    const blockLeft = parseInt(block.style.left) || (blockRect.left - canvasRect.left);
+                    
+                    console.log(`Checking block ${blockIndex}: left=${blockLeft}, referenceLeft=${referenceLeft}`);
+                    
+                    // If this block is to the left of the reference block, push it left
+                    if (blockLeft < referenceLeft) {
+                        const newLeft = blockLeft - pushDistance;
+                        console.log(`Pushing block ${blockIndex} LEFT from ${blockLeft} to ${newLeft}`);
+                        block.style.left = newLeft + 'px';
+                    }
+                }
+            });
+        }
+        
+        function pushConnectedBlocksRight(referenceBlock, pushDistance) {
+            console.log(`pushConnectedBlocksRight called - Reference: ${referenceBlock.dataset.index}, Distance: ${pushDistance}`);
+            
+            const referenceGroup = blockGroups.get(referenceBlock.dataset.index);
+            if (!referenceGroup) {
+                console.log('No reference group found for pushConnectedBlocksRight');
+                return;
+            }
+            
+            const referenceRect = referenceBlock.getBoundingClientRect();
+            const canvasRect = legoCanvas.getBoundingClientRect();
+            const referenceLeft = parseInt(referenceBlock.style.left) || (referenceRect.left - canvasRect.left);
+            
+            console.log(`Reference block left: ${referenceLeft}`);
+            
+            // Find all blocks in the group that are to the right of the reference block
+            referenceGroup.forEach(blockIndex => {
+                const block = legoBlocks[blockIndex];
+                if (block && block !== referenceBlock) {
+                    const blockRect = block.getBoundingClientRect();
+                    const blockLeft = parseInt(block.style.left) || (blockRect.left - canvasRect.left);
+                    
+                    console.log(`Checking block ${blockIndex}: left=${blockLeft}, referenceLeft=${referenceLeft}`);
+                    
+                    // If this block is to the right of the reference block, push it right
+                    if (blockLeft > referenceLeft) {
+                        const newLeft = blockLeft + pushDistance;
+                        console.log(`Pushing block ${blockIndex} RIGHT from ${blockLeft} to ${newLeft}`);
+                        block.style.left = newLeft + 'px';
+                    }
+                }
+            });
+        }
+        
+        function applyConnectedStyling(block) {
+            const rectBefore = block.getBoundingClientRect();
+            console.log(`applyConnectedStyling - Block ${block.dataset.index} width BEFORE: ${rectBefore.width}`);
+            
+            // TEMPORARILY SIMPLIFIED: Only add class, no style changes
+            block.classList.add('connected-block');
+            console.log(`Applied connected styling to block ${block.dataset.index} - simplified version`);
+            
+            const rectAfter = block.getBoundingClientRect();
+            console.log(`applyConnectedStyling - Block ${block.dataset.index} width AFTER: ${rectAfter.width}`);
+        }
+        
+        function removeConnectedStyling(block) {
+            const rectBefore = block.getBoundingClientRect();
+            console.log(`removeConnectedStyling - Block ${block.dataset.index} width BEFORE: ${rectBefore.width}`);
+            
+            // TEMPORARILY SIMPLIFIED: Only remove class, no style changes
+            block.classList.remove('connected-block');
+            
+            // IMPORTANT: Reset width and height to natural size
+            block.style.width = '';
+            block.style.height = '';
+            block.style.minWidth = '';
+            block.style.minHeight = '';
+            
+            console.log(`Removed connected styling from block ${block.dataset.index} - simplified version`);
+            
+            const rectAfter = block.getBoundingClientRect();
+            console.log(`removeConnectedStyling - Block ${block.dataset.index} width AFTER: ${rectAfter.width}`);
+        }
+        
+        function embedBlockInside(childBlock, parentBlock) {
+            console.log(`embedBlockInside called - Child: ${childBlock.dataset.index}, Parent: ${parentBlock.dataset.index}`);
+            
+            // Get or create the interior container
+            let interiorContainer = parentBlock.querySelector('.interior-container');
+            if (!interiorContainer) {
+                interiorContainer = createInteriorContainer(parentBlock);
+            }
+            
+            // Get current child dimensions before scaling
+            const childRect = childBlock.getBoundingClientRect();
+            const childWidth = childRect.width;
+            const childHeight = childRect.height;
+            
+            console.log(`embedBlockInside - Child width: ${childWidth}, height: ${childHeight}`);
+            
+            // Scale and position child block
+            childBlock.style.position = 'absolute';
+            childBlock.style.transform = 'scale(0.85)';
+            childBlock.style.transformOrigin = 'top left';
+            childBlock.style.zIndex = '2';
+            
+            // Move child into interior container
+            interiorContainer.appendChild(childBlock);
+            
+            // Store relationship
+            childBlock.dataset.containedIn = parentBlock.dataset.index;
+            childBlock.classList.add('contained-block');
+            
+            // Add to parent's contained blocks list
+            if (!parentBlock.dataset.containedBlocks) {
+                parentBlock.dataset.containedBlocks = '';
+            }
+            const containedBlocks = parentBlock.dataset.containedBlocks.split(',').filter(x => x);
+            if (!containedBlocks.includes(childBlock.dataset.index)) {
+                containedBlocks.push(childBlock.dataset.index);
+                parentBlock.dataset.containedBlocks = containedBlocks.join(',');
+            }
+            
+            // Arrange interior blocks and resize container
+            arrangeInteriorBlocks(parentBlock);
+            
+            console.log(`Block ${childBlock.dataset.index} embedded in block ${parentBlock.dataset.index}`);
+        }
+        
+        function createInteriorContainer(parentBlock) {
+            // Create interior container for child blocks
+            const interiorContainer = document.createElement('div');
+            interiorContainer.className = 'interior-container';
+            interiorContainer.style.cssText = `
+                position: absolute;
+                top: 35px;
+                left: 15px;
+                right: 15px;
+                bottom: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px dashed rgba(155, 89, 182, 0.5);
+                border-radius: 8px;
+                min-height: 80px;
+                z-index: 1;
+                overflow: visible;
+            `;
+            
+            // Update parent block styling
+            parentBlock.style.border = '3px solid #9b59b6';
+            parentBlock.style.minWidth = '200px';
+            parentBlock.style.minHeight = '120px';
+            parentBlock.style.position = 'relative';
+            parentBlock.classList.add('container-block');
+            
+            parentBlock.appendChild(interiorContainer);
+            return interiorContainer;
+        }
+        
+        function arrangeInteriorBlocks(parentBlock) {
+            const interiorContainer = parentBlock.querySelector('.interior-container');
+            if (!interiorContainer) return;
+            
+            const containedBlocks = Array.from(interiorContainer.children);
+            if (containedBlocks.length === 0) return;
+            
+            console.log(`Arranging ${containedBlocks.length} blocks inside container ${parentBlock.dataset.index}`);
+            
+            // Arrange blocks in parallel horizontally with some spacing
+            const blockSpacing = 10;
+            let currentX = 10;
+            let maxHeight = 0;
+            
+            containedBlocks.forEach((block, index) => {
+                const blockRect = block.getBoundingClientRect();
+                const scaledWidth = blockRect.width * 0.85;
+                const scaledHeight = blockRect.height * 0.85;
+                
+                // Position block
+                block.style.left = currentX + 'px';
+                block.style.top = '10px';
+                
+                // Update positions for next block
+                currentX += scaledWidth + blockSpacing;
+                maxHeight = Math.max(maxHeight, scaledHeight);
+                
+                console.log(`Positioned block ${block.dataset.index} at x=${currentX - scaledWidth - blockSpacing}`);
+            });
+            
+            // Calculate required interior dimensions
+            const totalWidth = currentX - blockSpacing + 20; // Remove last spacing, add padding
+            const totalHeight = maxHeight + 20; // Add padding
+            
+            // Update interior container size
+            interiorContainer.style.width = totalWidth + 'px';
+            interiorContainer.style.height = totalHeight + 'px';
+            
+            // Update parent block size to fit interior + margins
+            const parentWidth = totalWidth + 30; // Interior + margins
+            const parentHeight = totalHeight + 50; // Interior + margins + title space
+            
+            parentBlock.style.width = parentWidth + 'px';
+            parentBlock.style.height = parentHeight + 'px';
+            parentBlock.style.minWidth = parentWidth + 'px';
+            parentBlock.style.minHeight = parentHeight + 'px';
+            
+            console.log(`Resized container to ${parentWidth}x${parentHeight} for ${containedBlocks.length} blocks`);
+        }
+
+        function updateBlockDisplay(block, requirement) {
+            const content = block.querySelector('.lego-block-content');
+            if (content) {
+                content.innerHTML = `
+                    <div class="lego-block-title">${requirement.property_name || 'Container'}</div>
+                    <div class="lego-block-value">Contains ${requirement.children ? requirement.children.length : 0} items</div>
+                `;
+            }
+            
+            // Update block class
+            block.className = 'lego-block container';
+        }
+
+        function updateConnectionsAfterInclusion(containedBlock, containerBlock) {
+            // Remove connections involving the contained block
+            legoConnections = legoConnections.filter(conn => {
+                if (conn.dataset.from === containedBlock.dataset.index || conn.dataset.to === containedBlock.dataset.index) {
+                    conn.remove();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function addNewBlock() {
+            const newBlock = createLegoBlock({
+                property_name: 'New Requirement',
+                value: 'Enter value',
+                node_type: 'leaf'
+            }, legoBlocks.length);
+            
+            // Position the new block at a free location
+            const freePosition = findFreePosition();
+            newBlock.style.left = freePosition.x + 'px';
+            newBlock.style.top = freePosition.y + 'px';
+            
+            // Make it editable immediately
+            editLegoBlock(newBlock);
+        }
+
+        function findFreePosition() {
+            let x = 50;
+            let y = 50;
+            const spacing = 150;
+            
+            // Find a position that doesn't overlap with existing blocks
+            while (isPositionOccupied(x, y)) {
+                x += spacing;
+                if (x > 800) {
+                    x = 50;
+                    y += spacing;
+                }
+            }
+            
+            return { x, y };
+        }
+
+        function isPositionOccupied(x, y) {
+            const blockSize = 120;
+            const margin = 20;
+            
+            return legoBlocks.some(block => {
+                const blockX = parseInt(block.style.left) || 0;
+                const blockY = parseInt(block.style.top) || 0;
+                
+                return Math.abs(x - blockX) < (blockSize + margin) && 
+                       Math.abs(y - blockY) < (60 + margin);
+            });
+        }
+
+        // New advanced connection and grouping functions
+        function createConnectionAndGroup(block1, block2) {
+            // Check if already connected
+            if (areBlocksConnected(block1, block2)) return;
+            
+            // Determine connection type based on relative positions
+            const rect1 = block1.getBoundingClientRect();
+            const rect2 = block2.getBoundingClientRect();
+            
+            let connectionType = 'horizontal';
+            let topBlock = block1;
+            let bottomBlock = block2;
+            
+            if (Math.abs(rect1.top - rect2.top) > Math.abs(rect1.left - rect2.left)) {
+                connectionType = 'vertical';
+                
+                // For vertical connections, determine which block should be on top
+                // The dragged block (block1) should attach to the bottom of the target (block2)
+                if (rect1.top < rect2.top) {
+                    // block1 is above block2, so block2 should attach below block1
+                    topBlock = block1;
+                    bottomBlock = block2;
+                } else {
+                    // block1 is below block2, so block1 should attach below block2
+                    topBlock = block2;
+                    bottomBlock = block1;
+                }
+            }
+            
+            // Group the blocks together
+            groupBlocks(block1, block2);
+            
+            // Old concatenateBlocks call removed - using new directional system
+        }
+
+        function createInclusionAndGroup(block1, block2) {
+            // block1 will be included in block2
+            const requirement1 = JSON.parse(block1.dataset.requirement);
+            const requirement2 = JSON.parse(block2.dataset.requirement);
+            
+            // Convert block2 to container if it's not already
+            if (requirement2.node_type !== 'container') {
+                requirement2.node_type = 'container';
+                requirement2.children = requirement2.children || [];
+                requirement2.children.push(requirement1);
+                
+                // Update block2 display
+                updateBlockDisplay(block2, requirement2);
+            } else {
+                requirement2.children.push(requirement1);
+            }
+            
+            // Group the blocks together
+            groupBlocks(block1, block2);
+            
+            // Visually embed block1 into block2
+            embedBlock(block1, block2);
+        }
+
+        function groupBlocks(block1, block2) {
+            const group1 = blockGroups.get(block1.dataset.index);
+            const group2 = blockGroups.get(block2.dataset.index);
+            
+            if (group1 && group2) {
+                // Merge groups
+                const mergedGroup = group1;
+                group2.forEach(blockIndex => {
+                    blockGroups.set(blockIndex, mergedGroup);
+                    mergedGroup.add(blockIndex);
+                });
+            } else if (group1) {
+                // Add block2 to group1
+                blockGroups.set(block2.dataset.index, group1);
+                group1.add(block2.dataset.index);
+            } else if (group2) {
+                // Add block1 to group2
+                blockGroups.set(block1.dataset.index, group2);
+                group2.add(block1.dataset.index);
+            } else {
+                // Create new group
+                const newGroup = new Set([block1.dataset.index, block2.dataset.index]);
+                blockGroups.set(block1.dataset.index, newGroup);
+                blockGroups.set(block2.dataset.index, newGroup);
+            }
+        }
+
+        function areBlocksConnected(block1, block2) {
+            const group1 = blockGroups.get(block1.dataset.index);
+            const group2 = blockGroups.get(block2.dataset.index);
+            
+            return group1 && group2 && group1 === group2;
+        }
+
+        function showDisconnectIndicator(block) {
+            // Remove existing indicator
+            if (disconnectIndicator) {
+                disconnectIndicator.remove();
+            }
+            
+            // Create small disconnect button
+            disconnectIndicator = document.createElement('div');
+            disconnectIndicator.className = 'disconnect-indicator';
+            disconnectIndicator.innerHTML = '-';
+            disconnectIndicator.style.cssText = `
+                position: absolute;
+                background: #e74c3c;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                z-index: 35;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: pulse 1s infinite;
+            `;
+            
+            // Position near the block using content layer coordinates
+            const blockLeft = parseInt(block.style.left) || 0;
+            const blockTop = parseInt(block.style.top) || 0;
+            const blockRect = block.getBoundingClientRect();
+            const blockWidth = blockRect.width / zoomLevel;  // Adjust for zoom
+            
+            disconnectIndicator.style.left = (blockLeft + blockWidth + 10) + 'px';
+            disconnectIndicator.style.top = (blockTop - 5) + 'px';
+            
+            // Add click handler
+            disconnectIndicator.addEventListener('click', () => disconnectBlocks(block));
+            
+            // Add hover events to prevent disappearing
+            disconnectIndicator.addEventListener('mouseenter', () => {
+                // Keep the button visible when hovering over it
+                disconnectIndicator.style.animation = 'none';
+            });
+            
+            disconnectIndicator.addEventListener('mouseleave', () => {
+                // Resume animation when leaving the button
+                disconnectIndicator.style.animation = 'pulse 1s infinite';
+            });
+            
+            // Add disconnect indicator to content layer
+            const contentLayer = document.getElementById('legoContentLayer');
+            if (contentLayer) {
+                contentLayer.appendChild(disconnectIndicator);
+            } else {
+                legoCanvas.appendChild(disconnectIndicator);
+            }
+        }
+
+        function hideDisconnectIndicator() {
+            if (disconnectIndicator) {
+                disconnectIndicator.remove();
+                disconnectIndicator = null;
+            }
+        }
+
+        // Old concatenateBlocks function removed - using new directional connection system
+
+        // Old embedBlock function removed - using new embedBlockInside with interior container system
+
+
+
+        function disconnectBlocks(block) {
+            const blockIndex = block.dataset.index;
+            const group = blockGroups.get(blockIndex);
+            if (!group) return;
+            
+            // Handle inclusion disconnection
+            if (block.dataset.containedIn) {
+                // This block is contained in another - extract it
+                const containerIndex = block.dataset.containedIn;
+                const containerBlock = legoBlocks[containerIndex];
+                
+                if (containerBlock) {
+                    // Remove from socket and move back to content layer
+                    const contentLayer = document.getElementById('legoContentLayer');
+                    if (contentLayer) {
+                        contentLayer.appendChild(block);
+                    } else {
+                        legoCanvas.appendChild(block);
+                    }
+                    
+                    // Reset contained block styles
+                    block.style.position = 'absolute';
+                    block.style.transform = 'scale(1)';
+                    block.style.zIndex = '10';
+                    block.style.left = (parseInt(containerBlock.style.left) + 200) + 'px';
+                    block.style.top = containerBlock.style.top;
+                    
+                    // Remove from container's contained blocks list
+                    if (containerBlock.dataset.containedBlocks) {
+                        const containedBlocks = containerBlock.dataset.containedBlocks.split(',');
+                        const updatedBlocks = containedBlocks.filter(id => id !== blockIndex);
+                        containerBlock.dataset.containedBlocks = updatedBlocks.join(',');
+                    }
+                    
+                    // If no more blocks in container, clean it up
+                    const interiorContainer = containerBlock.querySelector('.interior-container');
+                    if (interiorContainer && interiorContainer.children.length === 0) {
+                        interiorContainer.remove();
+                        
+                        // Reset container block
+                        containerBlock.style.minHeight = '';
+                        containerBlock.style.minWidth = '';
+                        containerBlock.style.width = '';
+                        containerBlock.style.height = '';
+                        containerBlock.style.border = '';
+                        containerBlock.classList.remove('container-block');
+                    } else if (interiorContainer) {
+                        // Re-arrange remaining blocks
+                        arrangeInteriorBlocks(containerBlock);
+                    }
+                    
+                    // Clear relationships
+                    delete block.dataset.containedIn;
+                    
+                    block.classList.remove('contained-block');
+                }
+            }
+            
+            // Handle regular connection disconnection - ONLY disconnect this specific block
+            // Reset ONLY this block's styling
+            block.style.transform = 'scale(1)';
+            block.style.zIndex = '10';
+            
+            // Remove connected styling (includes width/height reset)
+            removeConnectedStyling(block);
+            
+            // Remove classes from this block only
+            block.classList.remove('container-block', 'contained-block');
+            
+            // Remove ONLY this block from the group, keep others connected
+            group.delete(blockIndex);
+            blockGroups.delete(blockIndex);
+            
+            // If the group becomes empty, clean it up
+            if (group.size === 0) {
+                // Group is empty, no cleanup needed
+            } else if (group.size === 1) {
+                // Only one block left, remove it from group too
+                const remainingBlockIndex = group.values().next().value;
+                blockGroups.delete(remainingBlockIndex);
+            }
+            // If group still has 2+ blocks, they remain connected to each other
+            
+            // Hide disconnect indicator
+            hideDisconnectIndicator();
+            
+            console.log(`Block ${blockIndex} disconnected from group`);
+        }
+
+        function saveCurrentStructure() {
+            // Convert current lego blocks back to hierarchical structure
+            const currentStructure = convertLegoBlocksToStructure();
+            
+            // Update the lastParsedProperties with current structure
+            if (lastParsedProperties) {
+                lastParsedProperties.requirements = currentStructure;
+                
+                // Show success message
+                showNotification('Requirements structure saved successfully!', 'success');
+                
+                // Log the saved structure
+                console.log('Saved structure:', lastParsedProperties);
+            }
+        }
+
+        function convertLegoBlocksToStructure() {
+            // Convert visible blocks back to hierarchical structure
+            const visibleBlocks = legoBlocks.filter(block => block.style.display !== 'none');
+            
+            // For now, return a simple array of requirements
+            // This can be enhanced to preserve the hierarchical relationships
+            return visibleBlocks.map(block => {
+                const requirement = JSON.parse(block.dataset.requirement);
+                return {
+                    property_name: requirement.property_name,
+                    value: requirement.value,
+                    node_type: requirement.node_type || 'leaf'
+                };
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notif => notif.remove());
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                font-weight: 500;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            // Add slide-in animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+
+
+
+        // Function to create a sample hierarchical structure for testing
+        function createSampleHierarchicalStructure() {
+            return [
+                {
+                    "node_type": "branch",
+                    "operator": "sequential",
+                    "order_type": "priority",
+                    "order_note": "Apply rules in descending importance",
+                    "sequence": [
+                        { "property_name": "criterion_1", "value": "accuracy" },
+                        { "property_name": "criterion_2", "value": "persuasion" },
+                        { "property_name": "criterion_3", "value": "brevity" }
+                    ]
+                },
+                {
+                    "node_type": "container",
+                    "property_name": "content_requirements",
+                    "children": [
+                        { "property_name": "tone", "value": "professional" },
+                        { "property_name": "length", "value": "200 words" }
+                    ]
+                },
+                {
+                    "property_name": "target_audience",
+                    "value": "business professionals"
+                }
+            ];
+        }
+
+        function testLegoVisualization() {
+            // Create a test structure and show it in lego view
+            const testStructure = createSampleHierarchicalStructure();
+            
+            // Show the object panel
+            showObjectPanel();
+            
+            // Clear response and add test title
+            const responseEl = document.getElementById('response');
+            responseEl.innerHTML = '';
+            
+            const titleElement = document.createElement('div');
+            titleElement.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                text-align: center;
+                font-weight: 600;
+                font-size: 16px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            `;
+            titleElement.textContent = 'Test Hierarchical Structure - Full Lego Interface';
+            responseEl.appendChild(titleElement);
+            
+            // Create a requirements section container for the test
+            const requirementsSection = document.createElement('div');
+            requirementsSection.className = 'requirements-section';
+            requirementsSection.style.marginTop = '20px';
+            
+            const requirementsLabel = document.createElement('h4');
+            requirementsLabel.textContent = 'Requirements:';
+            requirementsLabel.style.margin = '0 0 15px 0';
+            requirementsLabel.style.color = '#495057';
+            requirementsSection.appendChild(requirementsLabel);
+            
+            // Create the lego visualization inside the requirements section
+            createLegoVisualization(testStructure, requirementsSection);
+            
+            // Add the requirements section to the response
+            responseEl.appendChild(requirementsSection);
+            
+            // Show instructions
+            const instructions = document.createElement('div');
+            instructions.style.cssText = `
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 20px 0;
+                color: #495057;
+                font-size: 14px;
+            `;
+            instructions.innerHTML = `
+                <strong>Instructions:</strong><br>
+                • <strong>Drag blocks</strong> near each other to connect them<br>
+                • <strong>Overlap blocks</strong> significantly to include one in another<br>
+                • <strong>Connected blocks move together</strong> as one unit<br>
+                • <strong>Hover over connected blocks</strong> to see disconnect option<br>
+                • <strong>Click the + button</strong> to add new requirement blocks<br>
+                • <strong>Double-click blocks</strong> to edit their properties<br>
+                • <strong>Use Save button</strong> to preserve your structure
+            `;
+            responseEl.appendChild(instructions);
         }
 
         function addPropertyToStructure(properties, key, value) {
             if (properties.requirements) {
                 // New structure
+                if (Array.isArray(properties.requirements)) {
+                    // For hierarchical structure, add as a new requirement
+                    properties.requirements.push({
+                        property_name: key,
+                        value: value,
+                        candidates: []
+                    });
+                } else {
+                    // Legacy object structure
                 properties.requirements[key] = value;
+                }
             } else {
                 // Legacy structure
                 properties[key] = value;
@@ -2216,7 +4245,7 @@
                         // Create the final merged structure
                         const finalStructure = {
                             mainTask: '',
-                            requirements: {},
+                            requirements: [],
                             audience: []
                         };
                         
@@ -2224,17 +4253,35 @@
                         if (convertedStructure) {
                             finalStructure.mainTask = convertedStructure.mainTask || '';
                             finalStructure.audience = convertedStructure.audience || [];
-                            finalStructure.requirements = { ...convertedStructure.requirements } || {};
+                            finalStructure.requirements = [...(convertedStructure.requirements || [])];
                         }
                         
-                        // Add ALL requirements from extracted properties
+                        // Merge extracted properties with base class, preserving existing values
                         if (lastParsedProperties && lastParsedProperties.requirements) {
-                            Object.keys(lastParsedProperties.requirements).forEach(key => {
-                                finalStructure.requirements[key] = {
-                                    property_name: key,
-                                    value: lastParsedProperties.requirements[key].value || ''
-                                };
-                            });
+                            // For hierarchical requirements, merge at the node level
+                            const mergedRequirements = [...finalStructure.requirements];
+                            
+                            if (Array.isArray(lastParsedProperties.requirements)) {
+                                lastParsedProperties.requirements.forEach(extractedReq => {
+                                    const existingIndex = mergedRequirements.findIndex(existing => 
+                                        existing.property_name === extractedReq.property_name
+                                    );
+                                    if (existingIndex === -1) {
+                                        // New requirement not in base class, add it
+                                        mergedRequirements.push(extractedReq);
+                                        console.log(`New requirement "${extractedReq.property_name}" added from extraction:`, extractedReq.value);
+                                    } else {
+                                        // Requirement exists in base class, preserve the extracted value
+                                        mergedRequirements[existingIndex] = {
+                                            ...mergedRequirements[existingIndex],
+                                            value: extractedReq.value || mergedRequirements[existingIndex].value || ''
+                                        };
+                                        console.log(`Requirement "${extractedReq.property_name}" merged from base class with extracted value:`, mergedRequirements[existingIndex].value);
+                                    }
+                                });
+                            }
+                            
+                            finalStructure.requirements = mergedRequirements;
                         }
                         
                         // Overwrite main_task and audience with extracted values
@@ -2243,7 +4290,7 @@
                                 finalStructure.mainTask = lastParsedProperties.mainTask;
                             }
                             if (lastParsedProperties.audience && lastParsedProperties.audience.length > 0) {
-                                finalStructure.audience = lastParsedProperties.audience;
+                                finalStructure.audience = [...lastParsedProperties.audience];
                             }
                         }
                         
@@ -2280,9 +4327,35 @@
                                 // Use fallback base class with extracted properties
                                 const finalStructure = {
                                     mainTask: lastParsedProperties?.mainTask || '',
-                                    requirements: { ...fallbackStructure.requirements, ...(lastParsedProperties?.requirements || {}) },
+                                    requirements: [...(fallbackStructure.requirements || [])],
                                     audience: lastParsedProperties?.audience || fallbackStructure.audience || []
                                 };
+                                
+                                // Merge extracted properties with fallback base class, preserving existing values
+                                if (lastParsedProperties && lastParsedProperties.requirements) {
+                                    // For hierarchical requirements, merge at the node level
+                                    const mergedRequirements = [...finalStructure.requirements];
+                                    
+                                    if (Array.isArray(lastParsedProperties.requirements)) {
+                                        lastParsedProperties.requirements.forEach(extractedReq => {
+                                            const existingIndex = mergedRequirements.findIndex(existing => 
+                                                existing.property_name === extractedReq.property_name
+                                            );
+                                            if (existingIndex === -1) {
+                                                // New requirement not in fallback base class, add it
+                                                mergedRequirements.push(extractedReq);
+                                            } else {
+                                                // Requirement exists in fallback base class, preserve the extracted value
+                                                mergedRequirements[existingIndex] = {
+                                                    ...mergedRequirements[existingIndex],
+                                                    value: extractedReq.value || mergedRequirements[existingIndex].value || ''
+                                                };
+                                            }
+                                        });
+                                    }
+                                    
+                                    finalStructure.requirements = mergedRequirements;
+                                }
                                 
                                 lastParsedProperties = finalStructure;
                                 console.log('About to show object panel (fallback to base)...');
@@ -2356,19 +4429,9 @@
                 // Prepare the data structure for the new prompt optimizer
                 const promptData = {
                     "Main Task": lastParsedProperties.mainTask || "",
-                    "Audience": lastParsedProperties.audience || [],
-                    "Requirements": []
+                    "Requirements": lastParsedProperties.requirements || [],
+                    "Audience": lastParsedProperties.audience || []
                 };
-
-                // Convert requirements to the expected format
-                if (lastParsedProperties.requirements) {
-                    Object.keys(lastParsedProperties.requirements).forEach(key => {
-                        promptData.Requirements.push({
-                            property_name: key,
-                            value: lastParsedProperties.requirements[key].value
-                        });
-                    });
-                }
 
                 console.log('Sending prompt data:', promptData);
 
@@ -2457,32 +4520,19 @@
                     }
                 }
                 
-                // Handle new three-part structure: Main Task, Audience, Requirements
+                // Handle new hierarchical structure: Main Task, Requirements, Audience
                 if (parsed && typeof parsed === 'object') {
                     // Extract the three main parts
-                    const mainTask = parsed.Main_Task || parsed['Main Task'] || '';
-                    const audience = parsed.Audience || [];
-                    const requirements = parsed.Requirements || [];
+                    const mainTask = parsed['Main Task'] || parsed.mainTask || '';
+                    const requirements = parsed['Requirements'] || parsed.requirements || [];
+                    const audience = parsed['Audience'] || parsed.audience || [];
                     
                     // Create the new structure
                     const newStructure = {
                         mainTask: mainTask,
                         audience: audience,
-                        requirements: {}
+                        requirements: requirements // Keep as array for hierarchical structure
                     };
-                    
-                    // Convert requirements array to object format for the property panel
-                    if (Array.isArray(requirements)) {
-                        requirements.forEach((req, index) => {
-                            if (req.property_name && req.value !== undefined) {
-                                const key = req.property_name;
-                                newStructure.requirements[key] = {
-                                    value: req.value,
-                                    candidates: req.candidates || []
-                                };
-                            }
-                        });
-                    }
                     
                     lastParsedProperties = newStructure;
                 } else if (Array.isArray(parsed)) {
@@ -2810,6 +4860,7 @@
                             audienceSection.style.backgroundColor = '#f8f9fa';
                             audienceSection.style.borderRadius = '8px';
                             audienceSection.style.border = '1px solid #e9ecef';
+                            audienceSection.style.width = '100%';
                             
                             const audienceLabel = document.createElement('h4');
                             audienceLabel.textContent = 'Audience:';
@@ -2819,6 +4870,7 @@
                             
                             const audienceContainer = document.createElement('div');
                             audienceContainer.style.marginBottom = '10px';
+                            audienceContainer.style.width = '100%';
                             
                             // Create editable audience items
                             const audienceArray = value.audience.length > 0 ? value.audience : [''];
@@ -2830,20 +4882,22 @@
                                     margin-bottom: 8px;
                                     gap: 8px;
                                     position: relative;
+                                    width: 100%;
                                 `;
                                 
                                 const audienceInput = document.createElement('input');
                                 audienceInput.type = 'text';
                                 audienceInput.value = audience;
                                 audienceInput.style.cssText = `
-                                    flex: 1;
-                                    padding: 6px 30px 6px 10px;
+                                    width: calc(100% - 80px);
+                                    padding: 6px 10px;
                                     border: 1px solid #ced4da;
-                                    border-radius: 4px;
+                                    border-radius: 6px;
                                     font-size: 14px;
                                     color: #212529;
                                     background-color: white;
                                     transition: border-color 0.2s ease;
+                                    box-sizing: border-box;
                                 `;
                                 
                                 audienceInput.addEventListener('input', () => {
@@ -2865,30 +4919,35 @@
                                 
                                 // Add delete button for audience items
                                 const deleteAudienceBtn = document.createElement('button');
-                                deleteAudienceBtn.textContent = '×';
-                                deleteAudienceBtn.style.position = 'absolute';
-                                deleteAudienceBtn.style.right = '0';
-                                deleteAudienceBtn.style.top = '50%';
-                                deleteAudienceBtn.style.transform = 'translateY(-50%)';
-                                deleteAudienceBtn.style.backgroundColor = '#dc3545';
-                                deleteAudienceBtn.style.color = 'white';
-                                deleteAudienceBtn.style.border = 'none';
-                                deleteAudienceBtn.style.borderRadius = '3px';
-                                deleteAudienceBtn.style.width = '20px';
-                                deleteAudienceBtn.style.height = '20px';
-                                deleteAudienceBtn.style.cursor = 'pointer';
-                                deleteAudienceBtn.style.fontSize = '12px';
-                                deleteAudienceBtn.style.display = 'flex';
-                                deleteAudienceBtn.style.alignItems = 'center';
-                                deleteAudienceBtn.style.justifyContent = 'center';
-                                deleteAudienceBtn.style.zIndex = '1000';
+                                deleteAudienceBtn.textContent = 'Delete';
+                                deleteAudienceBtn.style.cssText = `
+                                    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                                    color: white;
+                                    border: none;
+                                    border-radius: 8px;
+                                    padding: 6px 12px;
+                                    cursor: pointer;
+                                    font-size: 11px;
+                                    font-weight: 500;
+                                    transition: all 0.3s ease;
+                                    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+                                    position: absolute;
+                                    right: 0;
+                                    top: 50%;
+                                    transform: translateY(-50%);
+                                    z-index: 1000;
+                                `;
                                 
                                 deleteAudienceBtn.addEventListener('mouseenter', () => {
-                                    deleteAudienceBtn.style.backgroundColor = '#c82333';
+                                    deleteAudienceBtn.style.background = 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)';
+                                    deleteAudienceBtn.style.transform = 'translateY(-50%) translateY(-1px)';
+                                    deleteAudienceBtn.style.boxShadow = '0 4px 8px rgba(231, 76, 60, 0.4)';
                                 });
                                 
                                 deleteAudienceBtn.addEventListener('mouseleave', () => {
-                                    deleteAudienceBtn.style.backgroundColor = '#dc3545';
+                                    deleteAudienceBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                                    deleteAudienceBtn.style.transform = 'translateY(-50%)';
+                                    deleteAudienceBtn.style.boxShadow = '0 2px 6px rgba(231, 76, 60, 0.3)';
                                 });
                                 
                                 deleteAudienceBtn.onclick = () => {
@@ -2963,8 +5022,8 @@
                             container.appendChild(audienceSection);
                         }
                         
-                        // Render Requirements section (using existing property panel logic)
-                        if (value.requirements && Object.keys(value.requirements).length > 0) {
+                        // Render Requirements section with full lego canvas
+                        if (value.requirements && Array.isArray(value.requirements) && value.requirements.length > 0) {
                             const requirementsSection = document.createElement('div');
                             requirementsSection.className = 'requirements-section';
                             requirementsSection.style.marginTop = '20px';
@@ -2975,37 +5034,24 @@
                             requirementsLabel.style.color = '#495057';
                             requirementsSection.appendChild(requirementsLabel);
                             
-                    const propertiesContainer = document.createElement('div');
-                    propertiesContainer.id = 'propertiesContainer';
-                        
-                        // Add ranking info
-                        const rankingInfo = document.createElement('div');
-                        rankingInfo.className = 'ranking-info';
-                            rankingInfo.innerHTML = '<strong>Property Ranking:</strong> Drag requirements to reorder by importance. Higher ranked requirements will be prioritized in prompt generation.';
-                            rankingInfo.style.marginBottom = '15px';
-                        propertiesContainer.appendChild(rankingInfo);
-
-                            // Create property items for requirements
-                            const propertyKeys = Object.keys(value.requirements);
-                            console.log('Creating requirement items in order:', propertyKeys);
-                            propertyKeys.forEach((key, index) => {
-                                console.log(`Creating requirement item ${index + 1}: ${key}`);
-                                const propertyItem = createDraggablePropertyItem(key, value.requirements[key], index + 1);
-                                propertiesContainer.appendChild(propertyItem);
-                            });
+                            // Create the lego visualization as the main requirements interface
+                            createLegoVisualization(value.requirements, requirementsSection);
                             
-                            requirementsSection.appendChild(propertiesContainer);
+                            container.appendChild(requirementsSection);
+                        } else {
+                            // If no requirements, create empty lego canvas for adding new blocks
+                            const requirementsSection = document.createElement('div');
+                            requirementsSection.className = 'requirements-section';
+                            requirementsSection.style.marginTop = '20px';
                             
-                            if (window.Sortable && propertiesContainer) {
-                                Sortable.create(propertiesContainer, {
-                                    animation: 150,
-                                    handle: '.drag-handle',
-                                    onEnd: function () {
-                                        updatePropertyRanks();
-                                        updatePropertiesOrder();
-                                    }
-                                });
-                            }
+                            const requirementsLabel = document.createElement('h4');
+                            requirementsLabel.textContent = 'Requirements:';
+                            requirementsLabel.style.margin = '0 0 15px 0';
+                            requirementsLabel.style.color = '#495057';
+                            requirementsSection.appendChild(requirementsLabel);
+                            
+                            // Create empty lego canvas
+                            createLegoVisualization([], requirementsSection);
                             
                             container.appendChild(requirementsSection);
                         }
@@ -3014,11 +5060,7 @@
                         const propertiesContainer = document.createElement('div');
                         propertiesContainer.id = 'propertiesContainer';
                         
-                        // Add ranking info
-                        const rankingInfo = document.createElement('div');
-                        rankingInfo.className = 'ranking-info';
-                        rankingInfo.innerHTML = '<strong> Property Ranking:</strong> Drag properties to reorder by importance. Higher ranked properties will be prioritized in prompt generation.';
-                        propertiesContainer.appendChild(rankingInfo);
+
 
                         // Create property items
                         const propertyKeys = Object.keys(value);
@@ -3211,6 +5253,12 @@
             propertyItem.className = 'feature-item';
             propertyItem.dataset.propertyKey = key;
             propertyItem.dataset.rank = rank;
+            
+            // Handle both old and new data structures
+            const isNewStructure = propertyData && typeof propertyData === 'object' && propertyData.property_name;
+            const displayKey = isNewStructure ? propertyData.property_name : key;
+            const displayValue = isNewStructure ? propertyData.value : (propertyData.value || '');
+            const displayCandidates = isNewStructure ? (propertyData.candidates || []) : (propertyData.candidates || []);
 
             // Add a test click to verify the item is created properly
             propertyItem.addEventListener('click', () => {
@@ -3265,7 +5313,7 @@
 
             const propertyName = document.createElement('div');
             propertyName.className = 'feature-name';
-            propertyName.textContent = key;
+            propertyName.textContent = displayKey;
 
             leftSection.appendChild(dragHandle);
             leftSection.appendChild(rankBadge);
@@ -3307,6 +5355,7 @@
             deleteBtn.textContent = 'Delete';
             deleteBtn.className = 'delete-feature-btn';
             deleteBtn.title = `Delete ${key}`;
+            deleteBtn.dataset.propertyKey = key; // Store the property key for debugging
             deleteBtn.style.cssText = `
                 background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
                 color: white;
@@ -3336,11 +5385,23 @@
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('Delete button clicked for:', key);
+                console.log('Button dataset propertyKey:', deleteBtn.dataset.propertyKey);
                 console.log('Current lastParsedProperties:', lastParsedProperties);
+                console.log('Attempting to delete property:', key);
+                console.log('Property structure before deletion:', JSON.stringify(lastParsedProperties, null, 2));
                 
-                if (lastParsedProperties && lastParsedProperties[key]) {
-                    delete lastParsedProperties[key];
+                if (lastParsedProperties) {
+                    console.log('Property structure type:', typeof lastParsedProperties);
+                    console.log('Property structure keys:', Object.keys(lastParsedProperties));
+                    if (lastParsedProperties.requirements) {
+                        console.log('Requirements keys:', Object.keys(lastParsedProperties.requirements));
+                        console.log('Property to delete exists in requirements:', key in lastParsedProperties.requirements);
+                    }
+                    
+                    // Use the helper function to delete property from structure
+                    deletePropertyFromStructure(lastParsedProperties, key);
                     console.log('Property deleted. Updated properties:', lastParsedProperties);
+                    console.log('Properties after deletion:', JSON.stringify(lastParsedProperties, null, 2));
                     
                     // Re-render the properties
                     const responseEl = document.getElementById('response');
@@ -3350,6 +5411,8 @@
                     // Re-add the form container
                     const formContainer = createAddPropertyForm();
                     responseEl.appendChild(formContainer);
+                    
+                    console.log('Properties re-rendered successfully');
                 } else {
                     console.error('Property not found in lastParsedProperties:', key);
                 }
@@ -3367,7 +5430,7 @@
             const valueInput = document.createElement('input');
             valueInput.type = 'text';
             valueInput.className = 'feature-value';
-            valueInput.value = propertyData.value || '';
+            valueInput.value = displayValue;
             valueInput.placeholder = 'Property value';
 
             valueInput.addEventListener('input', () => {
@@ -3381,94 +5444,14 @@
 
 
 
-            // Generate Candidates button
-            const candidatesBtn = document.createElement('button');
-            candidatesBtn.textContent = 'Generate Candidates';
-            candidatesBtn.className = 'candidates-btn';
-            candidatesBtn.style.cssText = `
-                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 11px;
-                font-weight: 500;
-                margin-left: 8px;
-                transition: all 0.3s ease;
-                box-shadow: 0 2px 6px rgba(44, 62, 80, 0.3);
-            `;
-            
-            candidatesBtn.addEventListener('mouseenter', () => {
-                candidatesBtn.style.background = 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)';
-                candidatesBtn.style.transform = 'translateY(-1px)';
-                candidatesBtn.style.boxShadow = '0 4px 8px rgba(44, 62, 80, 0.4)';
-            });
-            
-            candidatesBtn.addEventListener('mouseleave', () => {
-                candidatesBtn.style.background = 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)';
-                candidatesBtn.style.transform = 'translateY(0)';
-                candidatesBtn.style.boxShadow = '0 2px 6px rgba(44, 62, 80, 0.3)';
-            });
 
-            candidatesBtn.onclick = async () => {
-                const propertyValue = valueInput.value.trim();
-                if (!propertyValue) {
-                    alert('Please enter a property value first.');
-                    return;
-                }
-
-                // Show loading state
-                const originalText = candidatesBtn.textContent;
-                candidatesBtn.textContent = 'Generating...';
-                candidatesBtn.disabled = true;
-
-                try {
-                    const response = await fetch('/api/generate-candidates', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            term: propertyValue,
-                            propertyKey: key 
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        alert('Error: ' + data.error);
-                    } else {
-                        // Store candidates in the property data
-                        if (lastParsedProperties) {
-                            const requirements = getRequirementsFromProperties(lastParsedProperties);
-                            if (requirements[key]) {
-                                requirements[key].candidates = data.candidates;
-                            }
-                        }
-                        // Display candidates as a list
-                        displayCandidates(key, data.candidates, propertyItem);
-                    }
-                } catch (error) {
-                    console.error('Error generating candidates:', error);
-                    alert('Error generating candidates. Please try again.');
-                } finally {
-                    candidatesBtn.textContent = originalText;
-                    candidatesBtn.disabled = false;
-                }
-            };
 
             content.appendChild(valueInput);
-            content.appendChild(candidatesBtn);
 
             propertyItem.appendChild(header);
             propertyItem.appendChild(content);
 
-            // Display candidates section only if candidates exist
-            if (propertyData.candidates && Array.isArray(propertyData.candidates) && propertyData.candidates.length > 0) {
-                displayCandidates(key, propertyData.candidates, propertyItem);
-            }
+
 
             console.log('Created draggable property item:', key);
 
@@ -3564,185 +5547,7 @@
             return formContainer;
         }
 
-        function displayCandidates(propertyKey, candidates, propertyItem) {
-            // Remove existing candidates display if any
-            const existingCandidates = propertyItem.querySelector('.candidates-display');
-            if (existingCandidates) {
-                existingCandidates.remove();
-            }
-
-            // Create candidates display
-            const candidatesDisplay = document.createElement('div');
-            candidatesDisplay.className = 'candidates-display';
-            candidatesDisplay.style.cssText = `
-                margin-top: 12px;
-                padding: 12px;
-                background: rgba(255, 255, 255, 0.9);
-                border: 1px solid rgba(44, 62, 80, 0.2);
-                border-radius: 8px;
-                font-size: 12px;
-            `;
-
-            const candidatesTitle = document.createElement('div');
-            candidatesTitle.style.cssText = `
-                font-weight: 600;
-                color: #2c3e50;
-                margin-bottom: 8px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            `;
-            
-            const titleText = document.createElement('span');
-            titleText.textContent = 'Candidates:';
-            candidatesTitle.appendChild(titleText);
-            
-            // Add Clear All button
-            const clearAllBtn = document.createElement('button');
-            clearAllBtn.textContent = 'Clear All';
-            clearAllBtn.style.cssText = `
-                background: #e74c3c;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 4px 8px;
-                cursor: pointer;
-                font-size: 10px;
-                font-weight: 500;
-                transition: background-color 0.2s;
-            `;
-            
-            clearAllBtn.addEventListener('mouseenter', () => {
-                clearAllBtn.style.backgroundColor = '#c0392b';
-            });
-            
-            clearAllBtn.addEventListener('mouseleave', () => {
-                clearAllBtn.style.backgroundColor = '#e74c3c';
-            });
-            
-            clearAllBtn.onclick = () => {
-                // Remove all candidates from the property data
-                if (lastParsedProperties) {
-                    const requirements = getRequirementsFromProperties(lastParsedProperties);
-                    if (requirements[propertyKey]) {
-                        delete requirements[propertyKey].candidates;
-                    console.log('All candidates cleared for property:', propertyKey);
-                    console.log('Updated properties:', lastParsedProperties);
-                    }
-                }
-                
-                // Remove the candidates display
-                candidatesDisplay.remove();
-            };
-            
-            candidatesTitle.appendChild(clearAllBtn);
-            candidatesDisplay.appendChild(candidatesTitle);
-
-            // Create candidate list
-            const candidatesList = document.createElement('div');
-            candidatesList.style.cssText = `
-                display: flex;
-                flex-wrap: wrap;
-                gap: 4px;
-                align-items: flex-start;
-            `;
-
-            candidates.forEach((candidate, index) => {
-                const candidateChip = document.createElement('div');
-                candidateChip.style.cssText = `
-                    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 11px;
-                    transition: all 0.2s ease;
-                    display: inline-flex;
-                    align-items: center;
-                    position: relative;
-                    width: fit-content;
-                    min-width: 40px;
-                    min-height: 24px;
-                    margin: 2px;
-                `;
-
-                const candidateText = document.createElement('span');
-                candidateText.textContent = candidate;
-                candidateText.style.cssText = `
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    max-width: 200px;
-                `;
-                candidateChip.appendChild(candidateText);
-
-                // Add individual delete button for each candidate (top right corner)
-                const deleteCandidateBtn = document.createElement('div');
-                deleteCandidateBtn.textContent = '';
-                deleteCandidateBtn.textContent = '×';
-                deleteCandidateBtn.style.cssText = `
-                    background: #e74c3c;
-                    border: none;
-                    border-radius: 2px;
-                    width: 12px;
-                    height: 12px;
-                    cursor: pointer;
-                    position: absolute;
-                    top: -4px;
-                    right: -4px;
-                    margin: 0;
-                    z-index: 2;
-                    transition: all 0.2s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 8px;
-                    font-weight: bold;
-                    line-height: 1;
-                `;
-
-                deleteCandidateBtn.addEventListener('mouseenter', () => {
-                    deleteCandidateBtn.style.background = '#c0392b';
-                    deleteCandidateBtn.style.transform = 'scale(1.2)';
-                });
-
-                deleteCandidateBtn.addEventListener('mouseleave', () => {
-                    deleteCandidateBtn.style.background = '#e74c3c';
-                    deleteCandidateBtn.style.transform = 'scale(1)';
-                });
-
-                deleteCandidateBtn.onclick = () => {
-                    // Remove this specific candidate from the property data
-                    if (lastParsedProperties) {
-                        const requirements = getRequirementsFromProperties(lastParsedProperties);
-                        if (requirements[propertyKey] && requirements[propertyKey].candidates) {
-                            const updatedCandidates = requirements[propertyKey].candidates.filter(c => c !== candidate);
-                        if (updatedCandidates.length === 0) {
-                                delete requirements[propertyKey].candidates;
-                            candidatesDisplay.remove();
-                        } else {
-                                requirements[propertyKey].candidates = updatedCandidates;
-                            displayCandidates(propertyKey, updatedCandidates, propertyItem);
-                            }
-                        }
-                    }
-                };
-
-                candidateChip.appendChild(deleteCandidateBtn);
-                candidatesList.appendChild(candidateChip);
-            });
-
-            candidatesDisplay.appendChild(candidatesList);
-            
-            // Ensure candidates are always appended at the end of the property item
-            // Remove any existing candidates display first
-            const existingCandidatesDisplay = propertyItem.querySelector('.candidates-display');
-            if (existingCandidatesDisplay) {
-                existingCandidatesDisplay.remove();
-            }
-            
-            propertyItem.appendChild(candidatesDisplay);
-        }
+        
 
         // Base Class Save and Load Functions
         async function saveBaseClass() {
@@ -3776,22 +5581,12 @@
             }
 
             try {
-                // Prepare the data structure for saving (using consistent format)
+                // Prepare the data structure for saving (using new hierarchical format)
                 const promptData = {
-                    mainTask: lastParsedProperties.mainTask || "",
-                    audience: lastParsedProperties.audience || [],
-                    requirements: {}
+                    "Main Task": lastParsedProperties.mainTask || "",
+                    "Requirements": lastParsedProperties.requirements || [],
+                    "Audience": lastParsedProperties.audience || []
                 };
-
-                // Convert requirements to the expected format
-                if (lastParsedProperties.requirements) {
-                    Object.keys(lastParsedProperties.requirements).forEach(key => {
-                        promptData.requirements[key] = {
-                            property_name: key,
-                            value: lastParsedProperties.requirements[key].value
-                        };
-                    });
-                }
 
                 const response = await fetch('/api/save-base-class', {
                     method: 'POST',
@@ -3887,7 +5682,50 @@
                 // Convert to the expected structure format
                 const newStructure = convertBaseClassToStructure(baseClass);
 
-                // Update the UI with the loaded base class
+                // Merge with existing properties if they exist
+                if (lastParsedProperties && lastParsedProperties.requirements) {
+                    console.log('Merging existing properties with base class...');
+                    console.log('Existing properties:', lastParsedProperties.requirements);
+                    console.log('Base class requirements:', newStructure.requirements);
+                    
+                    // For hierarchical requirements, we need to merge at the node level
+                    // For now, preserve existing requirements and add base class requirements
+                    const mergedRequirements = [...(lastParsedProperties.requirements || [])];
+                    
+                    // Add base class requirements that don't conflict
+                    if (Array.isArray(newStructure.requirements)) {
+                        newStructure.requirements.forEach(baseReq => {
+                            const existingIndex = mergedRequirements.findIndex(existing => 
+                                existing.property_name === baseReq.property_name
+                            );
+                            if (existingIndex === -1) {
+                                // Add new requirement from base class
+                                mergedRequirements.push(baseReq);
+                                console.log(`Added base class requirement:`, baseReq.property_name);
+                            } else {
+                                // Preserve existing requirement value
+                                console.log(`Preserved existing requirement:`, baseReq.property_name);
+                            }
+                        });
+                    }
+                    
+                    newStructure.requirements = mergedRequirements;
+                    
+                    // Also preserve existing main task and audience if they exist
+                    if (lastParsedProperties.mainTask) {
+                        newStructure.mainTask = lastParsedProperties.mainTask;
+                        console.log('Preserving existing main task:', newStructure.mainTask);
+                    }
+                    
+                    if (lastParsedProperties.audience && lastParsedProperties.audience.length > 0) {
+                        newStructure.audience = [...lastParsedProperties.audience];
+                        console.log('Preserving existing audience:', newStructure.audience);
+                    }
+                    
+                    console.log('Final merged structure:', newStructure);
+                }
+
+                // Update the UI with the merged structure
                 lastParsedProperties = newStructure;
                 
                 // Hide initialization module and show object panel
@@ -3898,10 +5736,27 @@
                 responseEl.innerHTML = '';
                 addBaseClassTitle(selectedBaseClass);
                 
-                // Render the loaded properties using the modular function
+                // Render the merged properties using the modular function
                 renderPropertiesToUI(newStructure);
                 
-                showNotification(`Loaded base class: ${selectedBaseClass}`, 'success');
+                // Show detailed notification about what was preserved and added
+                const baseClassKeys = Object.keys(newStructure.requirements || {});
+                const matchedCount = baseClassKeys.filter(key => 
+                    lastParsedProperties.requirements[key]
+                ).length;
+                const addedCount = Object.keys(lastParsedProperties.requirements).filter(key => 
+                    !baseClassKeys.includes(key)
+                ).length;
+                
+                let notificationMessage = `Loaded base class: ${selectedBaseClass}`;
+                if (matchedCount > 0) {
+                    notificationMessage += ` (${matchedCount} existing values preserved)`;
+                }
+                if (addedCount > 0) {
+                    notificationMessage += ` (${addedCount} new properties added)`;
+                }
+                
+                showNotification(notificationMessage, 'success');
                 closeBaseClassModal();
                 
             } catch (error) {

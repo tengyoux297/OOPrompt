@@ -7,7 +7,7 @@ A web-based prompt optimization tool that helps you generate, edit, and optimize
 - **Feature Generation**: Convert your initial prompt into structured features
 - **Feature Editing**: Edit feature names, values, and fixed states
 - **Feature Ranking**: Drag and drop features to reorder by importance
-- **Candidate Generation**: Generate alternative feature sets
+
 - **Prompt Regeneration**: Create optimized prompts from features (prioritizing ranked features)
 - **Copy to Clipboard**: Easily copy the final optimized prompt
 - **Chat Integration**: Insert optimized prompts into a ChatGPT-like interface
@@ -21,7 +21,7 @@ A web-based prompt optimization tool that helps you generate, edit, and optimize
 - OpenAI Assistant IDs for:
   - Feature Generator
   - Prompt Generator  
-  - Candidate Generator
+
   - General GPT (for chat interface)
 
 ### Installation
@@ -50,7 +50,7 @@ npm install
    OPENAI_API_KEY=your_openai_api_key_here
    FEATURE_GENERATOR=your_feature_generator_assistant_id
    PROMPT_GENERATOR=your_prompt_generator_assistant_id
-   CANDIDATE_GENERATOR=your_candidate_generator_assistant_id
+   
    GENERAL_GPT=your_general_gpt_assistant_id
    PORT=3000
    ```
@@ -72,10 +72,39 @@ npm run dev
 2. **Generate Features**: Click "Generate Features" to convert your prompt into structured features
 3. **Rank Features**: Drag and drop features to reorder them by importance (rank 1 is most important)
 4. **Edit Features**: Modify feature names, values, and fixed states as needed
-5. **Generate Candidates**: Click "Generate Candidates" to create alternative feature sets
+
 6. **Regenerate Prompt**: Click "Regenerate Prompt" to create optimized prompts from the features (higher-ranked features will be prioritized)
 7. **Insert to Chat**: Click "Insert to Chat" to add the optimized prompt to the left chat interface
 8. **Send to AI**: Use the chat interface to send the prompt to your General GPT assistant
+
+## Base Classes
+
+The application includes several pre-defined base classes for different types of prompts, each following the new hierarchical structure:
+
+- **base.json**: Generic template for any prompt type
+- **text_generator.json**: Template for text generation tasks (writing, stories, articles)
+- **image_generator.json**: Template for image generation tasks
+- **trip_planner.json**: Template for trip planning tasks
+- **summarizer.json**: Template for summarization tasks
+- **translator.json**: Template for translation tasks
+- **code_generator.json**: Template for code generation tasks
+- **classifier.json**: Template for classification tasks
+- **explainer.json**: Template for explanation tasks
+- **copywriter.json**: Template for copywriting and marketing tasks
+
+Each base class follows the structure:
+```json
+{
+  "Main Task": "task-type",
+  "Requirements": [
+    {
+      "property_name": "property_name",
+      "value": "default_value"
+    }
+  ],
+  "Audience": ["target_audience"]
+}
+```
 
 ## Feature Ranking
 
@@ -93,14 +122,14 @@ The application includes a drag-and-drop ranking system for features:
 | `OPENAI_API_KEY`      | Your OpenAI API key                   | ✅       |
 | `FEATURE_GENERATOR`   | Assistant ID for feature generation   | ✅       |
 | `PROMPT_GENERATOR`    | Assistant ID for prompt regeneration  | ✅       |
-| `CANDIDATE_GENERATOR` | Assistant ID for candidate generation | ✅       |
+
 | `GENERAL_GPT`         | Assistant ID for chat interface       | ✅       |
 | `PORT`                | Server port (default: 3000)           | ❌       |
 
 ## API Endpoints
 
 - `POST /api/query` - Generate features from a prompt
-- `POST /api/candidates` - Generate candidate features
+
 - `POST /api/regenerate` - Regenerate optimized prompts
 - `POST /api/send-to-gpt` - Send prompt to General GPT assistant
 

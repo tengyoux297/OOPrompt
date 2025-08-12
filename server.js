@@ -13,9 +13,8 @@ const requiredEnvVars = [
     'OPENAI_API_KEY',
     'PROPERTY_GENERATOR',
     'PROMPT_OPTIMIZER',
-    'CANDIDATE_GENERATOR',
+    'TASK_IDENTIFIER',
     'GENERAL_GPT',
-    'TASK_IDENTIFIER'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -165,26 +164,7 @@ app.post('/api/candidate-generator', async (req, res) => {
     }
 });
 
-// API endpoint to generate candidates for a term
-app.post('/api/generate-candidates', async (req, res) => {
-    try {
-        const { term } = req.body;
-        
-        if (!process.env.OPENAI_API_KEY || !process.env.CANDIDATE_GENERATOR) {
-            return res.status(500).json({ 
-                error: 'Missing environment variables. Please check your .env file.',
-                details: 'OPENAI_API_KEY and CANDIDATE_GENERATOR are required.'
-            });
-        }
-        
-        const candidates = await generateCandidatesForTerm(term);
-        res.json({ type: 'candidates', candidates });
-        
-    } catch (error) {
-        console.error('Error in /api/generate-candidates:', error);
-        res.status(500).json({ error: 'Internal server error: ' + error.message });
-    }
-});
+
 
 // API endpoint to send message to general GPT
 app.post('/api/general-gpt', async (req, res) => {
@@ -671,112 +651,7 @@ async function queryCandidateGenerator(features) {
     }
 }
 
-async function generateCandidatesForTerm(term) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    const candidateGenerator = process.env.CANDIDATE_GENERATOR;
 
-    if (!apiKey || !candidateGenerator) {
-        throw new Error('Missing API key or Candidate Generator Assistant ID');
-    }
-
-    const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-    };
-
-    try {
-        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
-            method: 'POST',
-            headers
-        });
-        const threadId = threadData.id;
-
-        // Format the term as requested: "term/sentence"
-        const formattedTerm = `"${term}"`;
-        
-        const messageContent = `Generate 5-8 candidate alternatives for this term/sentence: ${formattedTerm}
-
-Please return only a JSON array of strings, like this:
-["candidate1", "candidate2", "candidate3", "candidate4", "candidate5"]
-
-The candidates should be:
-- Similar in meaning but different in wording
-- Grammatically correct
-- Suitable for use in prompts
-- No more than 3-4 words each`;
-
-        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ role: 'user', content: messageContent })
-        });
-
-        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ assistant_id: candidateGenerator })
-        });
-        const runId = runData.id;
-
-        // Wait for run completion with simple polling
-        console.log('⏳ Waiting for completion...');
-        let runStatus = 'in_progress';
-        let attempts = 0;
-        const maxAttempts = 60;
-        
-        while (runStatus === 'in_progress' && attempts < maxAttempts) {
-            attempts++;
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-            
-            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
-                method: 'GET',
-                headers,
-            });
-            
-            runStatus = runData.status;
-            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
-            
-            if (runStatus === 'completed') {
-                console.log('✅ Run completed');
-                break;
-            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
-                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
-            }
-        }
-        
-        if (runStatus !== 'completed') {
-            throw new Error('Run timeout - exceeded maximum attempts');
-        }
-        
-        // Retrieve messages from the thread
-        console.log('📥 Retrieving messages...');
-        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-            method: 'GET',
-            headers,
-        });
-        console.log('✅ Messages retrieved');
-        
-        const messages = messagesData.data;
-        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
-
-        // Parse the response as JSON array
-        try {
-            const candidates = JSON.parse(assistantReply);
-            if (Array.isArray(candidates)) {
-                return candidates;
-            }
-        } catch (parseError) {
-            console.log('Failed to parse candidates as JSON array:', parseError.message);
-        }
-        
-        // Fallback to original term if parsing fails
-        return [term];
-    } catch (error) {
-        console.error('Error in generateCandidatesForTerm:', error);
-        throw error;
-    }
-}
 
 async function sendToGeneralGPT(prompt) {
     const apiKey = process.env.OPENAI_API_KEY;

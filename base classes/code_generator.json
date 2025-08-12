@@ -1,0 +1,26 @@
+{
+  "Main Task": "code-writing",
+  "Requirements": [
+    {
+      "property_name": "language",
+      "value": ""
+    },
+    {
+      "property_name": "functionality",
+      "value": ""
+    },
+    {
+      "property_name": "complexity",
+      "value": ""
+    },
+    {
+      "property_name": "style",
+      "value": ""
+    },
+    {
+      "property_name": "documentation",
+      "value": ""
+    }
+  ],
+  "Audience": ["developers", "programmers", "students"]
+}

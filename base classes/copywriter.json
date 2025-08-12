@@ -1,0 +1,26 @@
+{
+  "Main Task": "copywriting",
+  "Requirements": [
+    {
+      "property_name": "tone",
+      "value": ""
+    },
+    {
+      "property_name": "purpose",
+      "value": ""
+    },
+    {
+      "property_name": "target_audience",
+      "value": ""
+    },
+    {
+      "property_name": "call_to_action",
+      "value": ""
+    },
+    {
+      "property_name": "brand_voice",
+      "value": ""
+    }
+  ],
+  "Audience": ["marketers", "businesses", "advertisers"]
+}

@@ -1,28 +1,26 @@
 {
-  "mainTask": "trip planning",
-  "requirements": {
-    "text_type": {
-      "property_name": "text_type",
+  "Main Task": "trip-planning",
+  "Requirements": [
+    {
+      "property_name": "destination",
       "value": ""
     },
-    "length": {
-      "property_name": "length",
+    {
+      "property_name": "duration",
       "value": ""
     },
-    "style": {
-      "property_name": "style",
-      "value": ""
-    },
-    "trip location": {
-      "property_name": "trip location",
-      "value": ""
-    },
-    "budget": {
+    {
       "property_name": "budget",
       "value": ""
+    },
+    {
+      "property_name": "accommodation_type",
+      "value": ""
+    },
+    {
+      "property_name": "activities",
+      "value": ""
     }
-  },
-  "audience": [
-    "everyone"
-  ]
+  ],
+  "Audience": ["travelers", "vacationers"]
 }

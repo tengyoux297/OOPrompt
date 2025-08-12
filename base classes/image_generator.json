@@ -1,18 +1,18 @@
 {
-  "mainTask": "",
-  "requirements": {
-    "image_type": {
-      "property_name": "image_type",
-      "value": ""
-    },
-    "style": {
+  "Main Task": "image-generation",
+  "Requirements": [
+    {
       "property_name": "style",
       "value": ""
     },
-    "dimensions": {
+    {
       "property_name": "dimensions",
       "value": ""
+    },
+    {
+      "property_name": "subject",
+      "value": ""
     }
-  },
-  "audience": []
+  ],
+  "Audience": ["everyone"]
 }

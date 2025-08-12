@@ -1,18 +1,18 @@
 {
-  "mainTask": "",
-  "requirements": {
-    "text_type": {
+  "Main Task": "writing",
+  "Requirements": [
+    {
       "property_name": "text_type",
       "value": ""
     },
-    "length": {
+    {
       "property_name": "length",
       "value": ""
     },
-    "style": {
+    {
       "property_name": "style",
       "value": ""
     }
-  },
-  "audience": []
+  ],
+  "Audience": ["everyone"]
 }

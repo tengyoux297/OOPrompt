@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Scratch-like Blocks — Slot Anchor Alignment + Tests</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --panel-2:#0b1220; --accent:#22c55e; --accent-2:#3b82f6; --accent-3:#f59e0b; --accent-4:#a855f7; --text:#e5e7eb; --muted:#9ca3af; --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04); --radius:16px; --slot:#0a0f1e;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(120deg,#0b1020,#0f172a 40%,#0b1220);color:var(--text);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    .app{display:grid;grid-template-columns: 280px 1fr; grid-template-rows: auto 1fr; gap:16px; height:100vh; padding:16px;}
+    header{grid-column:1/-1; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); box-shadow:var(--shadow); padding:10px 14px; border-radius:16px}
+    h1{font-size:16px; margin:0; letter-spacing:.3px; font-weight:700;}
+    .pill{padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); color:var(--muted); font-weight:600}
+    .btn{appearance:none; border:0; border-radius:12px; padding:8px 12px; font-weight:700; color:#0a0a0a; cursor:pointer; box-shadow:var(--shadow)}
+    .btn:active{transform:translateY(1px)}
+    .run{background:var(--accent)}
+    .clear{background:#ef4444}
+    .test{background:#f97316; color:#0a0a0a}
+    .sidebar{background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow); padding:12px; overflow:auto; height:100%;}
+    .group{margin-bottom:14px}
+    .group h3{margin:4px 0 8px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em}
+    .palette{display:flex; flex-direction:column; gap:8px}
+
+    .workspace-wrap{position:relative; height:100%;}
+    .workspace{position:relative; overflow:auto; height:100%; background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.05), transparent 40%), repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 40px); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow);}
+    .script-area{position:absolute; top:24px; left:24px; right:24px; bottom:24px; min-width:420px; min-height:200px; padding:12px; background:rgba(255,255,255,.02); border:1px dashed rgba(255,255,255,.1); border-radius:16px}
+    .script-area .block.positioned{position:absolute}
+    .script-area .cblock.positioned .slot{position:relative; margin:8px 12px 10px; min-height:40px}
+    .script-title{position:absolute; top:-10px; left:12px; background:var(--panel-2); padding:2px 8px; border-radius:999px; color:var(--muted); font-size:12px; border:1px solid rgba(255,255,255,.08)}
+
+    /* ===== Blocks ===== */
+    .block{position:relative; display:inline-block; user-select:none; -webkit-user-drag:none; color:#0f172a; font-weight:700; letter-spacing:.2px;}
+    .block .label{padding:10px 12px; display:flex; align-items:center; gap:8px}
+    .block .arg{background:#fff; padding:4px 6px; border-radius:8px; min-width:24px; display:inline-flex; align-items:center; justify-content:center; font-weight:800}
+    .stack{background:var(--accent-2); border-radius:14px; box-shadow:0 8px 16px rgba(59,130,246,.35);}
+    .stack::after{content:""; position:absolute; left:14px; bottom:-8px; width:36px; height:16px; background:linear-gradient(#0000,#0000), var(--accent-2); border-bottom-left-radius:6px; border-bottom-right-radius:6px; box-shadow: 0 6px 0 0 var(--accent-2), 0 8px 0 0 #0000; clip-path:path('M0,0 h8 q4,0 4,4 v4 h12 v-4 q0,-4 4,-4 h8 v8 h-36 z');}
+    .hat{background:var(--accent-3); border-radius:14px 14px 10px 10px; box-shadow:0 8px 16px rgba(245,158,11,.35);}
+    .cap{background:var(--accent-4); border-radius:14px; box-shadow:0 8px 16px rgba(168,85,247,.35);} 
+
+    .cblock{background:var(--accent); border-radius:14px; padding-bottom:26px; box-shadow:0 8px 16px rgba(34,197,94,.35);} 
+    .cblock .label{padding-bottom:6px}
+    .cblock .slot{position:relative; margin:8px 12px 10px; min-height:40px; background:var(--slot); border-radius:12px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), inset 0 6px 16px rgba(0,0,0,.5); display:flex; flex-direction:column; gap:4px; padding:4px; align-items:flex-start;}
+    .slot::before{content:"+"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#9aa1b3; font-weight:800; font-size:16px; opacity:.7; pointer-events:none}
+    .slot:has(.block)::before{display:none} /* Hide + sign when slot has blocks */
+    .slot .block{margin:0; flex-shrink:0; width:auto;} /* Keep blocks at natural width, no stretching */
+    
+    /* Horizontal layout containers within slots */
+    .slot .horizontal-group{display:flex; flex-direction:row; gap:4px; align-items:center; width:auto;}
+    .slot .horizontal-group .block{margin:0; width:auto;}
+
+    .ghost{position:fixed; pointer-events:none; z-index:1000; opacity:.95; transform:translate(-50%,-50%)}
+    .highlight{box-shadow:0 0 0 3px #fff, inset 0 0 0 999px rgba(255,255,255,.1)!important}
+
+    .trash{position:absolute; right:24px; bottom:24px; width:140px; height:56px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.4); color:#fecaca; display:flex; align-items:center; justify-content:center; border-radius:14px; text-transform:uppercase; letter-spacing:.3em; font-weight:900}
+    .trash.active{background:rgba(239,68,68,.25); box-shadow:0 0 0 3px rgba(239,68,68,.5) inset}
+
+    .status{margin-left:auto; color:var(--muted)}
+    .log{position:absolute; top:24px; right:24px; width:300px; height:240px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; overflow:auto; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+    .log h4{margin:4px 6px 8px; font-size:12px; color:var(--muted)}
+    .log pre{margin:0; white-space:pre-wrap}
+
+    /* Anchors to snap to */
+    .anchor{position:absolute; width:46px; height:14px; background:rgba(255,255,255,.12); border-radius:6px; pointer-events:none; z-index:10}
+    .anchor.wide{background:rgba(255,255,255,.08)}
+    
+         /* Directional anchors */
+     .anchor.top-anchor{height:10px; width:80px; background:rgba(34,197,94,.4); border-radius:5px}
+     .anchor.top-anchor.wide{background:rgba(34,197,94,.6)}
+     .anchor.bottom-anchor{height:10px; width:80px; background:rgba(59,130,246,.4); border-radius:5px}
+     .anchor.bottom-anchor.wide{background:rgba(59,130,246,.6)}
+     .anchor.left-anchor{width:10px; height:60px; background:rgba(245,158,11,.4); border-radius:5px}
+     .anchor.left-anchor.wide{background:rgba(245,158,11,.6)}
+     .anchor.right-anchor{width:10px; height:60px; background:rgba(168,85,247,.4); border-radius:5px}
+     .anchor.right-anchor.wide{background:rgba(168,85,247,.6)}
+    
+    /* Block-type specific anchor styling */
+    .anchor.hat-anchor{background:rgba(245,158,11,.3); border-radius:14px 14px 10px 10px}
+    .anchor.hat-anchor.wide{background:rgba(245,158,11,.2)}
+    .anchor.stack-anchor{background:rgba(59,130,246,.3); border-radius:14px}
+    .anchor.stack-anchor.wide{background:rgba(59,130,246,.2)}
+    .anchor.cblock-anchor{background:rgba(34,197,94,.3); border-radius:14px}
+    .anchor.cblock-anchor.wide{background:rgba(34,197,94,.2)}
+    .anchor.cap-anchor{background:rgba(168,85,247,.3); border-radius:14px}
+    .anchor.cap-anchor.wide{background:rgba(168,85,247,.2)}
+    
+    /* Circular slot anchors around + sign */
+    .anchor.slot-anchor{background:rgba(34,197,94,.4); border-radius:50%; width:32px; height:32px}
+    .anchor.slot-anchor.wide{background:rgba(34,197,94,.6)}
+    
+    /* Block selection highlight */
+    .block.selected {
+      border: 2px solid white !important;
+      box-shadow: 0 0 8px rgba(255,255,255,0.5) !important;
+    }
+    
+    /* Connection lines for visual feedback */
+    .connection-line{position:absolute; background:rgba(255,255,255,.15); z-index:1; pointer-events:none; border-radius:1px}
+    .connection-line.horizontal{height:2px}
+    .connection-line.vertical{width:2px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Mini Scratch‑like Blocks</h1>
+      <span class="pill">drag from the left → drop into the script area or slots</span>
+      <button class="btn run" id="runBtn">Run</button>
+      <button class="btn clear" id="clearBtn">Clear</button>
+      <button class="btn test" id="testBtn">Run Tests</button>
+      <div class="status" id="status">Ready</div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="group">
+        <h3>Events</h3>
+        <div class="palette">
+          <div class="block hat" data-type="hat" data-op="whenFlag"><div class="label">when ▶️ clicked</div></div>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Motion</h3>
+        <div class="palette">
+          <div class="block stack" data-type="stack" data-op="move"><div class="label">move <span class="arg" contenteditable>10</span> steps</div></div>
+          <div class="block stack" data-type="stack" data-op="turn"><div class="label">turn <span class="arg" contenteditable>15</span>°</div></div>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Looks</h3>
+        <div class="palette">
+          <div class="block stack" data-type="stack" data-op="say"><div class="label">say <span class="arg" contenteditable>Hello!</span></div></div>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Control</h3>
+        <div class="palette">
+          <div class="block cblock" data-type="c" data-op="repeat">
+            <div class="label">repeat <span class="arg" contenteditable>5</span></div>
+            <div class="slot" data-slot></div>
+          </div>
+          <div class="block cap" data-type="cap" data-op="stop"><div class="label">stop</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="workspace-wrap">
+      <div class="workspace" id="workspace">
+        <div class="script-area" id="script"><div class="script-title">Script 1</div></div>
+        <div class="log" id="log"><h4>Console</h4><pre></pre></div>
+        <div class="trash" id="trash">TRASH</div>
+      </div>
+    </main>
+  </div>
+
+<script>
+(function(){
+  const workspace = document.getElementById('workspace');
+  const script = document.getElementById('script');
+  const trash = document.getElementById('trash');
+  const logBox = document.querySelector('#log pre');
+  const status = document.getElementById('status');
+  const runBtn = document.getElementById('runBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const testBtn = document.getElementById('testBtn');
+
+  const SNAP_TOL = 28; // generous snapping
+  let idSeq = 1;
+
+  // FIX: use \n for line breaks in strings
+  function log(m){ logBox.textContent += m + "\n"; logBox.scrollTop = logBox.scrollHeight; }
+  function setStatus(m){ status.textContent = m; }
+
+  function newId(p){ return p + (idSeq++); }
+  function assignIds(root){
+    root.querySelectorAll('.block').forEach(b=>{ if(!b.dataset.id) b.dataset.id = newId('b'); });
+    root.querySelectorAll('[data-slot]').forEach(s=>{ if(!s.dataset.id) s.dataset.id = newId('c'); });
+  }
+  if(!script.dataset.id) script.dataset.id = newId('c');
+  assignIds(document);
+
+  // ==== Selection system ====
+  function toggleSelection(block) {
+    // Clear all other selections
+    document.querySelectorAll('.block.selected').forEach(b => {
+      if (b !== block) b.classList.remove('selected');
+    });
+    
+    // Toggle selection on clicked block
+    block.classList.toggle('selected');
+  }
+  
+  function clearAllSelections() {
+    document.querySelectorAll('.block.selected').forEach(b => b.classList.remove('selected'));
+  }
+  
+  // Clear selection when clicking on empty areas
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.block')) {
+      clearAllSelections();
+    }
+  });
+  
+  // ==== Block connection detection ====
+  function getConnectedBlocks(startBlock) {
+    const connected = new Set();
+    const visited = new Set();
+    
+    function findConnected(block) {
+      if (visited.has(block)) return;
+      visited.add(block);
+      connected.add(block);
+      
+      // Find blocks that are positioned and close to this block
+      const scriptBlocks = [...script.children].filter(c => {
+        if (!c.classList || !c.classList.contains('block') || c === block) return false;
+        
+        // For connection detection, include blocks that either have positioned class OR have absolute positioning
+        const hasPositioned = c.classList.contains('positioned');
+        const hasAbsolutePos = c.style.left && c.style.top;
+        
+        return hasPositioned || hasAbsolutePos;
+      });
+      
+      const blockRect = block.getBoundingClientRect();
+      const scriptRect = script.getBoundingClientRect();
+      
+      // Use consistent coordinate system - prefer style properties, fall back to computed position
+      let blockLeft, blockTop;
+      if (block.style.left && block.style.top) {
+        blockLeft = parseFloat(block.style.left);
+        blockTop = parseFloat(block.style.top);
+      } else {
+        // Calculate position relative to script area
+        blockLeft = blockRect.left - scriptRect.left;
+        blockTop = blockRect.top - scriptRect.top;
+      }
+      const blockRight = blockLeft + blockRect.width;
+      const blockBottom = blockTop + blockRect.height;
+      
+      scriptBlocks.forEach(otherBlock => {
+        if (visited.has(otherBlock)) return;
+        
+        const otherRect = otherBlock.getBoundingClientRect();
+        let otherLeft, otherTop;
+        if (otherBlock.style.left && otherBlock.style.top) {
+          otherLeft = parseFloat(otherBlock.style.left);
+          otherTop = parseFloat(otherBlock.style.top);
+        } else {
+          // Calculate position relative to script area
+          otherLeft = otherRect.left - scriptRect.left;
+          otherTop = otherRect.top - scriptRect.top;
+        }
+        const otherRight = otherLeft + otherRect.width;
+        const otherBottom = otherTop + otherRect.height;
+        
+        // More precise connection detection with tighter tolerance
+        const tolerance = 8; // Slightly larger for more stable detection
+        
+        // Vertical connections (blocks stacked)
+        const verticallyConnected = (
+          (Math.abs(blockBottom - otherTop) <= tolerance || Math.abs(otherBottom - blockTop) <= tolerance) &&
+          Math.abs(blockLeft - otherLeft) <= Math.max(blockRect.width, otherRect.width) * 0.5 // Allow reasonable offset
+        );
+        
+        // Horizontal connections (blocks side by side)
+        const horizontallyConnected = (
+          (Math.abs(blockRight - otherLeft) <= tolerance || Math.abs(otherRight - blockLeft) <= tolerance) &&
+          Math.abs(blockTop - otherTop) <= Math.max(blockRect.height, otherRect.height) * 0.5 // Allow reasonable offset
+        );
+        
+        if (verticallyConnected || horizontallyConnected) {
+          findConnected(otherBlock);
+        }
+      });
+    }
+    
+    findConnected(startBlock);
+    connected.delete(startBlock); // Remove the start block from the set
+    return Array.from(connected);
+  }
+  
+
+
+  // ==== Drag system ====
+  let drag = null;
+  document.addEventListener('pointerdown', onPointerDown);
+
+  function onPointerDown(e){
+    const block = e.target.closest('.block');
+    if(!block) return;
+    
+    // Don't start drag if clicking on contenteditable elements (args)
+    if(e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]')) {
+      return;
+    }
+    
+    // Prevent any default behavior including text selection and contenteditable focus
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const fromPalette = !!block.closest('.sidebar');
+    
+    // Handle selection for script blocks
+    if (!fromPalette) {
+      // Store initial position to detect if this is a click or drag
+      const startX = e.clientX;
+      const startY = e.clientY;
+      
+      // Add temporary pointer move listener to detect drag vs click
+      const checkForDrag = (moveEvent) => {
+        const deltaX = Math.abs(moveEvent.clientX - startX);
+        const deltaY = Math.abs(moveEvent.clientY - startY);
+        
+        if (deltaX > 5 || deltaY > 5) {
+          // This is a drag, remove the listener and continue with drag logic
+          document.removeEventListener('pointermove', checkForDrag);
+          startDrag();
+        }
+      };
+      
+      const handleClickEnd = (upEvent) => {
+        document.removeEventListener('pointermove', checkForDrag);
+        document.removeEventListener('pointerup', handleClickEnd);
+        
+        const deltaX = Math.abs(upEvent.clientX - startX);
+        const deltaY = Math.abs(upEvent.clientY - startY);
+        
+        if (deltaX <= 5 && deltaY <= 5) {
+          // This was a click, handle selection
+          toggleSelection(block);
+          return;
+        }
+      };
+      
+      document.addEventListener('pointermove', checkForDrag);
+      document.addEventListener('pointerup', handleClickEnd);
+      
+      // Function to start actual drag (called if movement detected)
+      const startDrag = () => {
+        document.removeEventListener('pointerup', handleClickEnd);
+        initiateDrag();
+      };
+      
+      const initiateDrag = () => {
+        // Determine if we're doing group drag or single drag
+        const isSelected = block.classList.contains('selected');
+        let connectedBlocks = [];
+        
+        if (!isSelected) {
+          // Group drag - get all connected blocks
+          connectedBlocks = getConnectedBlocks(block);
+        }
+        
+        const moving = block; // Always move the primary block
+        
+        assignIds(moving);
+
+        const r = block.getBoundingClientRect();
+        
+        // Check if block is in a slot - if so, use ghost like palette blocks
+        const isInSlot = block.closest('[data-slot]');
+        let ghost = null;
+        
+        if (isInSlot) {
+          // Use ghost for slot blocks to avoid coordinate system issues
+          ghost = block.cloneNode(true);
+          ghost.classList.add('ghost');
+          document.body.appendChild(ghost);
+        } else {
+          // For script blocks, ensure proper positioning
+          const scriptRect = script.getBoundingClientRect();
+          const blockRect = block.getBoundingClientRect();
+          const relativeLeft = blockRect.left - scriptRect.left;
+          const relativeTop = blockRect.top - scriptRect.top;
+          
+          if (!block.style.left || !block.style.top) {
+            block.style.left = relativeLeft + 'px';
+            block.style.top = relativeTop + 'px';
+            block.classList.add('positioned');
+            
+            if (!script.contains(block)) {
+              script.appendChild(block);
+            }
+          }
+        }
+        
+        drag = { 
+          source: block, 
+          moving, 
+          fromPalette: false, 
+          ghost: ghost, // Use ghost for slot blocks, null for script blocks
+          offsetX: e.clientX - r.left, 
+          offsetY: e.clientY - r.top, 
+          isSelected,
+          connectedBlocks,
+          startPositions: new Map()
+        };
+        
+        // Set start positions only for non-ghost blocks
+        if (!ghost) {
+          drag.startPositions.set(block, {
+            left: parseFloat(block.style.left || 0),
+            top: parseFloat(block.style.top || 0)
+          });
+          
+          // For ghost blocks, we don't need connected blocks logic since they stay in original location
+          connectedBlocks.forEach(connectedBlock => {
+            const connectedRect = connectedBlock.getBoundingClientRect();
+            const scriptRect = script.getBoundingClientRect();
+            const relativeLeft = connectedRect.left - scriptRect.left;
+            const relativeTop = connectedRect.top - scriptRect.top;
+            
+            if (!connectedBlock.style.left || !connectedBlock.style.top) {
+              connectedBlock.style.left = relativeLeft + 'px';
+              connectedBlock.style.top = relativeTop + 'px';
+              connectedBlock.classList.add('positioned');
+              
+              if (!script.contains(connectedBlock)) {
+                script.appendChild(connectedBlock);
+              }
+            }
+            
+            drag.startPositions.set(connectedBlock, {
+              left: parseFloat(connectedBlock.style.left),
+              top: parseFloat(connectedBlock.style.top)
+            });
+          });
+        }
+        
+        // Position ghost for slot blocks
+        if (ghost) {
+          placeGhost(e.clientX, e.clientY);
+        }
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp, { once:true });
+        document.addEventListener('keydown', onKeyDown);
+      };
+      
+      // Return early if we're setting up click/drag detection
+      return;
+    }
+    
+    // Palette drag logic
+    const moving = fromPalette ? block.cloneNode(true) : block;
+    
+    // Clear any existing data-id attributes from cloned elements to avoid conflicts
+    if(fromPalette) {
+      moving.removeAttribute('data-id');
+      moving.querySelectorAll('[data-id]').forEach(el => el.removeAttribute('data-id'));
+    }
+    assignIds(moving);
+
+    const r = block.getBoundingClientRect();
+    const ghost = moving.cloneNode(true);
+    ghost.classList.add('ghost');
+    document.body.appendChild(ghost);
+
+    drag = { source:block, moving, fromPalette, ghost, offsetX:e.clientX-r.left, offsetY:e.clientY-r.top, isSelected: false };
+    placeGhost(e.clientX, e.clientY);
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp, { once:true });
+    document.addEventListener('keydown', onKeyDown);
+  }
+
+  function placeGhost(x,y){
+    drag.ghost.style.left = (x - drag.offsetX)+'px';
+    drag.ghost.style.top  = (y - drag.offsetY)+'px';
+    drag.ghost.style.width = drag.source.getBoundingClientRect().width+'px';
+  }
+
+  function onPointerMove(e){
+    if(!drag) return;
+    
+    // Place ghost for palette drags AND slot drags
+    if(drag.ghost) {
+      placeGhost(e.clientX, e.clientY);
+    }
+    
+    // Move blocks during script drag (both single and group) - but not if using ghost
+    if (!drag.fromPalette && !drag.ghost) {
+      const scriptRect = script.getBoundingClientRect();
+      
+      // Calculate where the source block should be positioned
+      const newSourceX = e.clientX - drag.offsetX - scriptRect.left;
+      const newSourceY = e.clientY - drag.offsetY - scriptRect.top;
+      
+      if (!drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
+        // Group drag - move all connected blocks together
+        const currentSourcePos = drag.startPositions.get(drag.source);
+        
+        if (currentSourcePos) {
+          const deltaX = newSourceX - currentSourcePos.left;
+          const deltaY = newSourceY - currentSourcePos.top;
+          
+          // Move the source block first to maintain consistency
+          const sourceSnapped = snapToGrid(newSourceX, newSourceY);
+          drag.source.style.left = sourceSnapped.x + 'px';
+          drag.source.style.top = sourceSnapped.y + 'px';
+          
+          // Move connected blocks maintaining their relative positions
+          drag.connectedBlocks.forEach(connectedBlock => {
+            const startPos = drag.startPositions.get(connectedBlock);
+            if (startPos) {
+              const newLeft = startPos.left + deltaX;
+              const newTop = startPos.top + deltaY;
+              const snapped = snapToGrid(newLeft, newTop);
+              connectedBlock.style.left = snapped.x + 'px';
+              connectedBlock.style.top = snapped.y + 'px';
+            }
+          });
+        }
+      } else {
+        // Single block drag - use the same delta-based approach as connected blocks
+        const currentSourcePos = drag.startPositions.get(drag.source);
+        if (currentSourcePos) {
+          const deltaX = newSourceX - currentSourcePos.left;
+          const deltaY = newSourceY - currentSourcePos.top;
+          
+          // Move using delta from start position with grid snapping (same as connected blocks)
+          const snapped = snapToGrid(newSourceX, newSourceY);
+          drag.source.style.left = snapped.x + 'px';
+          drag.source.style.top = snapped.y + 'px';
+        }
+      }
+    }
+    
+    const a = nearestAnchor(e.clientX, e.clientY);
+    document.querySelectorAll('.anchor').forEach(x=> x.classList.remove('wide'));
+    if(a) a.classList.add('wide');
+
+    const tRect = trash.getBoundingClientRect();
+    const overTrash = e.clientX>tRect.left && e.clientX<tRect.right && e.clientY>tRect.top && e.clientY<tRect.bottom;
+    trash.classList.toggle('active', overTrash);
+  }
+
+  function onKeyDown(e){
+    if(!drag) return;
+    if(e.key === 'Escape') {
+      e.preventDefault();
+      setStatus('Drag cancelled');
+      cleanup();
+    }
+  }
+
+  function onPointerUp(e){
+    if(!drag) return;
+
+    const tRect = trash.getBoundingClientRect();
+    const overTrash = e.clientX>tRect.left && e.clientX<tRect.right && e.clientY>tRect.top && e.clientY<tRect.bottom;
+    if(overTrash && !drag.fromPalette){
+      drag.source.remove();
+      cleanup();
+      setStatus('Deleted block');
+      return;
+    }
+
+    const a = nearestAnchor(e.clientX, e.clientY);
+
+    if(a){
+      const node = drag.fromPalette ? drag.moving : drag.source;
+      
+      // If dragging from slot with ghost, move the block to script area first
+      if (drag.ghost && !drag.fromPalette) {
+        const wasInSlot = node.closest('[data-slot]');
+        if (wasInSlot) {
+          script.appendChild(node);
+          // Remove slot positioning styles and prepare for absolute positioning
+          node.style.left = '';
+          node.style.top = '';
+          node.classList.remove('positioned');
+        }
+      }
+      
+      node.removeAttribute('data-id');
+      node.querySelectorAll('[data-id]').forEach(n=>n.removeAttribute('data-id'));
+      assignIds(node);
+
+      const target = document.querySelector(`[data-id="${a.dataset.ref}"]`);
+      const direction = a.dataset.where;
+      
+             if(['top', 'bottom', 'left', 'right'].includes(direction)) {
+         // Handle directional placement with automatic insertion and shifting
+         const targetRect = target.getBoundingClientRect();
+         const scriptRect = script.getBoundingClientRect();
+         
+         // Check if target block is inside a slot
+         const targetSlot = target.closest('[data-slot]');
+         
+         if (targetSlot) {
+           // Target is inside a slot - add new block to the same slot with proper directional placement
+           // Remove positioning styles since slots use normal document flow
+           node.style.left = '';
+           node.style.top = '';
+           node.classList.remove('positioned');
+           
+           // Handle directional placement within the slot
+           switch(direction) {
+             case 'top':
+               // Insert before the target block vertically
+               const targetContainer = target.parentElement;
+               if (targetContainer.classList.contains('horizontal-group')) {
+                 // Target is in a horizontal group, insert group before
+                 targetContainer.insertAdjacentElement('beforebegin', node);
+               } else {
+                 // Target is directly in slot
+                 target.insertAdjacentElement('beforebegin', node);
+               }
+               break;
+             case 'bottom':
+               // Insert after the target block vertically
+               const targetContainer2 = target.parentElement;
+               if (targetContainer2.classList.contains('horizontal-group')) {
+                 // Target is in a horizontal group, insert group after
+                 targetContainer2.insertAdjacentElement('afterend', node);
+               } else {
+                 // Target is directly in slot
+                 target.insertAdjacentElement('afterend', node);
+               }
+               break;
+             case 'left':
+               // Insert to the left horizontally - create or join horizontal group
+               const existingGroup = target.parentElement.classList.contains('horizontal-group') 
+                 ? target.parentElement 
+                 : null;
+               
+               if (existingGroup) {
+                 // Target is already in a horizontal group, insert before target
+                 target.insertAdjacentElement('beforebegin', node);
+               } else {
+                 // Create new horizontal group
+                 const horizontalGroup = document.createElement('div');
+                 horizontalGroup.className = 'horizontal-group';
+                 target.insertAdjacentElement('beforebegin', horizontalGroup);
+                 horizontalGroup.appendChild(node);
+                 horizontalGroup.appendChild(target);
+               }
+               break;
+             case 'right':
+               // Insert to the right horizontally - create or join horizontal group
+               const existingGroup2 = target.parentElement.classList.contains('horizontal-group') 
+                 ? target.parentElement 
+                 : null;
+               
+               if (existingGroup2) {
+                 // Target is already in a horizontal group, insert after target
+                 target.insertAdjacentElement('afterend', node);
+               } else {
+                 // Create new horizontal group
+                 const horizontalGroup = document.createElement('div');
+                 horizontalGroup.className = 'horizontal-group';
+                 target.insertAdjacentElement('beforebegin', horizontalGroup);
+                 horizontalGroup.appendChild(target);
+                 horizontalGroup.appendChild(node);
+               }
+               break;
+           }
+           
+           setStatus(`Added to slot ${direction} ✓`);
+         } else {
+           // Normal directional placement in script area
+           // Add to script area first to measure
+           script.appendChild(node);
+           node.classList.add('positioned');
+         
+         // Ensure C-blocks are properly set up for group operations
+         if (node.classList.contains('cblock')) {
+           // Force absolute positioning for C-blocks
+           const nodeRect = node.getBoundingClientRect();
+           const scriptRect = script.getBoundingClientRect();
+           if (!node.style.left || !node.style.top) {
+             node.style.left = (nodeRect.left - scriptRect.left) + 'px';
+             node.style.top = (nodeRect.top - scriptRect.top) + 'px';
+           }
+         }
+         
+         // Ensure connected blocks are also in script area and positioned properly
+         if (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
+           drag.connectedBlocks.forEach(connectedBlock => {
+             if (!script.contains(connectedBlock)) {
+               script.appendChild(connectedBlock);
+             }
+             connectedBlock.classList.add('positioned');
+           });
+         }
+         
+         // Get actual dimensions
+         const nodeRect = node.getBoundingClientRect();
+         
+         // Calculate position relative to script area based on direction with proper spacing
+         const gap = 2; // Tight gap between blocks
+         let newX, newY;
+         switch(direction) {
+           case 'top':
+             newX = (targetRect.left - scriptRect.left) + (targetRect.width - nodeRect.width) / 2;
+             newY = (targetRect.top - scriptRect.top) - nodeRect.height - gap;
+             break;
+           case 'bottom':
+             newX = (targetRect.left - scriptRect.left) + (targetRect.width - nodeRect.width) / 2;
+             newY = (targetRect.top - scriptRect.top) + targetRect.height + gap;
+             break;
+           case 'left':
+             newX = (targetRect.left - scriptRect.left) - nodeRect.width - gap;
+             newY = (targetRect.top - scriptRect.top) + (targetRect.height - nodeRect.height) / 2;
+             break;
+           case 'right':
+             newX = (targetRect.left - scriptRect.left) + targetRect.width + gap;
+             newY = (targetRect.top - scriptRect.top) + (targetRect.height - nodeRect.height) / 2;
+             break;
+         }
+         
+         // Apply positioning with grid snapping
+         const snapped = snapToGrid(newX, newY);
+         
+         // Move the main block to its final position
+         node.style.left = snapped.x + 'px';
+         node.style.top = snapped.y + 'px';
+         
+         // If this was a group drag, restore relative positions of connected blocks
+         if (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
+           const mainStartPos = drag.startPositions.get(node);
+           if (mainStartPos) {
+             // Calculate how much the main block moved from its start position
+             const totalDeltaX = snapped.x - mainStartPos.left;
+             const totalDeltaY = snapped.y - mainStartPos.top;
+             
+             // Position each connected block relative to the main block's new position
+             drag.connectedBlocks.forEach(connectedBlock => {
+               const connectedStartPos = drag.startPositions.get(connectedBlock);
+               if (connectedStartPos) {
+                 // Calculate the original relative position to the main block
+                 const relativeX = connectedStartPos.left - mainStartPos.left;
+                 const relativeY = connectedStartPos.top - mainStartPos.top;
+                 
+                 // Position relative to the main block's new position
+                 const newLeft = snapped.x + relativeX;
+                 const newTop = snapped.y + relativeY;
+                 const connectedSnapped = snapToGrid(newLeft, newTop);
+                 connectedBlock.style.left = connectedSnapped.x + 'px';
+                 connectedBlock.style.top = connectedSnapped.y + 'px';
+               }
+             });
+           }
+         }
+         
+           // Check for blocks that need to be shifted and shift them
+           // Pass connected blocks so they don't get shifted away
+           const excludeBlocks = (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks) ? drag.connectedBlocks : [];
+           shiftBlocksToMakeRoom(node, direction, nodeRect.width, nodeRect.height, excludeBlocks);
+           
+           setStatus(`Dropped ${direction} ✓`);
+         } // End of normal placement else block
+
+      } else if(direction === 'after') {
+        // For group drags, insert all connected blocks in order
+        if (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
+          // Insert the main block first
+          target.insertAdjacentElement('afterend', node);
+          
+          // Then insert connected blocks in their relative order
+          let lastInserted = node;
+          drag.connectedBlocks.forEach(connectedBlock => {
+            lastInserted.insertAdjacentElement('afterend', connectedBlock);
+            lastInserted = connectedBlock;
+          });
+        } else {
+          // Single block insertion
+          target.insertAdjacentElement('afterend', node);
+        }
+        setStatus('Dropped after ✓');
+      } else if(direction === 'inside') {
+        // Handle slot insertion like directional placement
+        const targetRect = target.getBoundingClientRect();
+        const scriptRect = script.getBoundingClientRect();
+        
+        // Add to script area first to measure
+        script.appendChild(node);
+        node.classList.add('positioned');
+        
+        // Get actual dimensions
+        const nodeRect = node.getBoundingClientRect();
+        
+        // Calculate position to center the block in the slot
+        const newX = (targetRect.left - scriptRect.left) + (targetRect.width - nodeRect.width) / 2;
+        const newY = (targetRect.top - scriptRect.top) + (targetRect.height - nodeRect.height) / 2;
+        
+        // Apply positioning with grid snapping
+        const snapped = snapToGrid(newX, newY);
+        node.style.left = snapped.x + 'px';
+        node.style.top = snapped.y + 'px';
+        
+        // Then move into the slot using normal DOM insertion (this removes absolute positioning)
+        target.appendChild(node);
+        // Remove positioning styles since slots use normal document flow
+        node.style.left = '';
+        node.style.top = '';
+        node.classList.remove('positioned');
+        
+        setStatus('Dropped inside ✓');
+      } else {
+        // Fallback for any other direction
+        target.appendChild(node);
+        setStatus('Dropped ✓');
+      }
+         } else {
+       // Check if mouse is over the script area for free placement
+       const scriptRect = script.getBoundingClientRect();
+       const overScript = e.clientX >= scriptRect.left && e.clientX <= scriptRect.right && 
+                         e.clientY >= scriptRect.top && e.clientY <= scriptRect.bottom;
+       
+             if(overScript) {
+        const node = drag.fromPalette ? drag.moving : drag.source;
+        
+        // If dragging from slot with ghost, move the block to script area first
+        if (drag.ghost && !drag.fromPalette) {
+          const wasInSlot = node.closest('[data-slot]');
+          if (wasInSlot) {
+            // Remove slot positioning styles
+            node.style.left = '';
+            node.style.top = '';
+            node.classList.remove('positioned');
+          }
+        }
+        
+        assignIds(node);
+        script.appendChild(node);
+        node.classList.add('positioned');
+        
+        // Position absolutely based on mouse position
+        const mouseX = e.clientX - scriptRect.left - drag.offsetX;
+        const mouseY = e.clientY - scriptRect.top - drag.offsetY;
+        
+        // Apply positioning with grid snapping
+        const snapped = snapToGrid(mouseX, mouseY);
+        node.style.left = snapped.x + 'px';
+        node.style.top = snapped.y + 'px';
+        
+        setStatus('Placed freely ✓');
+      } else {
+        setStatus('No drop target');
+      }
+     }
+
+    cleanup();
+  }
+
+  function cleanup(){
+    if(drag){ 
+      // Clear any temporary group movement states and ensure final positioning
+      if (drag.connectedBlocks) {
+        drag.connectedBlocks.forEach(block => {
+          // Ensure final positions are grid-snapped
+          if (block.style.left && block.style.top) {
+            const snapped = snapToGrid(parseFloat(block.style.left), parseFloat(block.style.top));
+            block.style.left = snapped.x + 'px';
+            block.style.top = snapped.y + 'px';
+          }
+        });
+      }
+      
+      // Ensure source block final position is also snapped
+      if (drag.source && drag.source.style.left && drag.source.style.top) {
+        const snapped = snapToGrid(parseFloat(drag.source.style.left), parseFloat(drag.source.style.top));
+        drag.source.style.left = snapped.x + 'px';
+        drag.source.style.top = snapped.y + 'px';
+      }
+      
+      if(drag.ghost && drag.ghost.parentNode) {
+        drag.ghost.remove(); 
+      }
+      drag=null; 
+    }
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('keydown', onKeyDown);
+    document.querySelectorAll('.anchor').forEach(a=> a.remove());
+    document.querySelectorAll('.wide').forEach(a=> a.classList.remove('wide'));
+    trash.classList.remove('active');
+  }
+
+  // ===== Helpers to align anchors correctly inside scrolled workspace =====
+  function toWorkspaceXY(viewX, viewY){
+    const r = workspace.getBoundingClientRect();
+    return { x: viewX - r.left + workspace.scrollLeft, y: viewY - r.top + workspace.scrollTop };
+  }
+  function toWorkspaceRect(rect){
+    const p = toWorkspaceXY(rect.left, rect.top);
+    return { left:p.x, top:p.y, width:rect.width, height:rect.height };
+  }
+  
+  // Snap coordinates to grid for better alignment
+  function snapToGrid(x, y, gridSize = 8) {
+    return {
+      x: Math.round(x / gridSize) * gridSize,
+      y: Math.round(y / gridSize) * gridSize
+    };
+  }
+
+     // ==== Anchors (only for connecting blocks, not for empty areas) ====
+   function nearestAnchor(x,y){
+     document.querySelectorAll('.anchor').forEach(a=> a.remove());
+     const anchors=[];
+     
+     // Convert viewport mouse coordinates to workspace coordinates
+     const mouseWS = toWorkspaceXY(x, y);
+     
+         // Only add anchors for connecting to existing blocks, not for empty areas
+    // Exclude blocks that are part of the current drag group
+    const scriptBlocks = [...script.children].filter(c=> {
+      if (!c.classList || !c.classList.contains('block')) return false;
+      
+      // If we're doing a group drag, exclude the source block and connected blocks
+      if (drag && !drag.fromPalette && !drag.isSelected && drag.connectedBlocks) {
+        if (c === drag.source) return false;
+        if (drag.connectedBlocks.includes(c)) return false;
+      }
+      
+      // If we're doing a single drag, only exclude the source block
+      if (drag && !drag.fromPalette && drag.isSelected) {
+        if (c === drag.source) return false;
+      }
+      
+      return true;
+    });
+    
+    scriptBlocks.forEach(block => {
+       if(!block.dataset.id) block.dataset.id = newId('b');
+       const r = toWorkspaceRect(block.getBoundingClientRect());
+       
+       // Check if mouse is near this block before creating anchors
+       const blockCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
+       const distanceToBlock = Math.hypot(blockCenter.x - mouseWS.x, blockCenter.y - mouseWS.y);
+       const blockRadius = Math.max(r.width, r.height) / 2 + 40; // 40px buffer around block
+       
+       if(distanceToBlock <= blockRadius) {
+         const anchorWidth = Math.min(80, r.width * 0.8);
+         const anchorHeight = Math.min(60, r.height * 0.8);
+         
+         // Top anchor - positioned at the top edge
+         anchors.push(mkDirectionalAnchor(
+           r.left + (r.width - anchorWidth) / 2, 
+           r.top - 5, 
+           anchorWidth, 10, 
+           'top', block.dataset.id
+         ));
+         
+         // Bottom anchor - positioned at the bottom edge  
+         anchors.push(mkDirectionalAnchor(
+           r.left + (r.width - anchorWidth) / 2, 
+           r.top + r.height - 5, 
+           anchorWidth, 10, 
+           'bottom', block.dataset.id
+         ));
+         
+         // Left anchor - positioned at the left edge
+         anchors.push(mkDirectionalAnchor(
+           r.left - 5, 
+           r.top + (r.height - anchorHeight) / 2, 
+           10, anchorHeight, 
+           'left', block.dataset.id
+         ));
+         
+         // Right anchor - positioned at the right edge
+         anchors.push(mkDirectionalAnchor(
+           r.left + r.width - 5, 
+           r.top + (r.height - anchorHeight) / 2, 
+           10, anchorHeight, 
+           'right', block.dataset.id
+         ));
+         
+
+       }
+     });
+     
+     // Add anchors for c-block slots
+     const slots = script.querySelectorAll('[data-slot]');
+     slots.forEach(slot => {
+       if(!slot.dataset.id) slot.dataset.id = newId('c');
+       const rectC = toWorkspaceRect(slot.getBoundingClientRect());
+       const blocks = [...slot.querySelectorAll('.block')];
+       
+       if(blocks.length === 0){
+         // Always show circular anchor around + sign for empty slots (larger for better targeting)
+         const centerX = rectC.left + rectC.width / 2;
+         const centerY = rectC.top + rectC.height / 2;
+         const circleSize = 32; // Slightly larger circular anchor for better targeting
+         anchors.push(mkSlotAnchor(
+           centerX - circleSize/2, 
+           centerY - circleSize/2, 
+           circleSize, circleSize, 
+           'inside', slot.dataset.id
+         ));
+       } else {
+         // For filled slots, treat inside blocks like normal blocks with directional anchors
+         blocks.forEach(block => {
+           if(!block.dataset.id) block.dataset.id = newId('b');
+           const r = toWorkspaceRect(block.getBoundingClientRect());
+           
+           // Check if mouse is near this block before creating anchors
+           const blockCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
+           const distanceToBlock = Math.hypot(blockCenter.x - mouseWS.x, blockCenter.y - mouseWS.y);
+           const blockRadius = Math.max(r.width, r.height) / 2 + 40; // 40px buffer around block
+           
+           if(distanceToBlock <= blockRadius) {
+             const anchorWidth = Math.min(80, r.width * 0.8);
+             const anchorHeight = Math.min(60, r.height * 0.8);
+             
+             // Top anchor
+             anchors.push(mkDirectionalAnchor(
+               r.left + (r.width - anchorWidth) / 2, 
+               r.top - 5, 
+               anchorWidth, 10, 
+               'top', block.dataset.id
+             ));
+             
+             // Bottom anchor  
+             anchors.push(mkDirectionalAnchor(
+               r.left + (r.width - anchorWidth) / 2, 
+               r.top + r.height - 5, 
+               anchorWidth, 10, 
+               'bottom', block.dataset.id
+             ));
+             
+             // Left anchor
+             anchors.push(mkDirectionalAnchor(
+               r.left - 5, 
+               r.top + (r.height - anchorHeight) / 2, 
+               10, anchorHeight, 
+               'left', block.dataset.id
+             ));
+             
+             // Right anchor
+             anchors.push(mkDirectionalAnchor(
+               r.left + r.width - 5, 
+               r.top + (r.height - anchorHeight) / 2, 
+               10, anchorHeight, 
+               'right', block.dataset.id
+             ));
+           }
+         });
+       }
+     });
+
+     // pick nearest or containing (using workspace coordinates)
+     let best=null, bestD=1e9;
+     anchors.forEach(a=>{
+       const anchorX = parseFloat(a.style.left);
+       const anchorY = parseFloat(a.style.top);
+       const anchorW = parseFloat(a.style.width);
+       const anchorH = parseFloat(a.style.height);
+       const cx = anchorX + anchorW/2;
+       const cy = anchorY + anchorH/2;
+       const d = Math.hypot(cx - mouseWS.x, cy - mouseWS.y);
+       if(d<bestD){bestD=d; best=a;}
+     });
+     if(!best) return null;
+     
+     const anchorX = parseFloat(best.style.left);
+     const anchorY = parseFloat(best.style.top);
+     const anchorW = parseFloat(best.style.width);
+     const anchorH = parseFloat(best.style.height);
+     // Special handling for slot anchors (circular) - use larger detection radius
+     const isSlotAnchor = best.classList.contains('slot-anchor');
+     const tolerance = isSlotAnchor ? 40 : SNAP_TOL; // Larger tolerance for circular slot anchors
+     
+     const inside = best.dataset.full==='1' && 
+                    mouseWS.x >= anchorX && mouseWS.x <= anchorX + anchorW && 
+                    mouseWS.y >= anchorY && mouseWS.y <= anchorY + anchorH;
+     const near = Math.hypot((anchorX + anchorW/2) - mouseWS.x, (anchorY + anchorH/2) - mouseWS.y) <= tolerance;
+     return (inside || near) ? best : null;
+   }
+
+  function mkAnchor(x,y,w,h,where,refId,full=false,blockType=null){
+    const a=document.createElement('div');
+    a.className='anchor';
+    
+    // Add block-type-specific styling
+    if(blockType) {
+      a.className += ` ${blockType}-anchor`;
+    }
+    
+    a.style.left=x+'px'; a.style.top=y+'px'; a.style.width=w+'px'; a.style.height=h+'px';
+    a.dataset.where=where; a.dataset.ref=refId; if(full) a.dataset.full='1';
+    workspace.appendChild(a); return a;
+  }
+
+     function mkDirectionalAnchor(x,y,w,h,direction,refId){
+     const a=document.createElement('div');
+     a.className=`anchor ${direction}-anchor`;
+     a.style.left=x+'px'; a.style.top=y+'px'; a.style.width=w+'px'; a.style.height=h+'px';
+     a.dataset.where=direction; a.dataset.ref=refId;
+     workspace.appendChild(a); return a;
+   }
+
+   function mkSlotAnchor(x,y,w,h,where,refId){
+     const a=document.createElement('div');
+     a.className='anchor slot-anchor';
+     a.style.left=x+'px'; a.style.top=y+'px'; a.style.width=w+'px'; a.style.height=h+'px';
+     a.dataset.where=where; a.dataset.ref=refId; a.dataset.full='1'; // Allow drop inside
+     workspace.appendChild(a); return a;
+   }
+
+   // Shift existing blocks to make room for the newly inserted block
+   function shiftBlocksToMakeRoom(newBlock, direction, newWidth, newHeight, excludeBlocks = []) {
+     const scriptBlocks = [...script.children].filter(c=> 
+       c.classList && c.classList.contains('block') && c.classList.contains('positioned') && 
+       c !== newBlock && !excludeBlocks.includes(c)
+     );
+     
+     const newLeft = parseFloat(newBlock.style.left);
+     const newTop = parseFloat(newBlock.style.top);
+     const newRight = newLeft + newWidth;
+     const newBottom = newTop + newHeight;
+     
+     // Calculate shift amount (block size + gap)
+     const shiftX = newWidth + 2;
+     const shiftY = newHeight + 2;
+     
+     scriptBlocks.forEach(block => {
+       const currentLeft = parseFloat(block.style.left);
+       const currentTop = parseFloat(block.style.top);
+       const blockRect = block.getBoundingClientRect();
+       const blockWidth = blockRect.width;
+       const blockHeight = blockRect.height;
+       
+       let shouldShift = false;
+       let deltaX = 0, deltaY = 0;
+       
+       switch(direction) {
+         case 'top':
+           // Shift all blocks that are above or at the insertion point
+           if(currentTop <= newTop + 5) { // Small tolerance for alignment
+             // Check if blocks are roughly in the same column
+             if(Math.abs(currentLeft - newLeft) < Math.max(blockWidth, newWidth) / 2) {
+               shouldShift = true;
+               deltaY = -shiftY;
+             }
+           }
+           break;
+         case 'bottom':
+           // Shift all blocks that are at or below the insertion point
+           if(currentTop >= newTop - 5) { // Small tolerance for alignment
+             // Check if blocks are roughly in the same column
+             if(Math.abs(currentLeft - newLeft) < Math.max(blockWidth, newWidth) / 2) {
+               shouldShift = true;
+               deltaY = shiftY;
+             }
+           }
+           break;
+         case 'left':
+           // Shift all blocks that are to the left or at the insertion point
+           if(currentLeft <= newLeft + 5) { // Small tolerance for alignment
+             // Check if blocks are roughly in the same row
+             if(Math.abs(currentTop - newTop) < Math.max(blockHeight, newHeight) / 2) {
+               shouldShift = true;
+               deltaX = -shiftX;
+             }
+           }
+           break;
+         case 'right':
+           // Shift all blocks that are to the right or at the insertion point
+           if(currentLeft >= newLeft - 5) { // Small tolerance for alignment
+             // Check if blocks are roughly in the same row
+             if(Math.abs(currentTop - newTop) < Math.max(blockHeight, newHeight) / 2) {
+               shouldShift = true;
+               deltaX = shiftX;
+             }
+           }
+           break;
+       }
+       
+       if(shouldShift) {
+         const newBlockLeft = currentLeft + deltaX;
+         const newBlockTop = currentTop + deltaY;
+         const snapped = snapToGrid(newBlockLeft, newBlockTop);
+         block.style.left = snapped.x + 'px';
+         block.style.top = snapped.y + 'px';
+       }
+     });
+   }
+
+
+
+
+
+  // ==== Toy interpreter ====
+  async function run(){
+    setStatus('Running…'); log('--- Run ---');
+    const blocks = [...script.children].filter(el=> el.classList && el.classList.contains('block'));
+    for(const b of blocks){ await execBlock(b); }
+    setStatus('Done');
+  }
+  async function execBlock(b){
+    const op = b.dataset.op; highlight(b,true); await sleep(150);
+    if(op==='whenFlag'){ log('▶️ Start'); }
+    else if(op==='say'){ log('💬 '+readArg(b,0)); await sleep(200); }
+    else if(op==='move'){ log('➡️ move '+Number(readArg(b,0)||0)+' steps'); }
+    else if(op==='turn'){ log('↩️ turn '+Number(readArg(b,0)||0)+'°'); }
+    else if(op==='repeat'){
+      const n=Math.max(0,Math.min(50, Number(readArg(b,0)||0)));
+      const slot=b.querySelector('[data-slot]');
+      const inner=[...slot.children].filter(c=> c.classList && c.classList.contains('block'));
+      for(let i=0;i<n;i++){ log('🔁 loop '+(i+1)+'/'+n); for(const c of inner){ await execBlock(c);} }
+    } else if(op==='stop'){ log('⏹ stop'); highlight(b,false); throw new Error('Stop'); }
+    highlight(b,false); await sleep(60);
+  }
+  function readArg(b,i){ const el=b.querySelectorAll('[contenteditable]')[i]; return el?el.textContent.trim():''; }
+  function sleep(ms){ return new Promise(r=> setTimeout(r, ms)); }
+  function highlight(el,on){ el.classList.toggle('highlight', !!on); }
+
+  runBtn.addEventListener('click', ()=>{ run().catch(err=> { log('! Error: '+err.message); setStatus('Stopped'); }); });
+  clearBtn.addEventListener('click', ()=>{ [...script.querySelectorAll('.block')].forEach(el=>el.remove()); setStatus('Cleared'); });
+
+  (function seed(){ 
+    const hat=document.querySelector('.sidebar .hat').cloneNode(true); 
+    assignIds(hat); 
+    script.appendChild(hat);
+  })();
+
+  // ==== Minimal Test Runner (adds alignment test) ====
+  function assert(cond, msg){ if(!cond) throw new Error(msg||'Assertion failed'); }
+  function test(name, fn){
+    try{ fn(); log('✅ '+name); }
+    catch(e){ log('❌ '+name+' — '+e.message); console.error('[TEST]', name, e); }
+  }
+  function overlap(a,b){
+    const x = Math.max(0, Math.min(a.right,b.right) - Math.max(a.left,b.left));
+    const y = Math.max(0, Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top));
+    return x*y;
+  }
+  function runTests(){
+    log('--- Tests ---');
+    log('TST');
+    test('log() adds a trailing newline', ()=>{ assert(logBox.textContent.endsWith('\n'), 'missing trailing newline'); });
+
+    test('assignIds() assigns data-id to .block and [data-slot]', ()=>{
+      const temp=document.createElement('div');
+      temp.innerHTML = '<div class="block"><div class="slot" data-slot></div></div>';
+      assignIds(temp);
+      const b=temp.querySelector('.block'); const s=temp.querySelector('[data-slot]');
+      assert(!!b.dataset.id, 'block id'); assert(!!s.dataset.id, 'slot id');
+    });
+
+    test('nearestAnchor() returns an INSIDE anchor for script top area', ()=>{
+      const r=script.getBoundingClientRect();
+      const a=nearestAnchor(r.left+20, r.top+10);
+      assert(a && a.dataset.where==='inside', 'no inside anchor for script');
+    });
+
+    test('nearestAnchor() returns an INSIDE anchor for a slot', ()=>{
+      const tempC = document.querySelector('.sidebar .cblock').cloneNode(true);
+      assignIds(tempC);
+      script.appendChild(tempC);
+      const slot=tempC.querySelector('[data-slot]');
+      const rs=slot.getBoundingClientRect();
+      const a=nearestAnchor(rs.left+Math.max(10, rs.width*0.2), rs.top+10);
+      assert(a && a.dataset.where==='inside' && a.dataset.ref===slot.dataset.id, 'no inside anchor for slot');
+      tempC.remove();
+    });
+
+    test('Anchor visually overlaps slot area (alignment check)', ()=>{
+      const tempC = document.querySelector('.sidebar .cblock').cloneNode(true);
+      assignIds(tempC); script.appendChild(tempC);
+      const slot=tempC.querySelector('[data-slot]');
+      const rs=slot.getBoundingClientRect();
+      // create anchors so we can measure
+      nearestAnchor(rs.left+5, rs.top+5);
+      const anchor=[...document.querySelectorAll('.anchor')].find(a=> a.dataset.where==='inside' && a.dataset.ref===slot.dataset.id);
+      assert(!!anchor, 'slot anchor missing');
+      const ra=anchor.getBoundingClientRect();
+      const area=overlap(ra, rs);
+      assert(area > (rs.width*rs.height*0.4), 'slot anchor not aligned (overlap too small)');
+      tempC.remove();
+    });
+
+    // New: anchors rendered inside workspace, not body
+    test('anchors are children of workspace', ()=>{
+      nearestAnchor(0,0);
+      const any = document.querySelector('.anchor');
+      assert(any && any.parentElement===workspace, 'anchors not attached to workspace');
+      document.querySelectorAll('.anchor').forEach(a=>a.remove());
+    });
+
+    log('--- Tests Done ---');
+  }
+  testBtn.addEventListener('click', runTests);
+})();
+</script>
+</body>
+</html>
