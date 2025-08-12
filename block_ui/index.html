@@ -50,6 +50,10 @@
     /* Horizontal layout containers within slots */
     .slot .horizontal-group{display:flex; flex-direction:row; gap:4px; align-items:center; width:auto;}
     .slot .horizontal-group .block{margin:0; width:auto;}
+    
+    /* Group containers to preserve original structure when moving groups to slots */
+    .slot .group-container{position:relative; display:inline-block; width:auto;}
+    .slot .group-container .block{position:absolute;} /* Preserve absolute positioning within the group */
 
     .ghost{position:fixed; pointer-events:none; z-index:1000; opacity:.95; transform:translate(-50%,-50%)}
     .highlight{box-shadow:0 0 0 3px #fff, inset 0 0 0 999px rgba(255,255,255,.1)!important}
@@ -597,30 +601,76 @@
            node.style.top = '';
            node.classList.remove('positioned');
            
+           // Also handle connected blocks for group drags
+           const isGroupDrag = !drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0;
+           if (isGroupDrag) {
+             drag.connectedBlocks.forEach(connectedBlock => {
+               connectedBlock.style.left = '';
+               connectedBlock.style.top = '';
+               connectedBlock.classList.remove('positioned');
+             });
+           }
+           
            // Handle directional placement within the slot
            switch(direction) {
              case 'top':
-               // Insert before the target block vertically
-               const targetContainer = target.parentElement;
-               if (targetContainer.classList.contains('horizontal-group')) {
-                 // Target is in a horizontal group, insert group before
-                 targetContainer.insertAdjacentElement('beforebegin', node);
+               // Insert before the target block vertically, preserving group structure
+               if (isGroupDrag) {
+                 // Create a container to preserve the group's original layout
+                 const groupContainer = document.createElement('div');
+                 groupContainer.className = 'group-container';
+                 groupContainer.style.cssText = 'position: relative; display: inline-block;';
+                 
+                 const targetContainer = target.parentElement;
+                 if (targetContainer.classList.contains('horizontal-group')) {
+                   targetContainer.insertAdjacentElement('beforebegin', groupContainer);
+                 } else {
+                   target.insertAdjacentElement('beforebegin', groupContainer);
+                 }
+                 
+                 // Use helper function to add blocks with proper sizing
+                 const mainStartPos = drag.startPositions.get(node);
+                 addBlocksToGroupContainer(groupContainer, node, drag.connectedBlocks, mainStartPos, drag.startPositions);
                } else {
-                 // Target is directly in slot
-                 target.insertAdjacentElement('beforebegin', node);
+                 // Single block placement
+                 const targetContainer = target.parentElement;
+                 if (targetContainer.classList.contains('horizontal-group')) {
+                   targetContainer.insertAdjacentElement('beforebegin', node);
+                 } else {
+                   target.insertAdjacentElement('beforebegin', node);
+                 }
                }
                break;
+               
              case 'bottom':
-               // Insert after the target block vertically
-               const targetContainer2 = target.parentElement;
-               if (targetContainer2.classList.contains('horizontal-group')) {
-                 // Target is in a horizontal group, insert group after
-                 targetContainer2.insertAdjacentElement('afterend', node);
+               // Insert after the target block vertically, preserving group structure
+               if (isGroupDrag) {
+                 // Create a container to preserve the group's original layout
+                 const groupContainer = document.createElement('div');
+                 groupContainer.className = 'group-container';
+                 groupContainer.style.cssText = 'position: relative; display: inline-block;';
+                 
+                 const targetContainer2 = target.parentElement;
+                 if (targetContainer2.classList.contains('horizontal-group')) {
+                   targetContainer2.insertAdjacentElement('afterend', groupContainer);
+                 } else {
+                   target.insertAdjacentElement('afterend', groupContainer);
+                 }
+                 
+                 // Use helper function to add blocks with proper sizing
+                 const mainStartPos = drag.startPositions.get(node);
+                 addBlocksToGroupContainer(groupContainer, node, drag.connectedBlocks, mainStartPos, drag.startPositions);
                } else {
-                 // Target is directly in slot
-                 target.insertAdjacentElement('afterend', node);
+                 // Single block placement
+                 const targetContainer2 = target.parentElement;
+                 if (targetContainer2.classList.contains('horizontal-group')) {
+                   targetContainer2.insertAdjacentElement('afterend', node);
+                 } else {
+                   target.insertAdjacentElement('afterend', node);
+                 }
                }
                break;
+               
              case 'left':
                // Insert to the left horizontally - create or join horizontal group
                const existingGroup = target.parentElement.classList.contains('horizontal-group') 
@@ -630,15 +680,33 @@
                if (existingGroup) {
                  // Target is already in a horizontal group, insert before target
                  target.insertAdjacentElement('beforebegin', node);
+                 
+                 // Add connected blocks after the main block in the horizontal group
+                 if (isGroupDrag) {
+                   let lastInserted = node;
+                   drag.connectedBlocks.forEach(connectedBlock => {
+                     lastInserted.insertAdjacentElement('afterend', connectedBlock);
+                     lastInserted = connectedBlock;
+                   });
+                 }
                } else {
                  // Create new horizontal group
                  const horizontalGroup = document.createElement('div');
                  horizontalGroup.className = 'horizontal-group';
                  target.insertAdjacentElement('beforebegin', horizontalGroup);
                  horizontalGroup.appendChild(node);
+                 
+                 // Add connected blocks to the horizontal group
+                 if (isGroupDrag) {
+                   drag.connectedBlocks.forEach(connectedBlock => {
+                     horizontalGroup.appendChild(connectedBlock);
+                   });
+                 }
+                 
                  horizontalGroup.appendChild(target);
                }
                break;
+               
              case 'right':
                // Insert to the right horizontally - create or join horizontal group
                const existingGroup2 = target.parentElement.classList.contains('horizontal-group') 
@@ -648,6 +716,15 @@
                if (existingGroup2) {
                  // Target is already in a horizontal group, insert after target
                  target.insertAdjacentElement('afterend', node);
+                 
+                 // Add connected blocks after the main block in the horizontal group
+                 if (isGroupDrag) {
+                   let lastInserted = node;
+                   drag.connectedBlocks.forEach(connectedBlock => {
+                     lastInserted.insertAdjacentElement('afterend', connectedBlock);
+                     lastInserted = connectedBlock;
+                   });
+                 }
                } else {
                  // Create new horizontal group
                  const horizontalGroup = document.createElement('div');
@@ -655,11 +732,19 @@
                  target.insertAdjacentElement('beforebegin', horizontalGroup);
                  horizontalGroup.appendChild(target);
                  horizontalGroup.appendChild(node);
+                 
+                 // Add connected blocks to the horizontal group
+                 if (isGroupDrag) {
+                   drag.connectedBlocks.forEach(connectedBlock => {
+                     horizontalGroup.appendChild(connectedBlock);
+                   });
+                 }
                }
                break;
            }
            
-           setStatus(`Added to slot ${direction} ✓`);
+           const statusText = isGroupDrag ? `Added group to slot ${direction} ✓` : `Added to slot ${direction} ✓`;
+           setStatus(statusText);
          } else {
            // Normal directional placement in script area
            // Add to script area first to measure
@@ -772,34 +857,38 @@
         }
         setStatus('Dropped after ✓');
       } else if(direction === 'inside') {
-        // Handle slot insertion like directional placement
-        const targetRect = target.getBoundingClientRect();
-        const scriptRect = script.getBoundingClientRect();
-        
-        // Add to script area first to measure
-        script.appendChild(node);
-        node.classList.add('positioned');
-        
-        // Get actual dimensions
-        const nodeRect = node.getBoundingClientRect();
-        
-        // Calculate position to center the block in the slot
-        const newX = (targetRect.left - scriptRect.left) + (targetRect.width - nodeRect.width) / 2;
-        const newY = (targetRect.top - scriptRect.top) + (targetRect.height - nodeRect.height) / 2;
-        
-        // Apply positioning with grid snapping
-        const snapped = snapToGrid(newX, newY);
-        node.style.left = snapped.x + 'px';
-        node.style.top = snapped.y + 'px';
-        
-        // Then move into the slot using normal DOM insertion (this removes absolute positioning)
-        target.appendChild(node);
+        // Handle slot insertion with support for connected block groups
         // Remove positioning styles since slots use normal document flow
         node.style.left = '';
         node.style.top = '';
         node.classList.remove('positioned');
         
-        setStatus('Dropped inside ✓');
+        // If this was a group drag, preserve the group structure
+        if (!drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0) {
+          // Create a container to preserve the group's original layout
+          const groupContainer = document.createElement('div');
+          groupContainer.className = 'group-container';
+          groupContainer.style.cssText = 'position: relative; display: inline-block;';
+          
+          // Add container to slot
+          target.appendChild(groupContainer);
+          
+          // Clean up positioning styles for connected blocks first
+          drag.connectedBlocks.forEach(connectedBlock => {
+            connectedBlock.style.left = '';
+            connectedBlock.style.top = '';
+            connectedBlock.classList.remove('positioned');
+          });
+          
+          // Use helper function to add blocks with proper sizing
+          const mainStartPos = drag.startPositions.get(node);
+          addBlocksToGroupContainer(groupContainer, node, drag.connectedBlocks, mainStartPos, drag.startPositions);
+          setStatus(`Dropped group inside slot ✓`);
+        } else {
+          // Single block - add directly to slot
+          target.appendChild(node);
+          setStatus('Dropped inside ✓');
+        }
       } else {
         // Fallback for any other direction
         target.appendChild(node);
@@ -896,6 +985,78 @@
       x: Math.round(x / gridSize) * gridSize,
       y: Math.round(y / gridSize) * gridSize
     };
+  }
+  
+  // Helper function to add blocks to group container with proper sizing
+  function addBlocksToGroupContainer(groupContainer, mainBlock, connectedBlocks, mainStartPos, startPositions) {
+    // Add main block to container first (as reference point)
+    groupContainer.appendChild(mainBlock);
+    mainBlock.style.position = 'relative';
+    mainBlock.style.left = '0px';
+    mainBlock.style.top = '0px';
+    
+    // Calculate bounding box to size container properly
+    let minLeft = 0, minTop = 0, maxRight = 0, maxBottom = 0;
+    
+    // Add connected blocks with preserved relative positions
+    connectedBlocks.forEach(connectedBlock => {
+      const blockStartPos = startPositions.get(connectedBlock);
+      if (mainStartPos && blockStartPos) {
+        // Calculate relative position based on original script positions
+        const relativeLeft = blockStartPos.left - mainStartPos.left;
+        const relativeTop = blockStartPos.top - mainStartPos.top;
+        
+        groupContainer.appendChild(connectedBlock);
+        connectedBlock.style.position = 'absolute';
+        connectedBlock.style.left = relativeLeft + 'px';
+        connectedBlock.style.top = relativeTop + 'px';
+        
+        // Get block dimensions to calculate bounding box
+        const blockRect = connectedBlock.getBoundingClientRect();
+        const blockRight = relativeLeft + blockRect.width;
+        const blockBottom = relativeTop + blockRect.height;
+        
+        // Update bounding box
+        minLeft = Math.min(minLeft, relativeLeft);
+        minTop = Math.min(minTop, relativeTop);
+        maxRight = Math.max(maxRight, blockRight);
+        maxBottom = Math.max(maxBottom, blockBottom);
+      } else {
+        // Fallback: just add to container
+        groupContainer.appendChild(connectedBlock);
+      }
+    });
+    
+    // Include main block in bounding box (at 0,0)
+    const mainRect = mainBlock.getBoundingClientRect();
+    maxRight = Math.max(maxRight, mainRect.width);
+    maxBottom = Math.max(maxBottom, mainRect.height);
+    
+    // Set container size to fit all blocks
+    const containerWidth = maxRight - minLeft;
+    const containerHeight = maxBottom - minTop;
+    groupContainer.style.width = containerWidth + 'px';
+    groupContainer.style.height = containerHeight + 'px';
+    
+    // Adjust positions if there are negative offsets
+    if (minLeft < 0 || minTop < 0) {
+      const offsetX = -minLeft;
+      const offsetY = -minTop;
+      
+      // Adjust main block position
+      mainBlock.style.left = offsetX + 'px';
+      mainBlock.style.top = offsetY + 'px';
+      
+      // Adjust all connected blocks
+      connectedBlocks.forEach(connectedBlock => {
+        if (connectedBlock.style.position === 'absolute') {
+          const currentLeft = parseFloat(connectedBlock.style.left);
+          const currentTop = parseFloat(connectedBlock.style.top);
+          connectedBlock.style.left = (currentLeft + offsetX) + 'px';
+          connectedBlock.style.top = (currentTop + offsetY) + 'px';
+        }
+      });
+    }
   }
 
      // ==== Anchors (only for connecting blocks, not for empty areas) ====
