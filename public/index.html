@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OOPrompt Block Builder</title>
+  <title>Object-Oriented Prompt Block Builder</title>
   <style>
     :root{
       --bg:#0f172a; --panel:#111827; --panel-2:#0b1220; --accent:#22c55e; --accent-2:#3b82f6; --accent-3:#f59e0b; --accent-4:#a855f7; --text:#e5e7eb; --muted:#9ca3af; --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04); --radius:16px; --slot:#0a0f1e;
@@ -78,8 +78,14 @@
     .slot .block{margin:0; flex-shrink:0; width:auto; align-self:stretch;} /* Keep blocks aligned and stretch to slot width */
     
     /* Horizontal layout containers within slots */
-    .slot .horizontal-group{display:flex; flex-direction:row; gap:4px; align-items:center; width:auto;}
+    .slot .horizontal-group{display:flex; flex-direction:row; gap:4px; align-items:center; width:auto; margin:5px 0;}
     .slot .horizontal-group .block{margin:0; width:auto;}
+    
+    /* Ensure blocks in horizontal groups can still accept vertical connections */
+    .slot .horizontal-group {
+      position: relative;
+      margin: 5px 0; /* Add vertical margin to allow top/bottom connections */
+    }
     
     /* Group containers to preserve original structure when moving groups to slots */
     .slot .group-container{position:relative; display:inline-block; width:auto;}
@@ -1460,11 +1466,8 @@ Create a single paragraph that incorporates both natural language guidance and t
   }
 
   async function importBaseClassAsBlocks(baseClass) {
-    // Only create blocks for Requirements (Main Task and Audience are handled by text boxes)
-    if (baseClass.Requirements && Array.isArray(baseClass.Requirements)) {
-      // Use the more sophisticated import system that handles branches and clusters
-      await generateBlocksFromJson(baseClass);
-    }
+    // Use the sophisticated generateBlocksFromJson function to handle complex nested structures
+    await generateBlocksFromJson(baseClass);
   }
 
   function createBlockFromData(data, x, y) {
@@ -1486,8 +1489,16 @@ Create a single paragraph that incorporates both natural language guidance and t
     const nameInput = newBlock.querySelector('.property-name');
     const valueInput = newBlock.querySelector('.property-value');
     
-    if (nameInput) nameInput.value = data.property_name || 'unnamed';
-    if (valueInput) valueInput.value = data.value || '';
+    if (nameInput) {
+      nameInput.value = data.property_name || 'unnamed';
+      // Store in data attribute for JSON generation
+      newBlock.dataset.propertyName = nameInput.value;
+    }
+    if (valueInput) {
+      valueInput.value = data.value || '';
+      // Store in data attribute for JSON generation
+      newBlock.dataset.blockValue = valueInput.value;
+    }
     
     // Position the block
     newBlock.classList.add('positioned');
@@ -1503,15 +1514,7 @@ Create a single paragraph that incorporates both natural language guidance and t
   }
 
   // ==== Block Property Functions ====
-  function updateBlockProperty(input) {
-    // This function is called when the property name is changed
-    log(`📝 Updated property name: ${input.value}`);
-  }
-
-  function updateBlockValue(input) {
-    // This function is called when the property value is changed
-    log(`📝 Updated property value: ${input.value}`);
-  }
+  // These are placeholder functions - the real implementations are below
 
   function resizeInputToContent(input) {
     // Automatically resize input fields to fit their content
@@ -1566,25 +1569,96 @@ Create a single paragraph that incorporates both natural language guidance and t
   }
 
   function analyzeBlockGraph() {
+    console.log(`🔍 analyzeBlockGraph called`);
+    
     // Get all positioned blocks in the script area
     const scriptBlocks = [...script.children].filter(el => 
       el.classList && el.classList.contains('block') && el.classList.contains('positioned')
     );
     
     // Get main task and audience from input fields
-    const mainTask = mainTaskInput.value.trim() || "empty";
-    const audienceValue = audienceInput.value.trim() || "everyone";
+    const mainTaskInput = document.getElementById('mainTaskInput');
+    const audienceInput = document.getElementById('audienceInput');
+    
+    const mainTask = mainTaskInput ? mainTaskInput.value.trim() : "empty";
+    const audienceValue = audienceInput ? audienceInput.value.trim() : "everyone";
     const audience = audienceValue.split(',').map(a => a.trim()).filter(a => a.length > 0);
+    
+    console.log(`🔍 analyzeBlockGraph: Main Task: "${mainTask}", Audience: "${audienceValue}"`);
+    console.log(`🔍 Found ${scriptBlocks.length} blocks in script area`);
+    
+    // Debug each block before processing
+    scriptBlocks.forEach((block, index) => {
+      console.log(`🔍 Block ${index}:`, block);
+      console.log(`🔍 Block ${index} dataset:`, block.dataset);
+      console.log(`🔍 Block ${index} classes:`, block.className);
+    });
     
     // Build the requirements from blocks
     const rootBlocks = findRootBlocks(scriptBlocks);
     const requirements = rootBlocks.map(block => buildBlockNode(block, scriptBlocks));
+    console.log(`🔍 Built requirements:`, requirements);
     
-    return {
-      "Main Task": mainTask,
-      "Requirements": requirements.length > 0 ? requirements : [],
+    // Apply auto-fill rules if no requirements and main task is detected
+    let finalRequirements = requirements;
+    if (requirements.length === 0 && mainTask && mainTask !== "empty") {
+      finalRequirements = getAutoFillRequirements(mainTask);
+    }
+    
+    const result = {
+      "Main Task": mainTask || "",
+      "Requirements": finalRequirements,
       "Audience": audience.length > 0 ? audience : ["everyone"]
     };
+    
+    console.log(`🔍 Final result:`, result);
+    
+    return result;
+  }
+
+  // Auto-fill requirements based on common task types
+  function getAutoFillRequirements(mainTask) {
+    const task = mainTask.toLowerCase();
+    
+    if (task.includes('write') || task.includes('story') || task.includes('article') || task.includes('content')) {
+      return [
+        { "node_type": "leaf", "property_name": "text_type", "value": "story" },
+        { "node_type": "leaf", "property_name": "length", "value": "" },
+        { "node_type": "leaf", "property_name": "style", "value": "" }
+      ];
+    } else if (task.includes('summar') || task.includes('summary')) {
+      return [
+        { "node_type": "leaf", "property_name": "length", "value": "" },
+        { "node_type": "leaf", "property_name": "format", "value": "" }
+      ];
+    } else if (task.includes('translat') || task.includes('language')) {
+      return [
+        { "node_type": "leaf", "property_name": "source_language", "value": "" },
+        { "node_type": "leaf", "property_name": "target_language", "value": "" },
+        { "node_type": "leaf", "property_name": "formality", "value": "" }
+      ];
+    } else if (task.includes('classif') || task.includes('categor')) {
+      return [
+        { "node_type": "leaf", "property_name": "categories", "value": "" },
+        { "node_type": "leaf", "property_name": "criteria", "value": "" }
+      ];
+    } else if (task.includes('explain') || task.includes('tutorial')) {
+      return [
+        { "node_type": "leaf", "property_name": "topic", "value": "" },
+        { "node_type": "leaf", "property_name": "level", "value": "" }
+      ];
+    } else if (task.includes('code') || task.includes('program') || task.includes('script')) {
+      return [
+        { "node_type": "leaf", "property_name": "language", "value": "" },
+        { "node_type": "leaf", "property_name": "functionality", "value": "" }
+      ];
+    } else {
+      // Generic requirements for unknown tasks
+      return [
+        { "node_type": "leaf", "property_name": "requirement_1", "value": "" },
+        { "node_type": "leaf", "property_name": "requirement_2", "value": "" }
+      ];
+    }
   }
 
   function determineMainTask(blocks) {
@@ -1597,53 +1671,592 @@ Create a single paragraph that incorporates both natural language guidance and t
       blockTypes[op] = (blockTypes[op] || 0) + 1;
     });
     
-    // If no block types found, return default
-    const keys = Object.keys(blockTypes);
-    if (keys.length === 0) return "general";
-    
     // Map block operations to task types
     const taskMapping = {
-      'leaf': 'data_processing',
-      'branch': 'decision_making',
-      'unknown': 'general'
+      'leaf': 'execution',
+      'branch': 'control',
+      'say': 'writing',
+      'move': 'action',
+      'turn': 'action'
     };
     
-    // Find the most common block type
-    const mostCommon = keys.reduce((a, b) => 
-      blockTypes[a] > blockTypes[b] ? a : b
-    );
+    // Find the most common task type
+    let mainTaskType = 'execution';
+    let maxCount = 0;
     
-    return taskMapping[mostCommon] || 'general';
+    Object.entries(blockTypes).forEach(([op, count]) => {
+      const taskType = taskMapping[op] || 'execution';
+      if (count > maxCount) {
+        maxCount = count;
+        mainTaskType = taskType;
+      }
+    });
+    
+    return mainTaskType;
   }
 
   function findRootBlocks(blocks) {
-    // For now, return all blocks as roots (simplified)
-    return blocks;
+    return blocks.filter(block => {
+      // A block is a root if no other block is positioned directly above it or to its left
+      const blockRect = block.getBoundingClientRect();
+      const scriptRect = script.getBoundingClientRect();
+      const blockLeft = parseFloat(block.style.left);
+      const blockTop = parseFloat(block.style.top);
+      
+      return !blocks.some(otherBlock => {
+        if (otherBlock === block) return false;
+        
+        const otherRect = otherBlock.getBoundingClientRect();
+        const otherLeft = parseFloat(otherBlock.style.left);
+        const otherTop = parseFloat(otherBlock.style.top);
+        
+        const tolerance = 12;
+        
+        // Check if other block is directly above (vertical connection)
+        const directlyAbove = Math.abs((otherTop + otherRect.height) - blockTop) <= tolerance &&
+                             Math.abs(otherLeft - blockLeft) <= Math.max(blockRect.width, otherRect.width) * 0.3;
+        
+        // Check if other block is directly to the left (horizontal connection)
+        const directlyLeft = Math.abs((otherLeft + otherRect.width) - blockLeft) <= tolerance &&
+                            Math.abs(otherTop - blockTop) <= Math.max(blockRect.height, otherRect.height) * 0.3;
+        
+        return directlyAbove || directlyLeft;
+      });
+    });
   }
 
   function buildBlockNode(block, allBlocks) {
-    const propertyName = block.querySelector('.property-name')?.value || 'unnamed';
-    const propertyValue = block.querySelector('.property-value')?.value || '';
+    const blockText = getBlockText(block);
+    const blockType = block.dataset.op;
     
-    const node = {
-      property_name: propertyName,
-      value: propertyValue
+    // Find connected blocks with priority: sequential > parallel > inclusion
+    const connections = findBlockConnections(block, allBlocks);
+    
+    // Priority 1: Sequential (vertical connections)
+    if (connections.vertical.length > 0) {
+      const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
+      const firstBlock = sortedBlocks[0]; // Use first block for order type
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(firstBlock) === 'custom' ? getBlockCustomOrder(firstBlock) : getBlockOrderType(firstBlock),
+        "order_note": getBlockOrderType(firstBlock) === 'custom' && getBlockCustomOrder(firstBlock) ? getBlockCustomOrder(firstBlock) : "top to bottom execution",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 2: Parallel (horizontal connections)
+    if (connections.horizontal.length > 0) {
+      const allConnectedBlocks = [block, ...connections.horizontal];
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": allConnectedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 3: Inclusion (slot/container)
+    const slot = block.querySelector('[data-slot]');
+    if (slot && slot.children.length > 0) {
+      // This is a branch node with children in the slot
+      const slotBlocks = [...slot.querySelectorAll('.block')];
+      const children = analyzeSlotBlocks(slotBlocks);
+      
+      return {
+        "node_type": "branch",
+        "property_name": blockText || "container",
+        "children": children
+      };
+    }
+    
+    // Single block with no connections - leaf node
+    return {
+      "node_type": "leaf",
+      "property_name": blockText || "single_item",
+      "value": getBlockValue(block)
     };
+  }
+
+  function analyzeSlotBlocks(slotBlocks) {
+    if (slotBlocks.length === 0) return [];
+    if (slotBlocks.length === 1) {
+      return [buildSlotBlockNode(slotBlocks[0], slotBlocks)];
+    }
     
-    // If it's a branch block, add children from its slots
-    if (block.classList.contains('cblock')) {
-      const slot = block.querySelector('.slot');
-      if (slot) {
-        const children = [...slot.children].filter(child => 
-          child.classList && child.classList.contains('block')
-        );
-        if (children.length > 0) {
-          node.children = children.map(child => buildBlockNode(child, allBlocks));
-        }
+    // Build connection graph for all blocks
+    const connectionGraph = buildConnectionGraph(slotBlocks);
+    
+    // Find connected components (groups of blocks that are connected to each other)
+    const components = findConnectedComponents(slotBlocks, connectionGraph);
+    
+    // Analyze each component separately
+    const children = [];
+    components.forEach(component => {
+      if (component.length === 1) {
+        // Single isolated block
+        children.push({
+          "node_type": "leaf",
+          "property_name": getBlockText(component[0]) || "isolated_item",
+          "value": getBlockValue(component[0])
+        });
+      } else {
+        // Multi-block component - analyze its structure
+        const componentNode = analyzeComponentStructure(component, connectionGraph);
+        children.push(componentNode);
+      }
+    });
+    
+    return children;
+  }
+
+  function buildSlotBlockNode(block, allSlotBlocks) {
+    const blockText = getBlockText(block);
+    
+    // Apply the same priority detection logic as main blocks but within the slot context
+    const connections = findSlotBlockConnections(block, allSlotBlocks);
+    
+    // Priority 1: Sequential (vertical connections)
+    if (connections.vertical.length > 0) {
+      const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockCustomOrder(block),
+        "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "top to bottom execution within slot",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Priority 2: Parallel (horizontal connections or horizontal groups)
+    if (connections.horizontal.length > 0) {
+      const allConnectedBlocks = [block, ...connections.horizontal];
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": allConnectedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Check for horizontal groupings (existing UI feature)
+    const horizontalGroup = block.closest('.horizontal-group');
+    if (horizontalGroup) {
+      const groupBlocks = [...horizontalGroup.querySelectorAll('.block')];
+      if (groupBlocks.length > 1) {
+        return {
+          "node_type": "cluster", 
+          "operator": "parallel",
+          "children": groupBlocks.map(b => ({
+            "node_type": "leaf",
+            "property_name": getBlockText(b) || "group_item",
+            "value": getBlockValue(b)
+          }))
+        };
       }
     }
     
-    return node;
+    // Priority 3: Inclusion (nested slots - recursive)
+    const nestedSlot = block.querySelector('[data-slot]');
+    if (nestedSlot && nestedSlot.children.length > 0) {
+      const nestedSlotBlocks = [...nestedSlot.querySelectorAll('.block')];
+      const nestedChildren = analyzeSlotBlocks(nestedSlotBlocks);
+      
+      return {
+        "node_type": "branch",
+        "property_name": blockText || "nested_container",
+        "children": nestedChildren
+      };
+    }
+    
+    // Single block with no connections - leaf node
+    return {
+      "node_type": "leaf",
+      "property_name": blockText || "slot_item",
+      "value": getBlockValue(block)
+    };
+  }
+
+  function findConnectedComponents(slotBlocks, connectionGraph) {
+    const visited = new Set();
+    const components = [];
+    
+    slotBlocks.forEach(block => {
+      if (!visited.has(block)) {
+        const component = [];
+        exploreComponent(block, connectionGraph, visited, component);
+        components.push(component);
+      }
+    });
+    
+    return components;
+  }
+
+  function exploreComponent(block, connectionGraph, visited, component) {
+    if (visited.has(block)) return;
+    
+    visited.add(block);
+    component.push(block);
+    
+    const connections = connectionGraph.get(block);
+    if (connections) {
+      // Explore all connected blocks (both horizontal and vertical)
+      [...connections.horizontal, ...connections.vertical].forEach(connectedBlock => {
+        exploreComponent(connectedBlock, connectionGraph, visited, component);
+      });
+    }
+  }
+
+  function analyzeComponentStructure(component, connectionGraph) {
+    if (component.length === 1) {
+      return {
+        "node_type": "leaf",
+        "property_name": getBlockText(component[0]) || "single_item",
+        "value": getBlockValue(component[0])
+      };
+    }
+    
+    // Check if component has both horizontal and vertical connections
+    const hasHorizontal = component.some(block => 
+      connectionGraph.get(block)?.horizontal?.length > 0
+    );
+    const hasVertical = component.some(block => 
+      connectionGraph.get(block)?.vertical?.length > 0
+    );
+    
+    if (hasHorizontal && hasVertical) {
+      // Mixed connections - need to identify sub-structures
+      return analyzeMixedConnections(component, connectionGraph);
+    } else if (hasVertical) {
+      // Pure sequential
+      const sortedBlocks = sortBlocksVertically(component);
+      const firstBlock = component[0];
+      return {
+        "node_type": "cluster",
+        "operator": "sequential",
+        "order_type": getBlockOrderType(firstBlock) === 'custom' ? getBlockCustomOrder(firstBlock) : getBlockOrderType(firstBlock),
+        "order_note": getBlockOrderType(firstBlock) === 'custom' && getBlockCustomOrder(firstBlock) ? getBlockCustomOrder(firstBlock) : "top to bottom execution within slot",
+        "sequence": sortedBlocks.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "sequential_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    } else if (hasHorizontal) {
+      // Pure parallel
+      return {
+        "node_type": "cluster",
+        "operator": "parallel",
+        "children": component.map(b => ({
+          "node_type": "leaf",
+          "property_name": getBlockText(b) || "parallel_item",
+          "value": getBlockValue(b)
+        }))
+      };
+    }
+    
+    // Fallback - shouldn't happen
+    return {
+      "node_type": "cluster",
+      "operator": "parallel",
+      "children": component.map(b => ({
+        "node_type": "leaf",
+        "property_name": getBlockText(b) || "fallback_item",
+        "value": getBlockValue(b)
+      }))
+    };
+  }
+
+  function analyzeMixedConnections(component, connectionGraph) {
+    // For mixed connections, we need to identify vertical chains and horizontal groups
+    const processed = new Set();
+    const subStructures = [];
+    
+    component.forEach(block => {
+      if (processed.has(block)) return;
+      
+      // Check if this block is part of a vertical chain
+      const verticalChain = findVerticalChain(block, component, connectionGraph, processed);
+      if (verticalChain.length > 1) {
+        // Create sequential cluster for vertical chain
+        const sortedBlocks = sortBlocksVertically(verticalChain);
+        const firstBlock = verticalChain[0];
+        subStructures.push({
+          "node_type": "cluster",
+          "operator": "sequential",
+          "order_type": getBlockOrderType(firstBlock) === 'custom' ? getBlockCustomOrder(firstBlock) : getBlockCustomOrder(firstBlock),
+          "order_note": getBlockOrderType(firstBlock) === 'custom' && getBlockCustomOrder(firstBlock) ? getBlockCustomOrder(firstBlock) : "vertical chain execution",
+          "sequence": sortedBlocks.map(b => ({
+            "node_type": "leaf",
+            "property_name": getBlockText(b) || "chain_item",
+            "value": getBlockValue(b)
+          }))
+        });
+      } else if (verticalChain.length === 1) {
+        // Single block - check if it has horizontal connections
+        const horizontalGroup = findHorizontalGroup(verticalChain[0], component, connectionGraph, processed);
+        if (horizontalGroup.length > 1) {
+          subStructures.push({
+            "node_type": "cluster",
+            "operator": "parallel",
+            "children": horizontalGroup.map(b => ({
+              "node_type": "leaf",
+              "property_name": getBlockText(b) || "parallel_item",
+              "value": getBlockValue(b)
+            }))
+          });
+        } else {
+          // Single isolated block
+          subStructures.push({
+            "node_type": "leaf",
+            "property_name": getBlockText(verticalChain[0]) || "isolated_item",
+            "value": getBlockValue(verticalChain[0])
+          });
+        }
+      }
+    });
+    
+    return {
+      "node_type": "cluster",
+      "operator": "mixed",
+      "children": subStructures
+    };
+  }
+
+  function findVerticalChain(block, component, connectionGraph, processed) {
+    const chain = [block];
+    processed.add(block);
+    
+    let current = block;
+    while (true) {
+      const connections = connectionGraph.get(current);
+      if (!connections) break;
+      
+      const nextVertical = connections.vertical.find(b => 
+        component.includes(b) && !processed.has(b)
+      );
+      
+      if (!nextVertical) break;
+      
+      chain.push(nextVertical);
+      processed.add(nextVertical);
+      current = nextVertical;
+    }
+    
+    return chain;
+  }
+
+  function findHorizontalGroup(block, component, connectionGraph, processed) {
+    const group = [block];
+    processed.add(block);
+    
+    const connections = connectionGraph.get(block);
+    if (!connections) return group;
+    
+    connections.horizontal.forEach(connectedBlock => {
+      if (component.includes(connectedBlock) && !processed.has(connectedBlock)) {
+        group.push(connectedBlock);
+        processed.add(connectedBlock);
+      }
+    });
+    
+    return group;
+  }
+
+  function buildConnectionGraph(slotBlocks) {
+    const graph = new Map();
+    
+    slotBlocks.forEach(block => {
+      const connections = findSlotBlockConnections(block, slotBlocks);
+      graph.set(block, connections);
+    });
+    
+    return graph;
+  }
+
+  function findBlocksInSameSequence(targetBlock) {
+    const blocks = [targetBlock];
+    const isInSlot = !!targetBlock.closest('[data-slot]');
+    
+    if (isInSlot) {
+      // Find sequence within slot
+      const slot = targetBlock.closest('[data-slot]');
+      const slotBlocks = [...slot.querySelectorAll('.block')];
+      const connections = findSlotBlockConnections(targetBlock, slotBlocks);
+      
+      // Find all vertically connected blocks (sequence)
+      const visited = new Set();
+      const queue = [targetBlock];
+      
+      while (queue.length > 0) {
+        const currentBlock = queue.shift();
+        if (visited.has(currentBlock)) continue;
+        visited.add(currentBlock);
+        
+        const currentConnections = findSlotBlockConnections(currentBlock, slotBlocks);
+        
+        // Add vertically connected blocks to queue
+        currentConnections.vertical.forEach(connectedBlock => {
+          if (!visited.has(connectedBlock) && !queue.includes(connectedBlock)) {
+            queue.push(connectedBlock);
+            if (!blocks.includes(connectedBlock)) {
+              blocks.push(connectedBlock);
+            }
+          }
+        });
+      }
+    } else {
+      // Find sequence in main script
+      const scriptBlocks = [...script.children].filter(el => 
+        el.classList && el.classList.contains('block') && el.classList.contains('positioned')
+      );
+      
+      const visited = new Set();
+      const queue = [targetBlock];
+      
+      while (queue.length > 0) {
+        const currentBlock = queue.shift();
+        if (visited.has(currentBlock)) continue;
+        visited.add(currentBlock);
+        
+        const currentConnections = findBlockConnections(currentBlock, scriptBlocks);
+        
+        // Add vertically connected blocks to queue
+        currentConnections.vertical.forEach(connectedBlock => {
+          if (!visited.has(connectedBlock) && !queue.includes(connectedBlock)) {
+            queue.push(connectedBlock);
+            if (!blocks.includes(connectedBlock)) {
+              blocks.push(connectedBlock);
+            }
+          }
+        });
+      }
+    }
+    
+    return blocks;
+  }
+
+  function findSlotBlockConnections(block, allSlotBlocks) {
+    const connections = { horizontal: [], vertical: [] };
+    const blockPos = getBlockPositionInSlot(block);
+    
+    allSlotBlocks.forEach(otherBlock => {
+      if (otherBlock === block) return;
+      
+      const otherPos = getBlockPositionInSlot(otherBlock);
+      const tolerance = 12;
+      
+      // Check for horizontal connection (side by side)
+      const horizontallyConnected = (
+        (Math.abs(blockPos.right - otherPos.left) <= tolerance || Math.abs(otherPos.right - blockPos.left) <= tolerance) &&
+        Math.abs(blockPos.top - otherPos.top) <= Math.max(blockPos.height, otherPos.height) * 0.3
+      );
+      
+      // Check for vertical connection (stacked)
+      const verticallyConnected = (
+        (Math.abs(blockPos.bottom - otherPos.top) <= tolerance || Math.abs(otherPos.bottom - blockPos.top) <= tolerance) &&
+        Math.abs(blockPos.left - otherPos.left) <= Math.max(blockPos.width, otherPos.width) * 0.3
+      );
+      
+      if (horizontallyConnected) {
+        connections.horizontal.push(otherBlock);
+      } else if (verticallyConnected) {
+        connections.vertical.push(otherBlock);
+      }
+    });
+    
+    return connections;
+  }
+
+  function getBlockPositionInSlot(block) {
+    const rect = block.getBoundingClientRect();
+    const slot = block.closest('[data-slot]');
+    
+    if (slot) {
+      const slotRect = slot.getBoundingClientRect();
+      return {
+        left: rect.left - slotRect.left,
+        top: rect.top - slotRect.top,
+        right: rect.left - slotRect.left + rect.width,
+        bottom: rect.top - slotRect.top + rect.height,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+    
+    // Fallback to absolute position
+    return {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function sortBlocksVertically(blocks) {
+    return blocks.sort((a, b) => {
+      const aTop = parseFloat(a.style.top);
+      const bTop = parseFloat(b.style.top);
+      return aTop - bTop;
+    });
+  }
+
+  function findBlockConnections(block, allBlocks) {
+    const connections = { horizontal: [], vertical: [] };
+    const blockRect = block.getBoundingClientRect();
+    const scriptRect = script.getBoundingClientRect();
+    const blockLeft = parseFloat(block.style.left);
+    const blockTop = parseFloat(block.style.top);
+    const blockRight = blockLeft + blockRect.width;
+    const blockBottom = blockTop + blockRect.height;
+    
+    allBlocks.forEach(otherBlock => {
+      if (otherBlock === block) return;
+      
+      const otherRect = otherBlock.getBoundingClientRect();
+      const otherLeft = parseFloat(otherBlock.style.left);
+      const otherTop = parseFloat(otherBlock.style.top);
+      const otherRight = otherLeft + otherRect.width;
+      const otherBottom = otherTop + otherRect.height;
+      
+      const tolerance = 12;
+      
+      // Check for horizontal connection (side by side)
+      const horizontallyConnected = (
+        (Math.abs(blockRight - otherLeft) <= tolerance || Math.abs(otherRight - blockLeft) <= tolerance) &&
+        Math.abs(blockTop - otherTop) <= Math.max(blockRect.height, otherRect.height) * 0.3
+      );
+      
+      // Check for vertical connection (stacked)
+      const verticallyConnected = (
+        (Math.abs(blockBottom - otherTop) <= tolerance || Math.abs(otherBottom - blockTop) <= tolerance) &&
+        Math.abs(blockLeft - otherLeft) <= Math.max(blockRect.width, otherRect.width) * 0.3
+      );
+      
+      if (horizontallyConnected) {
+        connections.horizontal.push(otherBlock);
+      } else if (verticallyConnected) {
+        connections.vertical.push(otherBlock);
+      }
+    });
+    
+    return connections;
   }
 
   function createBlock(type) {
@@ -1674,7 +2287,19 @@ Create a single paragraph that incorporates both natural language guidance and t
     // Update the property name for new blocks
     const nameInput = newBlock.querySelector('.property-name');
     if (nameInput) {
-      nameInput.value = type === 'leaf' ? 'new_property' : 'new_container';
+      nameInput.value = '';
+      // Initialize data attribute
+      newBlock.dataset.propertyName = '';
+    }
+    
+    // Only leaf blocks should have property values
+    if (type === 'leaf') {
+      const valueInput = newBlock.querySelector('.property-value');
+      if (valueInput) {
+        valueInput.value = '';
+        // Initialize data attribute
+        newBlock.dataset.blockValue = '';
+      }
     }
     
     // Find a good position for the new block
@@ -1868,7 +2493,7 @@ Create a single paragraph that incorporates both natural language guidance and t
       </div>
     `;
     
-    // Order Type field (only for blocks with vertical connections)
+    // Order Type field (only for sequential clusters - blocks with vertical connections)
     if (analysis.hasVerticalConnections) {
       content += `
         <div class="menu-field">
@@ -1887,12 +2512,14 @@ Create a single paragraph that incorporates both natural language guidance and t
       `;
     }
     
-    // Value field (only for leaf blocks)
-    if (analysis.isLeaf) {
+    // Value field - show for leaf blocks AND cluster blocks (both sequential and parallel)
+    // Sequential clusters need both order type and property value
+    // Parallel clusters need only property value
+    if (analysis.isLeaf || analysis.nodeType === 'cluster') {
       content += `
         <div class="menu-field">
           <label>Value</label>
-          <input type="text" id="menuValue" value="" placeholder="Enter value">
+          <input type="text" id="menuValue" value="${analysis.blockValue || ''}" placeholder="Enter value">
         </div>
       `;
     }
@@ -1916,7 +2543,21 @@ Create a single paragraph that incorporates both natural language guidance and t
     const orderType = document.getElementById('menuOrderType')?.value || 'spatial';
     const value = document.getElementById('menuValue')?.value || '';
     
-    // Update block's editable content with property name
+    // Update block's property name input field
+    const nameInput = currentMenuBlock.querySelector('.property-name');
+    if (nameInput && propertyName) {
+      nameInput.value = propertyName;
+      resizeInputToContent(nameInput);
+    }
+    
+    // Update block's property value input field (only for leaf blocks)
+    const valueInput = currentMenuBlock.querySelector('.property-value');
+    if (valueInput && value !== undefined) {
+      valueInput.value = value;
+      resizeInputToContent(valueInput);
+    }
+    
+    // Update block's editable content with property name (if any contenteditable elements exist)
     const argElement = currentMenuBlock.querySelector('[contenteditable]');
     if (argElement && propertyName) {
       argElement.textContent = propertyName;
@@ -1925,9 +2566,22 @@ Create a single paragraph that incorporates both natural language guidance and t
     // Store metadata on the block for JSON generation
     currentMenuBlock.dataset.nodeType = nodeType;
     currentMenuBlock.dataset.orderType = orderType;
-    currentMenuBlock.dataset.blockValue = value;
     
-    log(`✅ Updated block properties: ${propertyName} (${nodeType})`);
+    // Update blockValue for leaf blocks and cluster blocks (both sequential and parallel)
+    // Branch blocks should not have property values
+    const currentBlockType = getCurrentBlockNodeType(currentMenuBlock);
+    if (value !== undefined && value !== '' && (currentBlockType === 'leaf' || currentBlockType === 'cluster')) {
+      currentMenuBlock.dataset.blockValue = value;
+      currentMenuBlock.setAttribute('data-block-value', value);
+      console.log(`📝 saveBlockProperties: Updated blockValue to "${value}" for ${currentBlockType} block`);
+    } else if (currentBlockType === 'branch') {
+      // Clear blockValue for branch blocks
+      delete currentMenuBlock.dataset.blockValue;
+      currentMenuBlock.removeAttribute('data-block-value');
+      console.log(`📝 saveBlockProperties: Cleared blockValue for branch block`);
+    }
+    
+    log(`✅ Updated block properties: ${propertyName} = ${value} (${nodeType})`);
     setStatus('Block properties saved');
     
     hideBlockContextMenu();
@@ -1966,6 +2620,27 @@ Create a single paragraph that incorporates both natural language guidance and t
     if (slot) {
       return 'branch';
     }
+    
+    // Check if block is part of a cluster (has connections)
+    const isInSlot = !!block.closest('[data-slot]');
+    if (isInSlot) {
+      // Analyze within slot context
+      const slotBlocks = [...block.closest('[data-slot]').querySelectorAll('.block')];
+      const connections = findSlotBlockConnections(block, slotBlocks);
+      if (connections.vertical.length > 0 || connections.horizontal.length > 0) {
+        return 'cluster';
+      }
+    } else {
+      // Analyze in main script context
+      const scriptBlocks = [...script.children].filter(el => 
+        el.classList && el.classList.contains('block') && el.classList.contains('positioned')
+      );
+      const connections = findBlockConnections(block, scriptBlocks);
+      if (connections.vertical.length > 0 || connections.horizontal.length > 0) {
+        return 'cluster';
+      }
+    }
+    
     return 'leaf';
   }
   
@@ -2071,9 +2746,13 @@ Create a single paragraph that incorporates both natural language guidance and t
   
   function createLeafBlock(propertyName, value = '') {
     const block = document.createElement('div');
-    block.className = 'block stack resizable';
+    block.className = 'block stack';
     block.dataset.type = 'stack';
     block.dataset.op = 'leaf';
+    
+    // Store values in data attributes for JSON generation
+    block.dataset.propertyName = propertyName;
+    block.dataset.blockValue = value;
     
     block.innerHTML = `
                   <div class="label">
@@ -2086,9 +2765,6 @@ Create a single paragraph that incorporates both natural language guidance and t
                 <input type="text" class="property-input property-value" value="${value}" onchange="updateBlockValue(this)" oninput="resizeInputToContent(this)">
               </div>
             </div>
-      <div class="resize-handle edge-right"></div>
-      <div class="resize-handle edge-bottom"></div>
-      <div class="resize-handle corner"></div>
     `;
     
     assignIds(block);
@@ -2168,8 +2844,10 @@ Create a single paragraph that incorporates both natural language guidance and t
     const newPropertyName = input.value;
     log(`📝 Updated block property name: ${newPropertyName}`);
     
-    // Store the property name for JSON generation
+    // Store the property name for JSON generation (ensures sync with popup menu)
     block.dataset.propertyName = newPropertyName;
+    // Also set the data attribute directly to ensure compatibility
+    block.setAttribute('data-property-name', newPropertyName);
     
     // Auto-resize input based on content
     resizeInputToContent(input);
@@ -2177,13 +2855,24 @@ Create a single paragraph that incorporates both natural language guidance and t
   
   function updateBlockValue(input) {
     const block = input.closest('.block');
-    if (!block) return;
+    if (!block) {
+      console.error('❌ updateBlockValue: No block found for input');
+      return;
+    }
     
     const newValue = input.value;
+    console.log(`📝 updateBlockValue called: "${newValue}" for block:`, block);
+    console.log(`📝 Block classes:`, block.className);
+    console.log(`📝 Block dataset before:`, { ...block.dataset });
     log(`📝 Updated block value: ${newValue}`);
     
-    // Store the value for JSON generation
+    // Store the value for JSON generation (ensures sync with popup menu)
     block.dataset.blockValue = newValue;
+    // Also set the data attribute directly to ensure compatibility
+    block.setAttribute('data-block-value', newValue);
+    console.log(`📝 Stored in dataset.blockValue: "${block.dataset.blockValue}"`);
+    console.log(`📝 Also set data-block-value attribute: "${block.getAttribute('data-block-value')}"`);
+    console.log(`📝 Block dataset after:`, { ...block.dataset });
     
     // Auto-resize input based on content
     resizeInputToContent(input);
@@ -2232,6 +2921,14 @@ Create a single paragraph that incorporates both natural language guidance and t
     
     if (!newOrderType) return;
     
+    // Save current property value before changing order type
+    const valueInput = document.getElementById('menuValue');
+    if (valueInput && valueInput.value.trim() !== '') {
+      console.log(`📝 handleOrderTypeChange: Saving current value "${valueInput.value}" before order type change`);
+      currentMenuBlock.dataset.blockValue = valueInput.value.trim();
+      currentMenuBlock.setAttribute('data-block-value', valueInput.value.trim());
+    }
+    
     // Show/hide custom order field
     if (customOrderField) {
       customOrderField.style.display = newOrderType === 'custom' ? 'flex' : 'none';
@@ -2249,6 +2946,41 @@ Create a single paragraph that incorporates both natural language guidance and t
       }
     });
     
+    // Rebuild the menu to reflect the new order type options
+    // But preserve the current input values
+    const currentPropertyName = document.getElementById('menuPropertyName')?.value || '';
+    const currentValue = valueInput?.value || '';
+    
+    // Update the block's dataset with the current values before rebuilding - ORDER TYPE CHANGE
+    if (currentPropertyName.trim() !== '') {
+      currentMenuBlock.dataset.propertyName = currentPropertyName.trim();
+      currentMenuBlock.setAttribute('data-property-name', currentPropertyName.trim());
+      console.log(`📝 handleOrderTypeChange: Updated dataset.propertyName to "${currentPropertyName.trim()}"`);
+    }
+    if (currentValue.trim() !== '') {
+      currentMenuBlock.dataset.blockValue = currentValue.trim();
+      currentMenuBlock.setAttribute('data-block-value', currentValue.trim());
+      console.log(`📝 handleOrderTypeChange: Updated dataset.blockValue to "${currentValue.trim()}"`);
+    }
+    
+    console.log(`📝 handleOrderTypeChange: Block dataset after update:`, currentMenuBlock.dataset);
+    
+    // Rebuild menu
+    const blockAnalysis = analyzeBlockForMenu(currentMenuBlock);
+    console.log(`📝 handleOrderTypeChange: Block analysis after rebuild:`, blockAnalysis);
+    const menuContent = buildMenuContent(blockAnalysis);
+    blockContextMenu.innerHTML = menuContent;
+    
+    // Restore the input values
+    const newPropertyNameInput = document.getElementById('menuPropertyName');
+    const newValueInput = document.getElementById('menuValue');
+    if (newPropertyNameInput && currentPropertyName) {
+      newPropertyNameInput.value = currentPropertyName;
+    }
+    if (newValueInput && currentValue) {
+      newValueInput.value = currentValue;
+    }
+    
     log(`🔄 Applied order type "${newOrderType}" to ${sequenceBlocks.length} blocks in sequence`);
   }
   
@@ -2258,6 +2990,14 @@ Create a single paragraph that incorporates both natural language guidance and t
     const customOrderInput = document.getElementById('menuCustomOrder');
     const customOrderValue = customOrderInput?.value || '';
     
+    // Save current property value before changing custom order
+    const valueInput = document.getElementById('menuValue');
+    if (valueInput && valueInput.value.trim() !== '') {
+      console.log(`📝 handleCustomOrderChange: Saving current value "${valueInput.value}" before custom order change`);
+      currentMenuBlock.dataset.blockValue = valueInput.value.trim();
+      currentMenuBlock.setAttribute('data-block-value', valueInput.value.trim());
+    }
+    
     // Find all blocks in the same sequence as the current block
     const sequenceBlocks = findBlocksInSameSequence(currentMenuBlock);
     
@@ -2265,6 +3005,40 @@ Create a single paragraph that incorporates both natural language guidance and t
     sequenceBlocks.forEach(block => {
       block.dataset.customOrder = customOrderValue;
     });
+    
+    // Rebuild the menu to reflect the new custom order field
+    // But preserve the current input values
+    const currentPropertyName = document.getElementById('menuPropertyName')?.value || '';
+    const currentValue = valueInput?.value || '';
+    
+    // Update the block's dataset with the current values before rebuilding
+    if (currentPropertyName.trim() !== '') {
+      currentMenuBlock.dataset.propertyName = currentPropertyName.trim();
+      currentMenuBlock.setAttribute('data-property-name', currentPropertyName.trim());
+    }
+    if (currentValue.trim() !== '') {
+      currentMenuBlock.dataset.blockValue = currentValue.trim();
+      currentMenuBlock.setAttribute('data-block-value', currentValue.trim());
+    }
+    
+    // Rebuild menu
+    const blockAnalysis = analyzeBlockForMenu(currentMenuBlock);
+    const menuContent = buildMenuContent(blockAnalysis);
+    blockContextMenu.innerHTML = menuContent;
+    
+    // Restore the input values
+    const newPropertyNameInput = document.getElementById('menuPropertyName');
+    const newValueInput = document.getElementById('menuValue');
+    const newCustomOrderInput = document.getElementById('menuCustomOrder');
+    if (newPropertyNameInput && currentPropertyName) {
+      newPropertyNameInput.value = currentPropertyName;
+    }
+    if (newValueInput && currentValue) {
+      newValueInput.value = currentValue;
+    }
+    if (newCustomOrderInput && customOrderValue) {
+      newCustomOrderInput.value = customOrderValue;
+    }
     
     log(`📝 Applied custom order "${customOrderValue}" to ${sequenceBlocks.length} blocks in sequence`);
   }
@@ -2756,15 +3530,14 @@ Create a single paragraph that incorporates both natural language guidance and t
     
     // Determine the node type and create appropriate block using existing functions
     if (node.node_type === 'branch' || (node.children && Array.isArray(node.children))) {
-      // Clone from the hidden template
-      const branchTemplate = document.getElementById('branchTemplate');
+      // Clone from palette like the existing system does
+      const branchTemplate = document.querySelector('.sidebar .cblock');
       block = branchTemplate.cloneNode(true);
-      block.id = ''; // Remove template ID
       
       // Clear template attributes and set up like existing drag system
       block.removeAttribute('data-id');
       block.querySelectorAll('[data-id]').forEach(el => el.removeAttribute('data-id'));
-      // Note: addResizeHandles is now disabled
+      addResizeHandles(block);
       assignIds(block);
       
       // Update the property name
@@ -2791,15 +3564,14 @@ Create a single paragraph that incorporates both natural language guidance and t
       }
       
     } else {
-      // Clone leaf block from the hidden template
-      const leafTemplate = document.getElementById('leafTemplate');
+      // Clone leaf block from palette like the existing system does
+      const leafTemplate = document.querySelector('.sidebar .stack');
       block = leafTemplate.cloneNode(true);
-      block.id = ''; // Remove template ID
       
       // Clear template attributes and set up like existing drag system
       block.removeAttribute('data-id');
       block.querySelectorAll('[data-id]').forEach(el => el.removeAttribute('data-id'));
-      // Note: addResizeHandles is now disabled
+      addResizeHandles(block);
       assignIds(block);
       
       // Update the property name and value
@@ -2808,10 +3580,14 @@ Create a single paragraph that incorporates both natural language guidance and t
       
       if (propertyNameInput) {
         propertyNameInput.value = node.property_name || 'property';
+        // Store in data attribute for JSON generation
+        block.dataset.propertyName = propertyNameInput.value;
         resizeInputToContent(propertyNameInput);
       }
       if (propertyValueInput) {
         propertyValueInput.value = node.value || '';
+        // Store in data attribute for JSON generation
+        block.dataset.blockValue = propertyValueInput.value;
         resizeInputToContent(propertyValueInput);
       }
     }
@@ -2971,9 +3747,8 @@ Create a single paragraph that incorporates both natural language guidance and t
     
     if (node.node_type === 'branch' || (node.children && Array.isArray(node.children))) {
       // Clone branch template
-      const branchTemplate = document.getElementById('branchTemplate');
+      const branchTemplate = document.querySelector('.sidebar .cblock');
       block = branchTemplate.cloneNode(true);
-      block.id = ''; // Remove template ID
       
       // Set up like existing system
       block.removeAttribute('data-id');
@@ -3002,9 +3777,8 @@ Create a single paragraph that incorporates both natural language guidance and t
       
     } else {
       // Clone leaf template
-      const leafTemplate = document.getElementById('leafTemplate');
+      const leafTemplate = document.querySelector('.sidebar .stack');
       block = leafTemplate.cloneNode(true);
-      block.id = ''; // Remove template ID
       
       // Set up like existing system
       block.removeAttribute('data-id');
@@ -3099,26 +3873,56 @@ Create a single paragraph that incorporates both natural language guidance and t
     switch(direction) {
       case 'top':
         // Insert before target in vertical order
-        targetBlock.insertAdjacentElement('beforebegin', newBlock);
-        
-        // Add connected blocks after the main block
-        let lastInserted = newBlock;
-        connectedBlocks.forEach(connectedBlock => {
-          lastInserted.insertAdjacentElement('afterend', connectedBlock);
-          lastInserted = connectedBlock;
-        });
+        // Handle case where target is in a horizontal group - insert above the entire group
+        const targetParentTop = targetBlock.parentElement;
+        if (targetParentTop.classList.contains('horizontal-group')) {
+          // Insert above the horizontal group
+          targetParentTop.insertAdjacentElement('beforebegin', newBlock);
+          
+          // Add connected blocks after the main block
+          let lastInserted = newBlock;
+          connectedBlocks.forEach(connectedBlock => {
+            lastInserted.insertAdjacentElement('afterend', connectedBlock);
+            lastInserted = connectedBlock;
+          });
+        } else {
+          // Normal vertical insertion
+          targetBlock.insertAdjacentElement('beforebegin', newBlock);
+          
+          // Add connected blocks after the main block
+          let lastInserted = newBlock;
+          connectedBlocks.forEach(connectedBlock => {
+            lastInserted.insertAdjacentElement('afterend', connectedBlock);
+            lastInserted = connectedBlock;
+          });
+        }
         break;
         
       case 'bottom':
         // Insert after target in vertical order
-        targetBlock.insertAdjacentElement('afterend', newBlock);
-        
-        // Add connected blocks after the main block
-        let lastInserted2 = newBlock;
-        connectedBlocks.forEach(connectedBlock => {
-          lastInserted2.insertAdjacentElement('afterend', connectedBlock);
-          lastInserted2 = connectedBlock;
-        });
+        // Handle case where target is in a horizontal group - insert below the entire group
+        const targetParentBottom = targetBlock.parentElement;
+        if (targetParentBottom.classList.contains('horizontal-group')) {
+          // Insert below the horizontal group
+          targetParentBottom.insertAdjacentElement('afterend', newBlock);
+          
+          // Add connected blocks after the main block
+          let lastInserted2 = newBlock;
+          connectedBlocks.forEach(connectedBlock => {
+            lastInserted2.insertAdjacentElement('afterend', connectedBlock);
+            lastInserted2 = connectedBlock;
+          });
+        } else {
+          // Normal vertical insertion
+          targetBlock.insertAdjacentElement('afterend', newBlock);
+          
+          // Add connected blocks after the main block
+          let lastInserted2 = newBlock;
+          connectedBlocks.forEach(connectedBlock => {
+            lastInserted2.insertAdjacentElement('afterend', connectedBlock);
+            lastInserted2 = connectedBlock;
+          });
+        }
         break;
         
       case 'left':
@@ -3521,14 +4325,38 @@ Create a single paragraph that incorporates both natural language guidance and t
           const relativeLeft = blockRect.left - scriptRect.left;
           const relativeTop = blockRect.top - scriptRect.top;
           
-          if (!block.style.left || !block.style.top) {
+          // Always ensure the block has proper positioning styles
+          // Clean positioning: remove any residual positioning artifacts
+          if (!block.style.left || !block.style.top || 
+              isNaN(parseFloat(block.style.left)) || isNaN(parseFloat(block.style.top))) {
+            
+            console.log(`🔧 Fixing positioning for block at drag start`);
+            
+            // Reset any problematic positioning styles
+            block.style.position = 'absolute';
             block.style.left = relativeLeft + 'px';
             block.style.top = relativeTop + 'px';
+            block.style.transform = ''; // Clear any transforms that might interfere
+            block.style.margin = ''; // Clear margins that might affect positioning
             block.classList.add('positioned');
             
             if (!script.contains(block)) {
               script.appendChild(block);
             }
+          } else {
+            // Validate existing positioning
+            const currentLeft = parseFloat(block.style.left);
+            const currentTop = parseFloat(block.style.top);
+            
+            if (isNaN(currentLeft) || isNaN(currentTop)) {
+              console.log(`🔧 Correcting invalid positioning values`);
+              block.style.left = relativeLeft + 'px';
+              block.style.top = relativeTop + 'px';
+            }
+            
+            // Ensure clean state
+            block.style.transform = '';
+            block.style.margin = '';
           }
         }
         
@@ -3558,6 +4386,7 @@ Create a single paragraph that incorporates both natural language guidance and t
             const relativeLeft = connectedRect.left - scriptRect.left;
             const relativeTop = connectedRect.top - scriptRect.top;
             
+            // Always ensure the connected block has proper positioning styles
             if (!connectedBlock.style.left || !connectedBlock.style.top) {
               connectedBlock.style.left = relativeLeft + 'px';
               connectedBlock.style.top = relativeTop + 'px';
@@ -3565,6 +4394,15 @@ Create a single paragraph that incorporates both natural language guidance and t
               
               if (!script.contains(connectedBlock)) {
                 script.appendChild(connectedBlock);
+              }
+            } else {
+              // Validate existing styles
+              const currentLeft = parseFloat(connectedBlock.style.left);
+              const currentTop = parseFloat(connectedBlock.style.top);
+              
+              if (isNaN(currentLeft) || isNaN(currentTop)) {
+                connectedBlock.style.left = relativeLeft + 'px';
+                connectedBlock.style.top = relativeTop + 'px';
               }
             }
             
@@ -3665,11 +4503,16 @@ Create a single paragraph that incorporates both natural language guidance and t
         // Single block drag - use the same delta-based approach as connected blocks
         const currentSourcePos = drag.startPositions.get(drag.source);
         if (currentSourcePos) {
+          // Calculate the delta from the start position
           const deltaX = newSourceX - currentSourcePos.left;
           const deltaY = newSourceY - currentSourcePos.top;
           
-          // Move using delta from start position with grid snapping (same as connected blocks)
-          const snapped = snapToGrid(newSourceX, newSourceY);
+          // Apply the delta to the start position to get the new position
+          const newLeft = currentSourcePos.left + deltaX;
+          const newTop = currentSourcePos.top + deltaY;
+          
+          // Apply grid snapping to the calculated position
+          const snapped = snapToGrid(newLeft, newTop);
           drag.source.style.left = snapped.x + 'px';
           drag.source.style.top = snapped.y + 'px';
         }
@@ -3715,11 +4558,45 @@ Create a single paragraph that incorporates both natural language guidance and t
       if (drag.ghost && !drag.fromPalette) {
         const wasInSlot = node.closest('[data-slot]');
         if (wasInSlot) {
+          // Get the ghost position to use as the target position
+          const ghostRect = drag.ghost.getBoundingClientRect();
+          const scriptRect = script.getBoundingClientRect();
+          
+          // Remove the block from the slot first
+          node.remove();
+          
+          // Add to script area
           script.appendChild(node);
-          // Remove slot positioning styles and prepare for absolute positioning
-          node.style.left = '';
-          node.style.top = '';
-          node.classList.remove('positioned');
+          
+          // Use requestAnimationFrame to ensure DOM is fully updated before positioning
+          requestAnimationFrame(() => {
+            // Recalculate positions after DOM update to avoid coordinate drift
+            const updatedGhostRect = drag.ghost ? drag.ghost.getBoundingClientRect() : ghostRect;
+            const updatedScriptRect = script.getBoundingClientRect();
+            
+            // Position the block exactly where the ghost was, relative to the script area
+            const scriptRelativeX = updatedGhostRect.left - updatedScriptRect.left;
+            const scriptRelativeY = updatedGhostRect.top - updatedScriptRect.top;
+            
+            // Apply positioning like a normal script block
+            node.style.left = scriptRelativeX + 'px';
+            node.style.top = scriptRelativeY + 'px';
+            node.classList.add('positioned');
+            
+            // Validate and fix the position to prevent drift
+            validateBlockPosition(node);
+          });
+          
+          // Clean up the ghost
+          if (drag.ghost) {
+            drag.ghost.remove();
+            drag.ghost = null;
+          }
+          
+          // Ensure the block is properly set up as a script block
+          ensureScriptBlockPositioning(node);
+          
+          // Now the block should behave exactly like a normal script block
         }
       }
       
@@ -3750,13 +4627,26 @@ Create a single paragraph that incorporates both natural language guidance and t
            node.style.top = '';
            node.classList.remove('positioned');
            
-           // Also handle connected blocks for group drags
+           // Only disconnect if this is a single block being moved (not part of a group drag)
+           // Group drags should preserve their connections when moving to slots
            const isGroupDrag = !drag.fromPalette && !drag.isSelected && drag.connectedBlocks && drag.connectedBlocks.length > 0;
+           
+           if (!isGroupDrag) {
+             // Single block - use smart disconnect logic
+             if (shouldDisconnectBlock(node, drag)) {
+               disconnectBlockFromConnections(node);
+             }
+           }
+           
+           // Handle connected blocks for group drags
            if (isGroupDrag) {
              drag.connectedBlocks.forEach(connectedBlock => {
                connectedBlock.style.left = '';
                connectedBlock.style.top = '';
                connectedBlock.classList.remove('positioned');
+               
+               // For group drags, DON'T disconnect - preserve the group structure
+               // The blocks will maintain their connections and be inserted as a group
              });
            }
            
@@ -3849,6 +4739,11 @@ Create a single paragraph that incorporates both natural language guidance and t
                }
              });
            }
+         } else {
+           // This was a single block drag - use smart disconnect logic
+           if (shouldDisconnectBlock(node, drag)) {
+             disconnectBlockFromConnections(node);
+           }
          }
          
            // Check for blocks that need to be shifted and shift them
@@ -3871,10 +4766,13 @@ Create a single paragraph that incorporates both natural language guidance and t
             lastInserted.insertAdjacentElement('afterend', connectedBlock);
             lastInserted = connectedBlock;
           });
-        } else {
-          // Single block insertion
-          target.insertAdjacentElement('afterend', node);
-        }
+                 } else {
+           // Single block insertion - use smart disconnect logic
+           if (shouldDisconnectBlock(node, drag)) {
+             disconnectBlockFromConnections(node);
+           }
+           target.insertAdjacentElement('afterend', node);
+         }
         setStatus('Dropped after ✓');
       } else if(direction === 'inside') {
         // Generalized slot insertion - works for single blocks or chains
@@ -3906,7 +4804,10 @@ Create a single paragraph that incorporates both natural language guidance and t
           
           setStatus(`Dropped chain inside slot ✓`);
         } else {
-          // Single block - add to slot with proper positioning
+          // Single block - use smart disconnect logic
+          if (shouldDisconnectBlock(node, drag)) {
+            disconnectBlockFromConnections(node);
+          }
           addBlockToSlotWithPositioning(target, node);
           setStatus('Dropped inside ✓');
         }
@@ -3934,6 +4835,11 @@ Create a single paragraph that incorporates both natural language guidance and t
             node.classList.remove('positioned');
           }
         }
+        
+                 // Use smart disconnect logic when placing freely
+         if (shouldDisconnectBlock(node, drag)) {
+           disconnectBlockFromConnections(node);
+         }
         
         assignIds(node);
         script.appendChild(node);
@@ -3972,6 +4878,9 @@ Create a single paragraph that incorporates both natural language guidance and t
             const snapped = snapToGrid(parseFloat(block.style.left), parseFloat(block.style.top));
             block.style.left = snapped.x + 'px';
             block.style.top = snapped.y + 'px';
+            
+            // Validate the final position to prevent coordinate drift
+            validateBlockPosition(block);
           }
         });
       }
@@ -3981,6 +4890,22 @@ Create a single paragraph that incorporates both natural language guidance and t
         const snapped = snapToGrid(parseFloat(drag.source.style.left), parseFloat(drag.source.style.top));
         drag.source.style.left = snapped.x + 'px';
         drag.source.style.top = snapped.y + 'px';
+        
+        // Validate the final position to prevent coordinate drift
+        validateBlockPosition(drag.source);
+        
+        // If this block was moved from a slot, ensure it's properly set up as a script block
+        if (drag.source.classList.contains('positioned') && script.contains(drag.source)) {
+          // Ensure the block has proper positioning data for future drag operations
+          const scriptRect = script.getBoundingClientRect();
+          const blockRect = drag.source.getBoundingClientRect();
+          const relativeLeft = blockRect.left - scriptRect.left;
+          const relativeTop = blockRect.top - scriptRect.top;
+          
+          // Update the style properties to match the actual position
+          drag.source.style.left = relativeLeft + 'px';
+          drag.source.style.top = relativeTop + 'px';
+        }
       }
       
       if(drag.ghost && drag.ghost.parentNode) {
@@ -4014,6 +4939,389 @@ Create a single paragraph that incorporates both natural language guidance and t
       x: Math.round(x / gridSize) * gridSize,
       y: Math.round(y / gridSize) * gridSize
     };
+  }
+  
+  // Validate and fix block positioning to prevent coordinate drift
+  function validateBlockPosition(block) {
+    if (!block || !block.style.left || !block.style.top) return;
+    
+    const left = parseFloat(block.style.left);
+    const top = parseFloat(block.style.top);
+    
+    // Check if the position values are valid numbers
+    if (isNaN(left) || isNaN(top)) {
+      console.warn('Invalid block position detected, resetting to 0,0');
+      block.style.left = '0px';
+      block.style.top = '0px';
+      return;
+    }
+    
+    // Ensure the block is within reasonable bounds (prevent extreme positioning)
+    const maxX = 2000; // Maximum reasonable X position
+    const maxY = 2000; // Maximum reasonable Y position
+    
+    if (Math.abs(left) > maxX || Math.abs(top) > maxY) {
+      console.warn('Block position out of bounds, resetting to 0,0');
+      block.style.left = '0px';
+      block.style.top = '0px';
+      return;
+    }
+    
+    // Apply grid snapping to ensure consistent positioning
+    const snapped = snapToGrid(left, top);
+    if (snapped.x !== left || snapped.y !== top) {
+      block.style.left = snapped.x + 'px';
+      block.style.top = snapped.y + 'px';
+    }
+    
+    // CRITICAL: Validate that the block has clean script-area styling
+    validateScriptAreaStyling(block);
+  }
+  
+  // Helper function to ensure block has proper script area styling
+  function validateScriptAreaStyling(block) {
+    if (!block || block.closest('[data-slot]')) return; // Skip slot blocks
+    
+    console.log(`🎯 Validating script area styling for block`);
+    
+    // Ensure absolute positioning
+    if (block.style.position !== 'absolute') {
+      console.log(`🔧 Setting position to absolute`);
+      block.style.position = 'absolute';
+    }
+    
+    // Ensure positioned class
+    if (!block.classList.contains('positioned')) {
+      console.log(`🔧 Adding positioned class`);
+      block.classList.add('positioned');
+    }
+    
+    // Remove any flexbox-related styling that could interfere
+    const problematicStyles = ['flex', 'flexShrink', 'alignSelf', 'justifySelf'];
+    problematicStyles.forEach(style => {
+      if (block.style[style]) {
+        console.log(`🔧 Clearing problematic style: ${style}`);
+        block.style[style] = '';
+      }
+    });
+    
+    // Ensure proper display for script area
+    if (!block.style.display || block.style.display === 'flex') {
+      console.log(`🔧 Setting display to inline-block for script area`);
+      block.style.display = 'inline-block';
+    }
+    
+    // Clear any margin that could interfere with absolute positioning
+    if (block.style.margin && block.style.margin !== '0') {
+      console.log(`🔧 Clearing margin for absolute positioning`);
+      block.style.margin = '0';
+    }
+    
+    console.log(`✅ Script area styling validated`);
+  }
+  
+  // Ensure a block is properly set up as a script block with correct positioning
+  function ensureScriptBlockPositioning(block) {
+    if (!block || !script.contains(block)) return;
+    
+    // Ensure the block has the positioned class
+    if (!block.classList.contains('positioned')) {
+      block.classList.add('positioned');
+    }
+    
+    // If the block doesn't have positioning styles, calculate them
+    if (!block.style.left || !block.style.top) {
+      const scriptRect = script.getBoundingClientRect();
+      const blockRect = block.getBoundingClientRect();
+      const relativeLeft = blockRect.left - scriptRect.left;
+      const relativeTop = blockRect.top - scriptRect.top;
+      
+      block.style.left = relativeLeft + 'px';
+      block.style.top = relativeTop + 'px';
+    }
+    
+    // Validate the final position
+    validateBlockPosition(block);
+  }
+  
+  // Helper function to completely reset a block to fresh, independent state
+  function resetBlockToFreshState(block, targetX, targetY) {
+    if (!block) return;
+    
+    console.log(`🧼 Resetting block to fresh state at (${targetX}, ${targetY})`);
+    
+    // 1. Store the current container context to understand the transition
+    const wasInSlot = block.closest('[data-slot]');
+    const wasInHorizontalGroup = block.closest('.horizontal-group');
+    
+    console.log(`🔍 Block context: inSlot=${!!wasInSlot}, inHorizontalGroup=${!!wasInHorizontalGroup}`);
+    
+    // 2. Nuclear reset of ALL inline styles (complete clean slate)
+    block.style.cssText = '';
+    
+    // 3. Remove ALL data attributes except essential ones
+    const allDataAttributes = Array.from(block.attributes).filter(attr => attr.name.startsWith('data-'));
+    allDataAttributes.forEach(attr => {
+      if (!['data-type', 'data-op', 'data-id'].includes(attr.name)) {
+        block.removeAttribute(attr.name);
+      }
+    });
+    
+    // 4. Clean dataset object
+    const keysToDelete = Object.keys(block.dataset).filter(key => 
+      !['type', 'op', 'id'].includes(key)
+    );
+    keysToDelete.forEach(key => delete block.dataset[key]);
+    
+    // 5. Reset ALL CSS classes to minimal script area state
+    block.className = 'block positioned';
+    
+    // 6. Clean internal DOM structure - VERY IMPORTANT for slot transitions
+    const nestedGroups = block.querySelectorAll('.horizontal-group, .group-container');
+    nestedGroups.forEach(group => {
+      [...group.children].forEach(child => {
+        group.insertAdjacentElement('beforebegin', child);
+      });
+      group.remove();
+    });
+    
+    // 7. CRITICAL: Reset ALL internal element styles that could interfere with absolute positioning
+    const allInternalElements = block.querySelectorAll('*');
+    allInternalElements.forEach(element => {
+      // Reset positioning styles
+      element.style.position = '';
+      element.style.left = '';
+      element.style.top = '';
+      element.style.transform = '';
+      
+      // Reset flexbox-related styles that could interfere from slot layout
+      element.style.margin = '';
+      element.style.flex = '';
+      element.style.flexShrink = '';
+      element.style.alignSelf = '';
+      element.style.justifySelf = '';
+      
+      // Reset width/height constraints from slot layout
+      element.style.width = element.style.width === 'auto' ? '' : element.style.width;
+      element.style.height = element.style.height === 'auto' ? '' : element.style.height;
+      element.style.minWidth = '';
+      element.style.minHeight = '';
+      element.style.maxWidth = '';
+      element.style.maxHeight = '';
+      
+      // Preserve only essential display properties
+      if (element.style.display !== 'none' && element.style.display !== 'flex' && element.style.display !== 'inline-flex') {
+        element.style.display = '';
+      }
+    });
+    
+    // 8. Set correct block type based on structure
+    const hasSlots = block.querySelector('[data-slot]');
+    if (hasSlots) {
+      block.classList.add('cblock');
+      block.dataset.op = 'branch';
+      block.setAttribute('data-op', 'branch');
+    } else {
+      block.classList.add('stack');
+      block.dataset.op = 'leaf';
+      block.setAttribute('data-op', 'leaf');
+    }
+    
+    // 9. Apply CLEAN absolute positioning for script area
+    block.style.position = 'absolute';
+    block.style.left = targetX + 'px';
+    block.style.top = targetY + 'px';
+    
+    // 10. IMPORTANT: Clear any residual layout dependencies
+    block.style.display = 'inline-block'; // Ensure proper block display
+    block.style.margin = '0'; // Clear any inherited margins
+    block.style.flex = ''; // Clear any flex properties
+    block.style.width = ''; // Let the block size naturally
+    block.style.height = ''; // Let the block size naturally
+    
+    console.log(`✨ Block reset complete: ${block.className} at (${block.style.left}, ${block.style.top})`);
+    console.log(`🎯 Final styles: position=${block.style.position}, display=${block.style.display}`);
+  }
+
+  // Helper function to clean up clusters that no longer meet cluster criteria
+  function cleanupInvalidClusters(containerElement) {
+    if (!containerElement) return;
+    
+    console.log(`🧹 Cleaning up invalid clusters in container`);
+    
+    // Find all horizontal groups in the container
+    const horizontalGroups = containerElement.querySelectorAll('.horizontal-group');
+    horizontalGroups.forEach(group => {
+      const groupBlocks = [...group.querySelectorAll('.block')];
+      if (groupBlocks.length <= 1) {
+        console.log(`📦 Dissolving horizontal group with ${groupBlocks.length} blocks`);
+        
+        // Move any remaining block out of the group
+        if (groupBlocks.length === 1) {
+          const lastBlock = groupBlocks[0];
+          group.insertAdjacentElement('beforebegin', lastBlock);
+          
+          // Reset the block to leaf state since it's no longer in a cluster
+          resetBlockToLeafState(lastBlock);
+        }
+        group.remove();
+      } else {
+        // Multiple blocks remain - they still form a valid cluster
+        console.log(`📦 Horizontal group remains valid with ${groupBlocks.length} blocks`);
+      }
+    });
+    
+    // Check for sequential connections that might have been broken
+    const allBlocks = [...containerElement.querySelectorAll('.block:not(.horizontal-group .block)')];
+    allBlocks.forEach(block => {
+      // If block has cluster-related data but no actual connections, reset it
+      if (block.dataset.orderType || block.dataset.customOrder) {
+        const hasActualConnections = checkForActualConnections(block, allBlocks);
+        if (!hasActualConnections) {
+          console.log(`🔄 Resetting isolated block "${getBlockText(block)}" to leaf state`);
+          resetBlockToLeafState(block);
+        }
+      }
+    });
+  }
+  
+  // Helper function to check if a block actually has spatial connections
+  function checkForActualConnections(block, allBlocks) {
+    const connections = findBlockConnections(block, allBlocks);
+    return connections.horizontal.length > 0 || connections.vertical.length > 0;
+  }
+  
+  // Helper function to reset a block to clean leaf state without moving it
+  function resetBlockToLeafState(block) {
+    if (!block) return;
+    
+    console.log(`🍃 Resetting "${getBlockText(block)}" to leaf state`);
+    
+    // Store context for debugging
+    const wasInSlot = block.closest('[data-slot]');
+    
+    // Remove cluster-related data attributes
+    delete block.dataset.orderType;
+    delete block.dataset.customOrder;
+    delete block.dataset.groupId;
+    delete block.dataset.connectionType;
+    delete block.dataset.nodeType;
+    
+    block.removeAttribute('data-order-type');
+    block.removeAttribute('data-custom-order');
+    block.removeAttribute('data-group-id');
+    block.removeAttribute('data-connection-type');
+    block.removeAttribute('data-node-type');
+    
+    // CRITICAL: If block is in slot and being reset, it needs slot-appropriate styling
+    if (wasInSlot) {
+      console.log(`🎯 Resetting slot block - clearing absolute positioning styles`);
+      
+      // Clear script-area specific positioning
+      block.style.position = '';
+      block.style.left = '';
+      block.style.top = '';
+      
+      // Ensure slot-appropriate display and layout
+      block.style.display = '';
+      block.style.margin = '';
+      block.style.flex = '';
+      block.style.width = '';
+      block.style.height = '';
+      
+      // Remove positioned class for slot blocks
+      block.classList.remove('positioned');
+    } else {
+      console.log(`🎯 Resetting script area block - ensuring absolute positioning`);
+      
+      // Ensure script-area appropriate positioning
+      if (!block.style.left || !block.style.top) {
+        const blockRect = block.getBoundingClientRect();
+        const scriptRect = script.getBoundingClientRect();
+        block.style.left = (blockRect.left - scriptRect.left) + 'px';
+        block.style.top = (blockRect.top - scriptRect.top) + 'px';
+      }
+      block.style.position = 'absolute';
+      block.classList.add('positioned');
+    }
+    
+    // Set correct block type
+    const hasSlots = block.querySelector('[data-slot]');
+    if (!hasSlots) {
+      block.classList.remove('cblock');
+      block.classList.add('stack');
+      block.dataset.op = 'leaf';
+      block.setAttribute('data-op', 'leaf');
+    }
+    
+    console.log(`✅ Block "${getBlockText(block)}" reset to clean leaf state in ${wasInSlot ? 'slot' : 'script area'}`);
+  }
+
+  // Disconnect a block from any connections and make it a normal separate block
+  function disconnectBlockFromConnections(block) {
+    if (!block) return;
+    
+    console.log(`🔗 Disconnecting block "${getBlockText(block)}" from connections`);
+    
+    // STEP 1: Store the current visual position BEFORE any DOM manipulation
+    const originalRect = block.getBoundingClientRect();
+    const scriptRect = script.getBoundingClientRect();
+    const visualX = originalRect.left - scriptRect.left;
+    const visualY = originalRect.top - scriptRect.top;
+    
+    console.log(`📍 Preserving visual position: (${visualX}, ${visualY})`);
+    
+    // STEP 2: Track the original container for cleanup
+    const originalContainer = block.closest('[data-slot]') || script;
+    
+    // STEP 3: Remove from horizontal group if present
+    const horizontalGroup = block.closest('.horizontal-group');
+    if (horizontalGroup) {
+      console.log(`📦 Extracting from horizontal group`);
+      block.remove();
+      
+      // The group cleanup will be handled by cleanupInvalidClusters
+    }
+    
+    // STEP 4: Remove from slot if present
+    if (block.closest('[data-slot]')) {
+      console.log(`🎯 Extracting from slot`);
+      block.remove();
+    }
+    
+    // STEP 5: Add to script area if not already there
+    if (!script.contains(block)) {
+      script.appendChild(block);
+    }
+    
+    // STEP 6: Apply complete reset with preserved position
+    requestAnimationFrame(() => {
+      resetBlockToFreshState(block, visualX, visualY);
+      validateBlockPosition(block);
+      
+      // STEP 7: Clean up any invalid clusters left behind in the original container
+      cleanupInvalidClusters(originalContainer);
+      
+      console.log(`✅ Block "${getBlockText(block)}" completely disconnected and clusters cleaned up`);
+    });
+  }
+  
+  // Smart function to determine if a block should be disconnected
+  function shouldDisconnectBlock(block, dragContext) {
+    if (!block || !dragContext) return false;
+    
+    // If this is part of a group drag, don't disconnect
+    if (dragContext.connectedBlocks && dragContext.connectedBlocks.length > 0) {
+      return false;
+    }
+    
+    // If this is a selected block being moved as part of a selection, don't disconnect
+    if (dragContext.isSelected) {
+      return false;
+    }
+    
+    // Only disconnect if the block has connection data and is being moved individually
+    return !!(block.dataset.orderType || block.dataset.customOrder || block.dataset.groupId);
   }
   
   // Helper function to add blocks to group container with proper sizing
@@ -4506,9 +5814,7 @@ Create a single paragraph that incorporates both natural language guidance and t
 
   (function seed(){ 
     // No initial block to seed since we removed the "when clicked" block
-    log('🎉 Welcome to Mini Scratch-like Blocks!');
-    log('💡 Drag blocks from the sidebar to build programs');
-    log('🔧 Use resize handles to adjust block dimensions');
+    log('🎉 Welcome to OOPrompt Block Builder!');
     
     // Initialize auto-resize for existing inputs
     initializeInputAutoResize();
@@ -4578,7 +5884,7 @@ Create a single paragraph that incorporates both natural language guidance and t
 
     setStatus('--- Tests Done ---');
   }
-  testBtn.addEventListener('click', runTests);
+  // testBtn.addEventListener('click', runTests); // Removed - testBtn doesn't exist
   
   // ==== JSON Generation System ====
   function generateBlockGraphJson() {
@@ -4608,128 +5914,11 @@ Create a single paragraph that incorporates both natural language guidance and t
   
 
   
-  function determineMainTask(blocks) {
-    if (blocks.length === 0) return "empty";
-    
-    // Count block types
-    const blockTypes = {};
-    blocks.forEach(block => {
-      const op = block.dataset.op || 'unknown';
-      blockTypes[op] = (blockTypes[op] || 0) + 1;
-    });
-    
-    // Map block operations to task types
-    const taskMapping = {
-      'leaf': 'execution',
-      'branch': 'control',
-      'say': 'writing',
-      'move': 'action',
-      'turn': 'action'
-    };
-    
-    // Find the most common task type
-    let mainTaskType = 'execution';
-    let maxCount = 0;
-    
-    Object.entries(blockTypes).forEach(([op, count]) => {
-      const taskType = taskMapping[op] || 'execution';
-      if (count > maxCount) {
-        maxCount = count;
-        mainTaskType = taskType;
-      }
-    });
-    
-    return mainTaskType;
-  }
+  // DUPLICATE FUNCTION REMOVED - This was overriding the correct buildBlockNode function
   
-  function findRootBlocks(blocks) {
-    return blocks.filter(block => {
-      // A block is a root if no other block is positioned directly above it or to its left
-      const blockRect = block.getBoundingClientRect();
-      const scriptRect = script.getBoundingClientRect();
-      const blockLeft = parseFloat(block.style.left);
-      const blockTop = parseFloat(block.style.top);
-      
-      return !blocks.some(otherBlock => {
-        if (otherBlock === block) return false;
-        
-        const otherRect = otherBlock.getBoundingClientRect();
-        const otherLeft = parseFloat(otherBlock.style.left);
-        const otherTop = parseFloat(otherBlock.style.top);
-        
-        const tolerance = 12;
-        
-        // Check if other block is directly above (vertical connection)
-        const directlyAbove = Math.abs((otherTop + otherRect.height) - blockTop) <= tolerance &&
-                             Math.abs(otherLeft - blockLeft) <= Math.max(blockRect.width, otherRect.width) * 0.3;
-        
-        // Check if other block is directly to the left (horizontal connection)
-        const directlyLeft = Math.abs((otherLeft + otherRect.width) - blockLeft) <= tolerance &&
-                            Math.abs(otherTop - blockTop) <= Math.max(blockRect.height, otherRect.height) * 0.3;
-        
-        return directlyAbove || directlyLeft;
-      });
-    });
-  }
+  // DUPLICATE FUNCTION REMOVED - This was overriding the correct findRootBlocks function
   
-  function buildBlockNode(block, allBlocks) {
-    const blockText = getBlockText(block);
-    const blockType = block.dataset.op;
-    
-    // Find connected blocks with priority: sequential > parallel > inclusion
-    const connections = findBlockConnections(block, allBlocks);
-    
-    // Priority 1: Sequential (vertical connections)
-    if (connections.vertical.length > 0) {
-      const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
-      return {
-        "node_type": "cluster",
-        "operator": "sequential",
-        "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockOrderType(block),
-        "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "top to bottom execution",
-        "sequence": sortedBlocks.map(b => ({
-          "node_type": "leaf",
-          "property_name": getBlockText(b) || "sequential_item",
-          "value": getBlockValue(b)
-        }))
-      };
-    }
-    
-    // Priority 2: Parallel (horizontal connections)
-    if (connections.horizontal.length > 0) {
-      const allConnectedBlocks = [block, ...connections.horizontal];
-      return {
-        "node_type": "cluster",
-        "operator": "parallel",
-        "children": allConnectedBlocks.map(b => ({
-          "node_type": "leaf",
-          "property_name": getBlockText(b) || "parallel_item",
-          "value": getBlockValue(b)
-        }))
-      };
-    }
-    
-    // Priority 3: Inclusion (slot/container)
-    const slot = block.querySelector('[data-slot]');
-    if (slot && slot.children.length > 0) {
-      // This is a branch node with children in the slot
-      const slotBlocks = [...slot.querySelectorAll('.block')];
-      const children = analyzeSlotBlocks(slotBlocks);
-      
-      return {
-        "node_type": "branch",
-        "property_name": blockText || "container",
-        "children": children
-      };
-    }
-    
-    // Single block with no connections - leaf node
-    return {
-      "node_type": "leaf",
-      "property_name": blockText || "single_item",
-      "value": ""
-    };
-  }
+  // DUPLICATE FUNCTION REMOVED - This was overriding the correct buildBlockNode function
   
   function analyzeSlotBlocks(slotBlocks) {
     if (slotBlocks.length === 0) return [];
@@ -4772,11 +5961,12 @@ Create a single paragraph that incorporates both natural language guidance and t
     // Priority 1: Sequential (vertical connections)
     if (connections.vertical.length > 0) {
       const sortedBlocks = sortBlocksVertically([block, ...connections.vertical]);
+      const firstBlock = sortedBlocks[0]; // Use first block for order type
       return {
         "node_type": "cluster",
         "operator": "sequential",
-        "order_type": getBlockOrderType(block) === 'custom' ? getBlockCustomOrder(block) : getBlockOrderType(block),
-        "order_note": getBlockOrderType(block) === 'custom' && getBlockCustomOrder(block) ? getBlockCustomOrder(block) : "top to bottom execution within slot",
+        "order_type": getBlockOrderType(firstBlock) === 'custom' ? getBlockCustomOrder(firstBlock) : getBlockOrderType(firstBlock),
+        "order_note": getBlockOrderType(firstBlock) === 'custom' && getBlockCustomOrder(firstBlock) ? getBlockCustomOrder(firstBlock) : "top to bottom execution within slot",
         "sequence": sortedBlocks.map(b => ({
           "node_type": "leaf",
           "property_name": getBlockText(b) || "sequential_item",
@@ -5135,6 +6325,13 @@ Create a single paragraph that incorporates both natural language guidance and t
       return block.dataset.propertyName;
     }
     
+    // Also check the data attribute directly
+    if (block.hasAttribute('data-property-name')) {
+      const attrValue = block.getAttribute('data-property-name');
+      console.log(`🔍 Found data-property-name attribute: "${attrValue}"`);
+      return attrValue;
+    }
+    
     // Legacy fallback to contenteditable
     const argElement = block.querySelector('[contenteditable]');
     if (argElement) {
@@ -5148,14 +6345,44 @@ Create a single paragraph that incorporates both natural language guidance and t
   }
   
   function getBlockValue(block) {
+    // Branch blocks should not have property values
+    if (block.classList.contains('cblock')) {
+      console.log(`🔍 getBlockValue: Branch block "${getBlockText(block)}" - no value needed`);
+      return undefined;
+    }
+    
+    console.log(`🔍 getBlockValue called for leaf block:`, block);
+    console.log(`🔍 Block dataset:`, block.dataset);
+    console.log(`🔍 Block classes:`, block.className);
+    
     // Try to get from the new property value input
     const propertyValueInput = block.querySelector('.property-value');
     if (propertyValueInput) {
-      return propertyValueInput.value.trim();
+      const inputValue = propertyValueInput.value.trim();
+      console.log(`🔍 Block value from input: "${inputValue}"`);
+      console.log(`🔍 Input element:`, propertyValueInput);
+      console.log(`🔍 Input value property:`, propertyValueInput.value);
+      return inputValue;
     }
     
     // Fallback to stored block value
-    return block.dataset.blockValue || "";
+    const dataValue = block.dataset.blockValue || "";
+    console.log(`🔍 Block value from dataset.blockValue: "${dataValue}"`);
+    
+    // Also check all data attributes
+    console.log(`🔍 All data attributes:`, Object.keys(block.dataset));
+    for (const [key, value] of Object.entries(block.dataset)) {
+      console.log(`🔍 data-${key}: "${value}"`);
+    }
+    
+    // Check if the value is stored in a different data attribute
+    if (block.hasAttribute('data-block-value')) {
+      const attrValue = block.getAttribute('data-block-value');
+      console.log(`🔍 Found data-block-value attribute: "${attrValue}"`);
+      return attrValue;
+    }
+    
+    return dataValue;
   }
   
   function getBlockOrderType(block) {
