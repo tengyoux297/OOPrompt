@@ -3813,7 +3813,60 @@ Create a single paragraph that incorporates both natural language guidance and t
     return block;
   }
   
+  // Helper function to clean a slot before reinsertion to remove DOM artifacts
+  function cleanSlotForReinsertion(slot) {
+    if (!slot || !slot.hasAttribute('data-slot')) return;
+    
+    console.log(`🧽 Cleaning slot before reinsertion to remove artifacts`);
+    
+    // Find and remove any empty wrapper containers
+    const emptyWrappers = [...slot.children].filter(child => {
+      return (child.classList.contains('horizontal-group') || 
+              child.classList.contains('group-container')) &&
+             child.children.length === 0;
+    });
+    
+    emptyWrappers.forEach(wrapper => {
+      console.log(`🗑️ Removing empty wrapper from slot: ${wrapper.className}`);
+      wrapper.remove();
+    });
+    
+    // Find and unwrap single-block containers
+    const singleBlockContainers = [...slot.children].filter(child => {
+      return (child.classList.contains('horizontal-group') || 
+              child.classList.contains('group-container')) &&
+             child.querySelectorAll('.block').length === 1;
+    });
+    
+    singleBlockContainers.forEach(container => {
+      console.log(`📦 Unwrapping single-block container: ${container.className}`);
+      const block = container.querySelector('.block');
+      if (block) {
+        container.insertAdjacentElement('beforebegin', block);
+        resetBlockToLeafState(block); // Reset to proper slot state
+      }
+      container.remove();
+    });
+    
+    // Clean up any blocks with leftover positioning data
+    const allSlotBlocks = [...slot.querySelectorAll('.block')];
+    allSlotBlocks.forEach(block => {
+      // Remove script-area positioning if present
+      if (block.style.position === 'absolute') {
+        block.style.position = '';
+        block.style.left = '';
+        block.style.top = '';
+        block.classList.remove('positioned');
+      }
+    });
+    
+    console.log(`✅ Slot cleaned and ready for reinsertion`);
+  }
+
   function addBlockToSlotWithPositioning(slot, newBlock) {
+    // CRITICAL: Clean the slot before insertion to remove any artifacts
+    cleanSlotForReinsertion(slot);
+    
     // Clear any absolute positioning styles since slots use relative positioning
     newBlock.style.left = '';
     newBlock.style.top = '';
@@ -3857,6 +3910,9 @@ Create a single paragraph that incorporates both natural language guidance and t
   }
 
   function insertBlockInSlotWithDirection(slot, targetBlock, newBlock, direction, connectedBlocks = []) {
+    // CRITICAL: Clean the slot before insertion to remove any artifacts
+    cleanSlotForReinsertion(slot);
+    
     // Clear positioning styles for all blocks
     newBlock.style.left = '';
     newBlock.style.top = '';
@@ -5149,7 +5205,7 @@ Create a single paragraph that incorporates both natural language guidance and t
     
     console.log(`🧹 Cleaning up invalid clusters in container`);
     
-    // Find all horizontal groups in the container
+    // 1. Clean up horizontal groups
     const horizontalGroups = containerElement.querySelectorAll('.horizontal-group');
     horizontalGroups.forEach(group => {
       const groupBlocks = [...group.querySelectorAll('.block')];
@@ -5171,8 +5227,41 @@ Create a single paragraph that incorporates both natural language guidance and t
       }
     });
     
-    // Check for sequential connections that might have been broken
-    const allBlocks = [...containerElement.querySelectorAll('.block:not(.horizontal-group .block)')];
+    // 2. CRITICAL: Clean up empty group containers in slots
+    const groupContainers = containerElement.querySelectorAll('.group-container');
+    groupContainers.forEach(container => {
+      const containerBlocks = [...container.querySelectorAll('.block')];
+      if (containerBlocks.length === 0) {
+        console.log(`🗑️ Removing empty group container`);
+        container.remove();
+      } else if (containerBlocks.length === 1) {
+        console.log(`📦 Dissolving group container with single block`);
+        const lastBlock = containerBlocks[0];
+        container.insertAdjacentElement('beforebegin', lastBlock);
+        
+        // Reset the block to proper slot state
+        resetBlockToLeafState(lastBlock);
+        container.remove();
+      } else {
+        console.log(`📦 Group container remains valid with ${containerBlocks.length} blocks`);
+      }
+    });
+    
+    // 3. CRITICAL: Clean up any other empty wrapper elements in slots
+    if (containerElement.hasAttribute('data-slot')) {
+      const emptyWrappers = [...containerElement.children].filter(child => {
+        return (child.classList.contains('horizontal-group') || 
+                child.classList.contains('group-container')) &&
+               child.children.length === 0;
+      });
+      emptyWrappers.forEach(wrapper => {
+        console.log(`🗑️ Removing empty wrapper: ${wrapper.className}`);
+        wrapper.remove();
+      });
+    }
+    
+    // 4. Check for sequential connections that might have been broken
+    const allBlocks = [...containerElement.querySelectorAll('.block:not(.horizontal-group .block):not(.group-container .block)')];
     allBlocks.forEach(block => {
       // If block has cluster-related data but no actual connections, reset it
       if (block.dataset.orderType || block.dataset.customOrder) {
@@ -5183,6 +5272,8 @@ Create a single paragraph that incorporates both natural language guidance and t
         }
       }
     });
+    
+    console.log(`✅ Cluster cleanup complete for container`);
   }
   
   // Helper function to check if a block actually has spatial connections
