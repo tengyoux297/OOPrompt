@@ -212,6 +212,16 @@ app.post('/api/prompt-optimizer', async (req, res) => {
     try {
         const { prompt } = req.body;
         
+        // Print the JSON object to terminal when "Send to Chat" is clicked
+        console.log('🚀 === SEND TO CHAT - JSON OBJECT ===');
+        try {
+            const parsedPrompt = JSON.parse(prompt);
+            console.log(JSON.stringify(parsedPrompt, null, 2));
+        } catch (parseError) {
+            console.log('Raw prompt data:', prompt);
+        }
+        console.log('=== END OF JSON OBJECT ===');
+        
         if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER) {
             return res.status(500).json({ 
                 error: 'Missing environment variables. Please check your .env file.',

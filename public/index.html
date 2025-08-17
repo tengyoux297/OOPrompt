@@ -2363,10 +2363,19 @@
                 // Convert requirements to the expected format
                 if (lastParsedProperties.requirements) {
                     Object.keys(lastParsedProperties.requirements).forEach(key => {
-                        promptData.Requirements.push({
+                        const requirement = {
                             property_name: key,
                             value: lastParsedProperties.requirements[key].value
-                        });
+                        };
+                        
+                        // Include candidates if they exist
+                        if (lastParsedProperties.requirements[key].candidates && 
+                            Array.isArray(lastParsedProperties.requirements[key].candidates) && 
+                            lastParsedProperties.requirements[key].candidates.length > 0) {
+                            requirement.candidates = lastParsedProperties.requirements[key].candidates;
+                        }
+                        
+                        promptData.Requirements.push(requirement);
                     });
                 }
 
