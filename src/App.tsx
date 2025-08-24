@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useOOPrompt } from "./state/useOOPrompt";
 import type { OOPromptObject } from "./types";
 import { ChatPanel } from "./components/ChatPanel";
@@ -18,13 +19,15 @@ const seed: OOPromptObject = {
 
 export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
+  const [messageFromOOP, setMessageFromOOP] = useState<string | null>(null);
+  const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
 
 
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
-      {/* Top bar */}
-      <header className="h-16 panel-chrome flex items-center justify-between px-8 shadow-sm">
+      {/* Top bar - Fixed at top */}
+      <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-8 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
             <span className="text-white font-bold text-lg">O</span>
@@ -33,7 +36,16 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-600">AI Model:</div>
-          <select className="border border-gray-200 rounded-xl px-4 py-2 bg-white text-gray-900 text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+          <select 
+            value={selectedLLM === 'openai' ? 'GPT-4' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === 'GPT-4') setSelectedLLM('openai');
+              else if (value === 'Gemini') setSelectedLLM('gemini');
+              else if (value === 'Claude') setSelectedLLM('claude');
+            }}
+            className="border border-gray-200 rounded-xl px-4 py-2 bg-white text-gray-900 text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
+          >
             <option>GPT-4</option>
             <option>Gemini</option>
             <option>Claude</option>
@@ -42,13 +54,15 @@ export default function App() {
       </header>
 
       {/* Main content: chat panel always takes full width and height */}
-      <div className="flex-1 relative h-full">
+      <div className="flex-1 relative h-full pt-16">
         <ChatPanel
           onSend={(msg) => {
             // TODO: call your chat backend
             console.log("Send:", msg);
           }}
           onTogglePanel={() => dispatch({ type: "TOGGLE_PANEL" })}
+          messageFromOOP={messageFromOOP}
+          selectedLLM={selectedLLM}
           onExtractProperties={(oopObject) => {
             console.log('Extracted OOP object:', oopObject);
             console.log('Properties count:', oopObject.properties?.length || 0);
@@ -105,10 +119,23 @@ export default function App() {
           <>
             {/* Backdrop */}
             <div 
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
               onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
             />
-            <OOPromptPanel state={state} dispatch={dispatch} />
+            
+            {/* Panel - fixed positioning, full screen height */}
+            <div className="fixed top-0 right-0 bottom-0 z-50 h-screen">
+              <OOPromptPanel 
+                state={state} 
+                dispatch={dispatch} 
+                onSendMessage={(message) => {
+                  console.log('Message from OOP panel:', message);
+                  setMessageFromOOP(message);
+                  // Clear the message after a short delay to allow the ChatPanel to process it
+                  setTimeout(() => setMessageFromOOP(null), 100);
+                }}
+              />
+            </div>
           </>
         )}
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { llmService, type LLMProvider } from "../services/llmService";
 import type { OOPromptObject } from "../types";
 
@@ -6,6 +6,8 @@ type Props = {
   onSend: (msg: string) => void;
   onTogglePanel: () => void;
   onExtractProperties?: (oopObject: OOPromptObject) => void;
+  messageFromOOP?: string | null;
+  selectedLLM: 'openai' | 'gemini' | 'claude';
 };
 
 type Message = {
@@ -17,7 +19,7 @@ type Message = {
   isError?: boolean;
 };
 
-export function ChatPanel({ onSend, onExtractProperties }: Props) {
+export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selectedLLM }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -28,6 +30,105 @@ export function ChatPanel({ onSend, onExtractProperties }: Props) {
       timestamp: new Date(),
     }
   ]);
+
+  // Helper function to parse and format AI responses like ChatGPT
+  const formatAIResponse = (text: string) => {
+    if (!text) return '';
+    
+    let formatted = text;
+    
+    // Convert markdown-style formatting to HTML-like structure
+    // Headers
+    formatted = formatted.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mb-2 text-gray-900">$1</h3>');
+    formatted = formatted.replace(/^## (.*$)/gim, '<h2 class="text-base font-semibold mb-2 text-gray-900">$1</h2>');
+    formatted = formatted.replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold mb-3 text-gray-900">$1</h1>');
+    
+    // Bold and italic
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>');
+    
+    // Code blocks with language
+    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      const language = lang || 'text';
+      return `<div class="bg-gray-100 rounded-md p-3 overflow-x-auto my-3"><div class="text-xs text-gray-500 mb-2 font-mono">${language}</div><pre class="text-sm font-mono text-gray-800"><code>${code.trim()}</code></pre></div>`;
+    });
+    
+    // Inline code
+    formatted = formatted.replace(/`([^`]+)`/g, '<code class="bg-gray-100 rounded px-1 py-0.5 text-xs font-mono text-gray-800">$1</code>');
+    
+    // Lists
+    formatted = formatted.replace(/^\* (.*$)/gim, '<li class="text-gray-700 mb-1">• $1</li>');
+    formatted = formatted.replace(/^- (.*$)/gim, '<li class="text-gray-700 mb-1">• $1</li>');
+    formatted = formatted.replace(/^(\d+)\. (.*$)/gim, '<li class="text-gray-700 mb-1">$1. $2</li>');
+    
+    // Wrap lists in proper containers
+    formatted = formatted.replace(/(<li.*?<\/li>)/gs, '<ul class="list-none space-y-1 mb-3">$1</ul>');
+    
+    // Blockquotes
+    formatted = formatted.replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-3">$1</blockquote>');
+    
+    // Links
+    formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Line breaks
+    formatted = formatted.replace(/\n\n/g, '</p><p class="mb-3">');
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraphs
+    formatted = `<p class="mb-3">${formatted}</p>`;
+    
+    // Clean up empty paragraphs
+    formatted = formatted.replace(/<p class="mb-3"><\/p>/g, '');
+    
+    return formatted;
+  };
+
+  // Handle messages from OOP panel
+  useEffect(() => {
+    if (messageFromOOP) {
+      // Check if this is a built prompt or AI response
+      if (messageFromOOP.startsWith('📝 Built Prompt:')) {
+        // Built prompt goes to user side
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          text: messageFromOOP,
+          isUser: true,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+      } else if (messageFromOOP.startsWith('🤖 AI Response:')) {
+        // AI response goes to AI side
+        const aiMessage: Message = {
+          id: Date.now().toString(),
+          text: messageFromOOP.replace('🤖 AI Response: ', ''),
+          isUser: false,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else if (messageFromOOP.startsWith('📤 Prompt sent to LLM:')) {
+        // Confirmation message goes to user side
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          text: messageFromOOP,
+          isUser: true,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+      } else {
+        // Fallback: treat as user message
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          text: `📤 Sent from OOP Panel: ${messageFromOOP}`,
+          isUser: true,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+      }
+      
+      // Clear the message to avoid duplicates
+      // Note: We'll need to clear this from the parent component
+    }
+  }, [messageFromOOP]);
 
   const handleSend = async () => {
     if (inputRef.current && inputRef.current.value.trim()) {
@@ -50,10 +151,10 @@ export function ChatPanel({ onSend, onExtractProperties }: Props) {
       setMessages(prev => [...prev, loadingMessage]);
       
       try {
-        // Get AI response
+        // Get AI response with selected LLM
         const response = await llmService.chat([
           { role: 'user', content: text }
-        ]);
+        ], selectedLLM);
         
         // Replace loading message with AI response
         setMessages(prev => prev.map(msg => 
@@ -120,18 +221,10 @@ export function ChatPanel({ onSend, onExtractProperties }: Props) {
     }
   };
 
-  return (
+    return (
     <div className="relative flex flex-col bg-transparent h-full chat-container">
-      {/* Chat Header */}
-      <div className="px-8 py-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Chat Assistant</h2>
-          <p className="text-gray-600">Ask questions, get insights, or optimize your content with AI assistance.</p>
-        </div>
-      </div>
-      
-      {/* Messages Container */}
-      <div className="flex-1 overflow-auto px-8 py-6">
+      {/* Messages Container - Scrollable area */}
+      <div className="flex-1 overflow-y-auto px-8 pt-8 pb-32 min-h-0">
         <div className="max-w-4xl mx-auto space-y-6">
         {messages.map((message) => (
           <div
@@ -146,29 +239,33 @@ export function ChatPanel({ onSend, onExtractProperties }: Props) {
                   {message.timestamp.toLocaleTimeString()}
                 </div>
               </div>
-            ) : (
-              <div className={`inline-block card-base px-5 py-4 text-sm max-w-[600px] hover:shadow-md transition-all ${
-                message.isError ? 'bg-red-50 border-red-200 text-red-800' : 'text-gray-700'
-              }`}>
-                <div className="text-sm leading-relaxed whitespace-pre-line">{message.text}</div>
-                <div className="text-xs mt-3 text-gray-500 opacity-70 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                  {message.timestamp.toLocaleTimeString()}
-                  {message.provider && (
-                    <>
-                      <span>•</span>
-                      <span className="capitalize">{message.provider}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+                         ) : (
+               <div className={`inline-block card-base px-5 py-4 text-sm max-w-[600px] hover:shadow-md transition-all ${
+                 message.isError ? 'bg-red-50 border-red-200 text-red-800' : 'text-gray-700'
+               }`}>
+                                   <div 
+                    className="text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: formatAIResponse(message.text) }}
+                  />
+                 <div className="text-xs mt-3 text-gray-500 opacity-70 flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                   {message.timestamp.toLocaleTimeString()}
+                   {message.provider && (
+                     <>
+                       <span>•</span>
+                       <span className="capitalize">{message.provider === 'openai' ? 'OpenAI' : message.provider === 'gemini' ? 'Gemini' : message.provider === 'claude' ? 'Claude' : message.provider}</span>
+                     </>
+                   )}
+                 </div>
+               </div>
+             )}
           </div>
         ))}
         </div>
       </div>
 
-      <div className="border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/50 to-white/50">
+      {/* Input Area - Fixed at bottom of screen */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/50 to-white/50 z-10">
         <div className="max-w-4xl mx-auto">
           <div className="flex gap-4 items-center card-base bg-white/95 px-4 py-4 shadow-sm hover:shadow-md transition-all duration-200">
             <input

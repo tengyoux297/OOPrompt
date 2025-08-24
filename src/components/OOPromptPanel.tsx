@@ -7,6 +7,7 @@ import { MoreOptionsModal } from "./MoreOptionsModal";
 import { SuggestionsBanner } from "./SuggestionsBanner";
 import { BookmarkHandle } from "./BookmarkHandle";
 import { suggest } from "../api";
+import { llmService } from "../services/llmService";
 
 function ImportanceSegmented({
   value, onChange
@@ -176,11 +177,16 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
 }
 
 export function OOPromptPanel({
-  state, dispatch
-}: { state: AppState; dispatch: React.Dispatch<Action> }) {
+  state, dispatch, onSendMessage
+}: { 
+  state: AppState; 
+  dispatch: React.Dispatch<Action>;
+  onSendMessage?: (message: string) => void;
+}) {
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
+  const [isSending, setIsSending] = useState(false);
 
 
 
@@ -195,8 +201,7 @@ export function OOPromptPanel({
     if (sortBy === "none") return 0; // No sorting, maintain original order
     
     if (sortBy === "importance") {
-      const order: Record<string, number> = { highlight: 0, normal: 1, avoid: 2 };
-      return order[a.importance] - order[b.importance] || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+      return getImportanceOrder(a.importance) - getImportanceOrder(b.importance) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
     }
     
     if (sortBy === "name") {
@@ -230,6 +235,16 @@ export function OOPromptPanel({
     const currentIndex = sortOptions.indexOf(sortBy);
     const nextIndex = (currentIndex + 1) % sortOptions.length;
     setSortBy(sortOptions[nextIndex]);
+  };
+
+  // Get importance order for display (avoid, normal, highlight)
+  const getImportanceOrder = (importance: string) => {
+    switch (importance) {
+      case "avoid": return 0;
+      case "normal": return 1;
+      case "highlight": return 2;
+      default: return 1;
+    }
   };
 
 
@@ -311,7 +326,7 @@ export function OOPromptPanel({
   };
 
   return (
-    <aside className="panel-shell panel-float max-w-[50vw] absolute right-0 top-0 h-full z-50" style={{ width: "var(--panel-w)" }}>
+    <aside className="panel-shell panel-float max-w-[50vw] w-full h-full z-50" style={{ width: "var(--panel-w)" }}>
       {/* Bookmark handle for closing panel */}
       <BookmarkHandle
         open={true}
@@ -409,34 +424,108 @@ export function OOPromptPanel({
           />
         </div>
 
-        {/* Scrollable properties area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4">
-            <div className="grid gap-4 grid-cols-1">
-              {sorted.map((p: Property) => {
-                const isSelected = p.id === selectedPropertyId;
-                console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
-                return (
-                  <PropertyCard
-                    key={p.id}
-                    p={p}
-                    isSelected={isSelected}
-                    onSelect={() => {
-                      console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
-                      // Toggle selection: if already selected, deselect; otherwise select
-                      if (isSelected) {
-                        dispatch({ type: "SELECT_PROPERTY", id: undefined });
-                      } else {
-                        dispatch({ type: "SELECT_PROPERTY", id: p.id });
-                      }
-                    }}
-                    onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
-                    dispatch={dispatch}
-                  />
-                );
-              })}
+        {/* Properties area with scrollbar */}
+        <div className="flex-1 min-h-0">
+          <div className="h-full overflow-y-auto">
+            <div className="p-4">
+              <div className="grid gap-4 grid-cols-1">
+                {sorted.map((p: Property) => {
+                  const isSelected = p.id === selectedPropertyId;
+                  console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
+                  return (
+                    <PropertyCard
+                      key={p.id}
+                      p={p}
+                      isSelected={isSelected}
+                      onSelect={() => {
+                        console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
+                        // Toggle selection: if already selected, deselect; otherwise select
+                        if (isSelected) {
+                          dispatch({ type: "SELECT_PROPERTY", id: undefined });
+                        } else {
+                          dispatch({ type: "SELECT_PROPERTY", id: p.id });
+                        }
+                      }}
+                      onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
+                      dispatch={dispatch}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Send button area - separate block */}
+        <div className="panel-chrome p-4 flex-shrink-0 border-t border-divider">
+          <button 
+            className={`btn-primary w-full py-3 text-base font-medium ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
+            onClick={async () => {
+              if (isSending) return; // Prevent multiple clicks
+              
+              console.log('=== Send Button Clicked ===');
+              console.log('Current OOP object:', oop);
+              
+              setIsSending(true);
+              
+              try {
+                // Step 1: Prepare only the required fields for PROMPT_BUILDER
+                const promptData = {
+                  main_task: oop.main_task,
+                  audience: oop.audience,
+                  properties: oop.properties
+                };
+                console.log('Sending to PROMPT_BUILDER:', promptData);
+                
+                // Step 2: Send to PROMPT_BUILDER assistant
+                console.log('Building prompt with PROMPT_BUILDER assistant...');
+                const builtPrompt = await llmService.buildPromptWithAssistant(promptData);
+                console.log('Built prompt:', builtPrompt);
+                
+                // Step 3: Send the built prompt to LLM API
+                console.log('Sending built prompt to LLM API...');
+                console.log('=== FINAL PROMPT SENT TO LLM ===');
+                console.log(builtPrompt);
+                console.log('================================');
+                
+                const llmResponse = await llmService.chat([
+                  { role: 'user', content: builtPrompt }
+                ]);
+                console.log('LLM response:', llmResponse);
+                
+                // Step 4: Send both the built prompt and LLM response to chat panel
+                if (onSendMessage) {
+                  // Send confirmation that prompt was sent to LLM
+                  onSendMessage(`📤 Prompt sent to LLM: Processing...`);
+                  // Send the built prompt from the assistant (user side)
+                  onSendMessage(`📝 Built Prompt: ${builtPrompt}`);
+                  // Send the LLM response (AI side)
+                  onSendMessage(`🤖 AI Response: ${llmResponse.content}`);
+                }
+                
+                console.log('=== Send Process Completed ===');
+                
+                // Step 5: Automatically hide the OOP panel
+                dispatch({ type: "TOGGLE_PANEL", open: false });
+                
+              } catch (error) {
+                console.error('Send process failed:', error);
+                // TODO: Show error message to user
+              } finally {
+                setIsSending(false);
+              }
+            }}
+            disabled={isSending}
+          >
+            {isSending ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Building Prompt...</span>
+              </div>
+            ) : (
+              'Send'
+            )}
+          </button>
         </div>
       </div>
 
