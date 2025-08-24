@@ -80,10 +80,10 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
         }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-onLight">More Options for "{property.name}"</h2>
+          <h2 className="text-lg font-semibold text-gray-900">More Options for "{property.name}"</h2>
           <button
             onClick={onClose}
-            className="text-text-onLight/60 hover:text-text-onLight/80 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
             aria-label="Close modal"
           >
             ×
@@ -91,15 +91,15 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-divider mb-4">
+        <div className="flex border-b border-gray-200 mb-4">
           {(["examples", "references", "upload"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
-                  ? "border-brand-600 text-brand-600"
-                  : "border-transparent text-text-onLight/60 hover:text-text-onLight/80"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -112,11 +112,11 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
           {activeTab === "examples" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-md font-medium text-text-onLight">Examples</h3>
+                <h3 className="text-md font-medium text-gray-900">Examples</h3>
                 <button
                   onClick={handleGenerateExamples}
                   disabled={isGeneratingExamples}
-                  className="px-3 py-1 bg-brand-600 text-white text-sm rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                   {isGeneratingExamples ? "Generating..." : "Generate with AI"}
                 </button>
@@ -129,7 +129,7 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
                   value={newExample}
                   onChange={(e) => setNewExample(e.target.value)}
                   placeholder="Add a new example..."
-                  className="flex-1 border border-divider rounded-xl px-3 py-2 text-sm text-text-onLight placeholder:text-text-onLight/60"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddExample();
                   }}
@@ -137,7 +137,7 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
                 <button
                   onClick={handleAddExample}
                   disabled={!newExample.trim()}
-                  className="px-3 py-2 bg-intent-success text-white text-sm rounded-xl hover:bg-intent-success/90 disabled:opacity-50 transition-colors"
+                  className="px-3 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
                   Add
                 </button>
@@ -146,33 +146,33 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
               {/* Examples list */}
               <div className="space-y-2">
                 {examples.map((example, index) => (
-                  <div key={index} className="flex items-center justify-between bg-panel rounded-xl border border-divider p-3">
-                    <span className="text-sm text-text-onLight flex-1">{example}</span>
+                  <div key={index} className="flex items-center justify-between bg-gray-50 rounded-xl border border-gray-200 p-3">
+                    <span className="text-sm text-gray-900 flex-1">{example}</span>
                     <button
                       onClick={() => handleRemoveExample(index)}
-                      className="ml-3 text-intent-danger hover:text-intent-danger/80 text-sm transition-colors"
+                      className="ml-3 text-red-600 hover:text-red-700 text-sm transition-colors"
                     >
                       Remove
                     </button>
                   </div>
                 ))}
                 {examples.length === 0 && (
-                  <p className="text-text-onLight/60 text-sm text-center py-4">
+                  <p className="text-gray-500 text-sm text-center py-4">
                     No examples yet. Add some manually or generate with AI.
                   </p>
                 )}
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-divider">
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={handleSaveExamples}
-                  className="px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
                 >
                   Save Examples
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-divider bg-white hover:bg-gray-50 text-text-onLight rounded-xl transition-colors"
+                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
@@ -182,27 +182,27 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
 
           {activeTab === "references" && (
             <div className="space-y-4">
-              <h3 className="text-md font-medium text-text-onLight">Set Value from OOPrompt Object</h3>
-              <p className="text-text-onLight/60 text-sm">
+              <h3 className="text-md font-medium text-gray-900">Set Value from OOPrompt Object</h3>
+              <p className="text-gray-500 text-sm">
                 Choose an existing object or create a new one to reference.
               </p>
               
               <div className="space-y-3">
-                <button className="w-full text-left p-3 border border-divider rounded-xl hover:bg-panel transition-colors">
-                  <div className="font-medium text-text-onLight">Select Existing Object</div>
-                  <div className="text-sm text-text-onLight/60">Choose from your existing OOPrompt objects</div>
+                <button className="w-full text-left p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                  <div className="font-medium text-gray-900">Select Existing Object</div>
+                  <div className="text-sm text-gray-500">Choose from your existing OOPrompt objects</div>
                 </button>
                 
-                <button className="w-full text-left p-3 border border-divider rounded-xl hover:bg-panel transition-colors">
-                  <div className="font-medium text-text-onLight">Create New Object</div>
-                  <div className="text-sm text-text-onLight/60">Create a new OOPrompt object to reference</div>
+                <button className="w-full text-left p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                  <div className="font-medium text-gray-900">Create New Object</div>
+                  <div className="text-sm text-gray-500">Create a new OOPrompt object to reference</div>
                 </button>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-divider">
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-divider bg-white hover:bg-gray-50 text-text-onLight rounded-xl transition-colors"
+                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
                 >
                   Close
                 </button>
@@ -212,26 +212,26 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
 
           {activeTab === "upload" && (
             <div className="space-y-4">
-              <h3 className="text-md font-medium text-text-onLight">Upload Reference</h3>
-              <p className="text-text-onLight/60 text-sm">
+              <h3 className="text-md font-medium text-gray-900">Upload Reference</h3>
+              <p className="text-gray-500 text-sm">
                 Upload a file or document to reference for this property.
               </p>
               
-              <div className="border-2 border-dashed border-divider rounded-xl p-6 text-center">
-                <div className="text-text-onLight/60">
+              <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
+                <div className="text-gray-500">
                   <div className="text-lg mb-2">📁</div>
                   <div className="text-sm">Drag and drop files here, or click to browse</div>
-                  <div className="text-xs text-text-onLight/40 mt-1">Supports: PDF, DOC, TXT, Images</div>
+                  <div className="text-xs text-gray-400 mt-1">Supports: PDF, DOC, TXT, Images</div>
                 </div>
-                <button className="mt-3 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors">
+                <button className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
                   Browse Files
                 </button>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-divider">
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-divider bg-white hover:bg-gray-50 text-text-onLight rounded-xl transition-colors"
+                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
                 >
                   Close
                 </button>

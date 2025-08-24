@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import { llmService, type LLMProvider } from "../services/llmService";
+import type { OOPromptObject } from "../types";
 
 type Props = {
   onSend: (msg: string) => void;
-  onOptimize: (text: string) => void;
   onTogglePanel: () => void;
+  onExtractProperties?: (oopObject: OOPromptObject) => void;
 };
 
 type Message = {
@@ -16,7 +17,7 @@ type Message = {
   isError?: boolean;
 };
 
-export function ChatPanel({ onSend, onOptimize }: Props) {
+export function ChatPanel({ onSend, onExtractProperties }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -88,55 +89,34 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
     }
   };
 
-  const handleOptimize = async () => {
-    const text = inputRef.current?.value || "";
-    if (text.trim()) {
+  const handleExtractProperties = async () => {
+    if (inputRef.current && inputRef.current.value.trim()) {
+      const text = inputRef.current.value.trim();
       setIsOptimizing(true);
       
-      // Add optimization message
-      const optimizeMessage: Message = {
+      // Add user message only
+      const userMessage: Message = {
         id: Date.now().toString(),
-        text: "Analyzing content and extracting properties...",
-        isUser: false,
+        text: `🔍 Extracting properties...`,
+        isUser: true,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, optimizeMessage]);
-      
+      setMessages(prev => [...prev, userMessage]);
+
       try {
-        // Extract properties using LLM
-        const result = await llmService.extractProperties(text, "Content Analysis", "General");
-        
-        // Replace optimization message with results
-        setMessages(prev => prev.map(msg => 
-          msg.id === optimizeMessage.id 
-            ? {
-                id: msg.id,
-                text: `Properties extracted:\n${result.properties.map(p => `• **${p.name}**: ${p.value}`).join('\n')}`,
-                isUser: false,
-                timestamp: new Date(),
-                provider: 'openai' // Default provider for optimization
-              }
-            : msg
-        ));
-        
-        onOptimize(text);
+        const oopObject = await llmService.extractPropertiesWithAssistant(text);
+
+        if (onExtractProperties) {
+          onExtractProperties(oopObject);
+        }
+
       } catch (error) {
-        // Replace optimization message with error
-        setMessages(prev => prev.map(msg => 
-          msg.id === optimizeMessage.id 
-            ? {
-                id: msg.id,
-                text: `Optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                isUser: false,
-                timestamp: new Date(),
-                isError: true
-              }
-            : msg
-        ));
-        console.error('Optimization error:', error);
+        console.error('Property extraction error:', error);
       } finally {
         setIsOptimizing(false);
       }
+      
+      inputRef.current.value = "";
     }
   };
 
@@ -210,7 +190,7 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
               </button>
               <button
                 className={`btn-primary hover:shadow-md transition-all duration-200 px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
-                onClick={handleOptimize}
+                onClick={handleExtractProperties}
                 disabled={isOptimizing}
               >
                 {isOptimizing ? (
@@ -219,7 +199,7 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
                     <span>Processing...</span>
                   </div>
                 ) : (
-                  'Optimize'
+                  'OOPrompt'
                 )}
               </button>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
 import type { Importance, OOPromptObject, Property, Suggestion, Conflict } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
@@ -36,6 +36,9 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
   dispatch: React.Dispatch<Action>;
 }) {
   
+  console.log(`PropertyCard render: ${p.id}, isSelected: ${isSelected}, selectedStyle: ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''}`);
+  console.log(`Details Panel will render: ${isSelected ? 'YES' : 'NO'}`);
+  
   const base = "card-base text-left p-4 w-full transition-all duration-200";
   const style =
     p.importance === "highlight" ? "card-highlight" :
@@ -49,14 +52,17 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
         <div className="text-xs opacity-60 truncate">Property</div>
         <div className="font-semibold mt-0.5 truncate" title={p.name}>{p.name}</div>
         <div className="mt-1.5 text-sm line-clamp-2 break-words">
-          {typeof p.value === "string" ? p.value : `[${p.value.refObjectName}]`}
+          {typeof p.value === "string" 
+            ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
+            : (p.value?.refObjectName || <span className="text-gray-400 italic">To be added...</span>)
+          }
         </div>
         <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.importance}</div>
       </button>
       
       {/* Expandable Details Panel */}
       {isSelected && (
-        <div className="mt-3 overflow-hidden animate-slide-down">
+        <div className="mt-3 overflow-hidden" data-testid="details-panel">
           <div className="card-base bg-white/95 p-4 border-l-4 border-l-blue-500">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900">Property Details</h3>
@@ -77,10 +83,16 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                     className="input text-sm"
                     defaultValue={p.name}
                     onBlur={(e) => {
+                      const updatedProperty = { ...p, name: e.target.value, updatedAt: Date.now() };
                       dispatch({
                         type: "UPSERT_PROPERTY",
-                        payload: { ...p, name: e.target.value, updatedAt: Date.now() },
+                        payload: updatedProperty,
                       });
+                      
+                      // Debug: Log updated property
+                      console.log('=== Property Name Updated ===');
+                      console.log('Updated Property:', updatedProperty);
+                      console.log('============================');
                     }}
                   />
                 </div>
@@ -88,15 +100,21 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
                   <input
                     className="input text-sm"
-                    defaultValue={typeof p.value === "string" ? p.value : p.value.refObjectName}
+                    defaultValue={typeof p.value === "string" ? (p.value || "") : (p.value?.refObjectName || "")}
                     onBlur={(e) => {
                       const nextVal = typeof p.value === "string"
                         ? e.target.value
                         : { ...p.value, refObjectName: e.target.value };
+                      const updatedProperty = { ...p, value: nextVal, updatedAt: Date.now() };
                       dispatch({
                         type: "UPSERT_PROPERTY",
-                        payload: { ...p, value: nextVal, updatedAt: Date.now() },
+                        payload: updatedProperty,
                       });
+                      
+                      // Debug: Log updated property
+                      console.log('=== Property Value Updated ===');
+                      console.log('Updated Property:', updatedProperty);
+                      console.log('============================');
                     }}
                   />
                 </div>
@@ -107,26 +125,46 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                 <ImportanceSegmented
                   value={p.importance}
                   onChange={(v) => {
+                    const updatedProperty = { ...p, importance: v, updatedAt: Date.now() };
                     dispatch({
                       type: "UPSERT_PROPERTY",
-                      payload: { ...p, importance: v, updatedAt: Date.now() },
+                      payload: updatedProperty,
                     });
+                    
+                    // Debug: Log updated property
+                    console.log('=== Property Importance Updated ===');
+                    console.log('Updated Property:', updatedProperty);
+                    console.log('==================================');
                   }}
                 />
               </div>
 
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button 
-                  className="btn-danger text-xs px-3 py-1.5"
-                  onClick={() => dispatch({ type: "DELETE_PROPERTY", id: p.id })}
+                  className="btn-primary text-xs px-3 py-1.5"
+                  onClick={() => {
+                    console.log('=== OK Button Clicked - Hiding Details Panel ===');
+                    onToggleDetails();
+                  }}
                 >
-                  Delete
+                  OK
                 </button>
                 <button 
                   className="btn-ghost text-xs px-3 py-1.5"
                   onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p })}
                 >
                   More options…
+                </button>
+                <button 
+                  className="btn-danger text-xs px-3 py-1.5"
+                  onClick={() => {
+                    console.log('=== Deleting Property ===');
+                    console.log('Property to delete:', p);
+                    console.log('======================');
+                    dispatch({ type: "DELETE_PROPERTY", id: p.id });
+                  }}
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -143,6 +181,8 @@ export function OOPromptPanel({
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
+
+
 
   // Filter properties based on search term
   const filtered = oop.properties.filter((p: Property) => 
@@ -170,6 +210,20 @@ export function OOPromptPanel({
     return 0;
   });
 
+  // Debug: Log current state whenever it changes
+  useEffect(() => {
+    console.log('=== Current JSON Object State ===');
+    console.log(JSON.stringify(state.oop, null, 2));
+    console.log('=== Properties Debug ===', { 
+      allProperties: oop.properties, 
+      filtered, 
+      sorted, 
+      selectedPropertyId,
+      propertiesCount: oop.properties.length 
+    });
+    console.log('================================');
+  }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId]);
+
   // Cycle through sorting options
   const cycleSort = () => {
     const sortOptions: Array<"none" | "importance" | "name" | "time"> = ["none", "importance", "name", "time"];
@@ -183,6 +237,13 @@ export function OOPromptPanel({
   const handleAddProperty = (property: Property) => {
     dispatch({ type: "UPSERT_PROPERTY", payload: property });
     dispatch({ type: "CLOSE_MODAL" });
+    
+    // Debug: Log current state after adding property
+    setTimeout(() => {
+      console.log('=== Current JSON Object After Adding Property ===');
+      console.log(JSON.stringify(state.oop, null, 2));
+      console.log('===============================================');
+    }, 100);
   };
 
   const handleAISuggestion = async () => {
@@ -258,112 +319,125 @@ export function OOPromptPanel({
         onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
       />
       
-      {/* Header with Brief (main_task / audience) */}
-      <div className="panel-chrome p-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold text-text-onLight">OOPrompt</div>
+      {/* Fixed height container with flexbox layout */}
+      <div className="flex flex-col h-full">
+        {/* Header with Brief (main_task / audience) */}
+        <div className="panel-chrome p-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-text-onLight">OOPrompt</div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <input
+              className="input"
+              placeholder="Main task"
+              defaultValue={oop.main_task || ""}
+              onBlur={(e) => {
+                const next: OOPromptObject = { ...oop, main_task: e.target.value };
+                dispatch({ type: "SET_OOP", payload: next });
+                
+                // Debug: Log current state after updating main task
+                setTimeout(() => {
+                  console.log('=== Current JSON Object After Updating Main Task ===');
+                  console.log(JSON.stringify(next, null, 2));
+                  console.log('==================================================');
+                }, 100);
+              }}
+            />
+            <input
+              className="input"
+              placeholder="Audience"
+              defaultValue={oop.audience || ""}
+              onBlur={(e) => {
+                const next: OOPromptObject = { ...oop, audience: e.target.value };
+                dispatch({ type: "SET_OOP", payload: next });
+                
+                // Debug: Log current state after updating audience
+                setTimeout(() => {
+                  console.log('=== Current JSON Object After Updating Audience ===');
+                  console.log(JSON.stringify(next, null, 2));
+                  console.log('==================================================');
+                }, 100);
+              }}
+            />
+          </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <input
-            className="input"
-            placeholder="Main task"
-            defaultValue={oop.main_task}
-            onBlur={(e) => {
-              const next: OOPromptObject = { ...oop, main_task: e.target.value };
-              dispatch({ type: "SET_OOP", payload: next });
-            }}
-          />
-          <input
-            className="input"
-            placeholder="Audience"
-            defaultValue={oop.audience}
-            onBlur={(e) => {
-              const next: OOPromptObject = { ...oop, audience: e.target.value };
-              dispatch({ type: "SET_OOP", payload: next });
-            }}
-          />
-        </div>
-      </div>
 
-      {/* Suggestions Banner */}
-      <SuggestionsBanner
-        suggestions={suggestions.suggested}
-        conflicts={suggestions.conflicts}
-        isVisible={suggestions.isVisible}
-        onAddSuggestion={handleAddSuggestion}
-        onDismissSuggestion={handleDismissSuggestion}
-        onResolveConflict={handleResolveConflict}
-        onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
-      />
-
-      {/* Toolbar */}
-      <div className="panel-chrome p-3 flex gap-2 items-center sticky top-[56px] z-10">
-        <button 
-          className="btn-primary w-10 h-10 flex items-center justify-center"
-          onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
-          title="Add Property"
-        >
-          <span className="text-lg font-bold">+</span>
-        </button>
-        <button 
-          className="btn-ghost w-10 h-10 flex items-center justify-center"
-          onClick={cycleSort}
-          title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "importance" ? "Sorting by Importance" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
-        >
-          <span className="text-sm">
-            {sortBy === "none" && "🔀"}
-            {sortBy === "importance" && "🎯"}
-            {sortBy === "name" && "📝"}
-            {sortBy === "time" && "🕒"}
-          </span>
-        </button>
-        <button 
-          className="btn-tonal w-10 h-10 flex items-center justify-center"
-          onClick={handleAISuggestion}
-          title="AI Suggestion"
-        >
-          <span className="text-sm">🤖</span>
-        </button>
-        <input 
-          className="input flex-1 h-10" 
-          placeholder="Search properties…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Suggestions Banner */}
+        <SuggestionsBanner
+          suggestions={suggestions.suggested}
+          conflicts={suggestions.conflicts}
+          isVisible={suggestions.isVisible}
+          onAddSuggestion={handleAddSuggestion}
+          onDismissSuggestion={handleDismissSuggestion}
+          onResolveConflict={handleResolveConflict}
+          onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
         />
-      </div>
 
-      {/* Grid of read-only cards */}
-      <div className="p-4 grid gap-4 grid-cols-1">
-        {sorted.map((p: Property) => (
-          <PropertyCard
-            key={p.id}
-            p={p}
-            isSelected={p.id === selectedPropertyId}
-            onSelect={() => dispatch({ type: "SELECT_PROPERTY", id: p.id })}
-            onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
-            dispatch={dispatch}
+        {/* Toolbar */}
+        <div className="panel-chrome p-3 flex gap-2 items-center flex-shrink-0">
+          <button 
+            className="btn-primary w-10 h-10 flex items-center justify-center"
+            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
+            title="Add Property"
+          >
+            <span className="text-lg font-bold">+</span>
+          </button>
+          <button 
+            className="btn-ghost w-10 h-10 flex items-center justify-center"
+            onClick={cycleSort}
+            title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "importance" ? "Sorting by Importance" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
+          >
+            <span className="text-sm">
+              {sortBy === "none" && "🔀"}
+              {sortBy === "importance" && "🎯"}
+              {sortBy === "name" && "📝"}
+              {sortBy === "time" && "🕒"}
+            </span>
+          </button>
+          <button 
+            className="btn-tonal w-10 h-10 flex items-center justify-center"
+            onClick={handleAISuggestion}
+            title="AI Suggestion"
+          >
+            <span className="text-sm">🤖</span>
+          </button>
+          <input 
+            className="input flex-1 h-10" 
+            placeholder="Search properties…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-        ))}
-      </div>
+        </div>
 
-      
-
-      {/* Undo/Redo */}
-      <div className="p-4 flex gap-2">
-        <button 
-          className="btn-ghost" 
-          onClick={() => dispatch({ type: "UNDO" })}
-          disabled={state.past.length === 0}
-        >
-          Undo
-        </button>
-        <button 
-          className="btn-ghost" 
-          onClick={() => dispatch({ type: "REDO" })}
-          disabled={state.future.length === 0}
-        >
-          Redo
-        </button>
+        {/* Scrollable properties area */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="p-4">
+            <div className="grid gap-4 grid-cols-1">
+              {sorted.map((p: Property) => {
+                const isSelected = p.id === selectedPropertyId;
+                console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
+                return (
+                  <PropertyCard
+                    key={p.id}
+                    p={p}
+                    isSelected={isSelected}
+                    onSelect={() => {
+                      console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
+                      // Toggle selection: if already selected, deselect; otherwise select
+                      if (isSelected) {
+                        dispatch({ type: "SELECT_PROPERTY", id: undefined });
+                      } else {
+                        dispatch({ type: "SELECT_PROPERTY", id: p.id });
+                      }
+                    }}
+                    onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
+                    dispatch={dispatch}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

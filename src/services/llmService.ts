@@ -16,12 +16,16 @@ class LLMService {
   private openaiApiKey: string;
   private geminiApiKey: string;
   private claudeApiKey: string;
+  private propertyExtractorId: string;
 
   constructor() {
     // Try VITE_ prefixed keys first, then fallback to non-prefixed
     this.openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
     this.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
     this.claudeApiKey = import.meta.env.VITE_CLAUDE_API_KEY || import.meta.env.CLAUDE_API_KEY || '';
+    
+    // Get the PROPERTY_EXTRACTOR assistant ID
+    this.propertyExtractorId = import.meta.env.VITE_PROPERTY_EXTRACTOR || import.meta.env.PROPERTY_EXTRACTOR || '';
   }
 
   // OpenAI Chat Completion
@@ -166,7 +170,125 @@ class LLMService {
     throw new Error('All LLM providers failed');
   }
 
-  // Property extraction using LLM
+  // Property extraction using OpenAI Assistant
+  async extractPropertiesWithAssistant(prompt: string): Promise<any> {
+    if (!this.openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    
+    if (!this.propertyExtractorId) {
+      throw new Error('PROPERTY_EXTRACTOR assistant ID not configured. Please set VITE_PROPERTY_EXTRACTOR in your .env file');
+    }
+    
+    console.log('Using assistant ID:', this.propertyExtractorId);
+    console.log('API key configured:', !!this.openaiApiKey);
+
+    try {
+      // Create a thread
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (!threadResponse.ok) {
+        const errorText = await threadResponse.text();
+        console.error('Thread creation error:', threadResponse.status, errorText);
+        throw new Error(`Failed to create thread: ${threadResponse.status} - ${errorText}`);
+      }
+
+      const thread = await threadResponse.json();
+
+      // Add message to thread
+      const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({
+          role: 'user',
+          content: prompt
+        })
+      });
+
+      if (!messageResponse.ok) {
+        throw new Error(`Failed to add message: ${messageResponse.status}`);
+      }
+
+      // Run the assistant
+      const runResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({
+          assistant_id: this.propertyExtractorId
+        })
+      });
+
+      if (!runResponse.ok) {
+        throw new Error(`Failed to run assistant: ${runResponse.status}`);
+      }
+
+      const run = await runResponse.json();
+
+      // Poll for completion
+      let runStatus = run.status;
+      while (runStatus === 'queued' || runStatus === 'in_progress') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
+          headers: {
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+            'OpenAI-Beta': 'assistants=v2'
+          }
+        });
+        
+        if (statusResponse.ok) {
+          const runData = await statusResponse.json();
+          runStatus = runData.status;
+        }
+      }
+
+      if (runStatus === 'completed') {
+        // Get the messages
+        const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+          headers: {
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+            'OpenAI-Beta': 'assistants=v2'
+          }
+        });
+
+        if (messagesResponse.ok) {
+          const messages = await messagesResponse.json();
+          const lastMessage = messages.data[0]; // Get the assistant's response
+          
+          try {
+            // Parse the JSON response
+            const oopObject = JSON.parse(lastMessage.content[0].text.value);
+            return oopObject;
+          } catch (parseError) {
+            console.error('Failed to parse assistant response:', parseError);
+            throw new Error('Invalid JSON response from assistant');
+          }
+        }
+      } else {
+        throw new Error(`Assistant run failed with status: ${runStatus}`);
+      }
+    } catch (error) {
+      console.error('Assistant-based property extraction failed:', error);
+      throw error;
+    }
+  }
+
+  // Property extraction using LLM (fallback method)
   async extractProperties(prompt: string, mainTask: string, audience: string): Promise<{ properties: Array<{ name: string; value: string }> }> {
     const systemMessage = `You are an expert at analyzing content and extracting key properties. 
     Given a piece of content, main task, and target audience, identify the most important properties that define the content's characteristics.
@@ -174,7 +296,7 @@ class LLMService {
     Return ONLY a JSON array of objects with "name" and "value" fields. Example:
     [{"name": "Tone", "value": "professional, friendly"}, {"name": "Style", "value": "conversational, clear"}]
     
-    Focus on properties that are most relevant to the main task and audience.`;
+    Focus on properties that are relevant to the main task and audience.`;
 
     const userMessage = `Content: ${prompt}
     Main Task: ${mainTask}

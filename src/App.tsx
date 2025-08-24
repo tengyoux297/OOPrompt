@@ -3,7 +3,7 @@ import type { OOPromptObject } from "./types";
 import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
-import { extractProperties } from "./api";
+
 import "./index.css";
 
 const seed: OOPromptObject = {
@@ -11,27 +11,7 @@ const seed: OOPromptObject = {
   name: "Main OOPrompt",
   main_task: "",
   audience: "",
-  properties: [
-    {
-      id: "p1",
-      name: "Tone",
-      value: "mysterious, hopeful",
-      importance: "highlight",
-      examples: ["Keep tension in Act I", "Hopeful twist at end"],
-      source: "user",
-      createdAt: 1724380000000,
-      updatedAt: 1724380000000
-    },
-    {
-      id: "p2",
-      name: "Protagonist",
-      value: { refObjectId: "char001", refObjectName: "Hero Character Sheet" },
-      importance: "normal",
-      source: "ai-suggested",
-      createdAt: 1724380100000,
-      updatedAt: 1724380100000
-    }
-  ],
+  properties: [],
   tabsOrder: ["root"],
   log: []
 };
@@ -39,35 +19,7 @@ const seed: OOPromptObject = {
 export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
 
-  const handleOptimize = async (text: string) => {
-    try {
-      const result = await extractProperties(text, state.oop.main_task, state.oop.audience);
-      
-      // Convert extracted properties to Property format
-      const newProperties = result.properties.map((prop, index) => ({
-        id: `extracted_${Date.now()}_${index}`,
-        name: prop.name,
-        value: prop.value,
-        importance: "normal" as const,
-        source: "ai-suggested" as const,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }));
 
-      // Create new OOPrompt object with extracted properties
-      const newOOP: OOPromptObject = {
-        ...state.oop,
-        properties: newProperties,
-      };
-
-      dispatch({ type: "SET_OOP", payload: newOOP });
-      dispatch({ type: "TOGGLE_PANEL", open: true });
-    } catch (error) {
-      console.error("Failed to extract properties:", error);
-      // Fallback: just open the panel
-      dispatch({ type: "TOGGLE_PANEL", open: true });
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
@@ -96,8 +48,56 @@ export default function App() {
             // TODO: call your chat backend
             console.log("Send:", msg);
           }}
-          onOptimize={handleOptimize}
           onTogglePanel={() => dispatch({ type: "TOGGLE_PANEL" })}
+          onExtractProperties={(oopObject) => {
+            console.log('Extracted OOP object:', oopObject);
+            console.log('Properties count:', oopObject.properties?.length || 0);
+            console.log('Properties:', oopObject.properties);
+            
+            // Validate and normalize the properties
+            if (oopObject.properties && Array.isArray(oopObject.properties) && oopObject.properties.length > 0) {
+              const normalizedProperties = oopObject.properties.map((prop, index) => {
+                // Ensure each property has required fields
+                return {
+                  id: prop.id || `extracted_${Date.now()}_${index}`,
+                  name: prop.name || `Property ${index + 1}`,
+                  value: prop.value || "",
+                  importance: prop.importance || "normal",
+                  examples: prop.examples || [],
+                  source: prop.source || "ai-suggested",
+                  createdAt: prop.createdAt || Date.now(),
+                  updatedAt: prop.updatedAt || Date.now(),
+                };
+              });
+              
+              const normalizedOOP = {
+                ...oopObject,
+                properties: normalizedProperties
+              };
+              
+              console.log('Normalized properties:', normalizedProperties);
+              
+              // Update the OOP state with normalized properties
+              dispatch({ type: "SET_OOP", payload: normalizedOOP });
+            } else {
+              console.warn('No properties found in extracted object, keeping main_task and audience in their dedicated fields');
+              
+              // Keep the OOP object as-is, with main_task and audience in their proper fields
+              // Don't create duplicate property cards for these fields
+              const cleanOOP = {
+                ...oopObject,
+                properties: [] // Empty properties array - no cards to display
+              };
+              
+              console.log('No properties extracted, main_task and audience remain in dedicated input fields');
+              dispatch({ type: "SET_OOP", payload: cleanOOP });
+            }
+            
+            // Reset property selection to ensure details panel works
+            dispatch({ type: "SELECT_PROPERTY", id: undefined });
+            // Open the panel to show the extracted properties
+            dispatch({ type: "TOGGLE_PANEL", open: true });
+          }}
         />
 
         {/* Floating OOP panel overlay */}
@@ -113,7 +113,7 @@ export default function App() {
         )}
 
         {/* Edge handle to open panel when closed */}
-        {!state.openPanel && (
+        {!state.openPanel && state.oop.main_task && state.oop.main_task.trim() && (
           <BookmarkHandle
             open={false}
             attachTo="viewport-right"
