@@ -5,6 +5,7 @@ import { AddPropertyModal } from "./AddPropertyModal";
 import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
 import { SuggestionsBanner } from "./SuggestionsBanner";
+import { BookmarkHandle } from "./BookmarkHandle";
 import { suggest } from "../api";
 
 function ImportanceSegmented({
@@ -12,18 +13,12 @@ function ImportanceSegmented({
 }: { value: Importance; onChange: (v: Importance) => void }) {
   const opts: Importance[] = ["highlight", "normal", "avoid"];
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-2xl border border-divider bg-panel shadow-xs">
+    <div className="segmented">
       {opts.map(o => (
         <button
           key={o}
           onClick={() => onChange(o)}
-          className={
-            "px-3 py-1 text-sm capitalize transition-colors " +
-            (o === value 
-              ? "bg-brand-600 text-white" 
-              : "bg-transparent text-text-onLight hover:bg-white"
-            )
-          }
+          className={"segmented-btn " + (o === value ? "segmented-on" : "segmented-off")}
           aria-pressed={o === value}
         >
           {o}
@@ -33,63 +28,112 @@ function ImportanceSegmented({
   );
 }
 
-function PropertyCard({ p, onSelect, isSelected }: { p: Property; onSelect: () => void; isSelected: boolean }) {
+function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: { 
+  p: Property; 
+  onSelect: () => void; 
+  isSelected: boolean;
+  onToggleDetails: () => void;
+  dispatch: React.Dispatch<Action>;
+}) {
   
-  // Map importance to the correct card styles using CSS custom properties
-  const getCardStyle = () => {
-    if (p.importance === "highlight") {
-      return {
-        backgroundColor: "var(--color-card-highlight)",
-        borderColor: "var(--color-intent-warn)",
-        color: "var(--color-text-onLight)"
-      };
-    } else if (p.importance === "avoid") {
-      return {
-        backgroundColor: "var(--color-card-avoid)",
-        borderColor: "#1F2430",
-        color: "var(--color-text-onDark)"
-      };
-    } else {
-      return {
-        backgroundColor: "var(--color-card-normal)",
-        borderColor: "var(--color-divider)",
-        color: "var(--color-text-onLight)"
-      };
-    }
-  };
-
-  const val = typeof p.value === "string" ? p.value : `[${p.value.refObjectName}]`;
-
+  const base = "card-base text-left p-4 w-full transition-all duration-200";
+  const style =
+    p.importance === "highlight" ? "card-highlight" :
+    p.importance === "avoid"     ? "card-avoid"     :
+                                   "";
+  const selectedStyle = isSelected ? "ring-2 ring-blue-500 ring-offset-2 shadow-lg" : "";
+  
   return (
-    <button
-      onClick={onSelect}
-      style={{
-        ...getCardStyle(),
-        textAlign: 'left',
-        border: '1px solid',
-        borderRadius: 'var(--radius-2xl)',
-        padding: '16px',
-        transition: 'all 0.2s ease',
-        cursor: 'pointer',
-        boxShadow: 'var(--shadow-xs)',
-        ...(isSelected && {
-          borderColor: 'var(--color-brand-600)',
-          borderWidth: '2px'
-        })
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-      }}
-      title="Open details"
-    >
-      <div style={{ fontSize: '12px', opacity: 0.6 }}>Property</div>
-      <div style={{ fontWeight: 600, marginTop: '8px' }}>{p.name}</div>
-      <div style={{ marginTop: '4px', fontSize: '14px', lineHeight: '20px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{val}</div>
-      <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.7, textTransform: 'capitalize' }}>{p.importance}</div>
-    </button>
+    <div className="w-full">
+      <button onClick={onSelect} className={`${base} ${style} ${selectedStyle}`}>
+        <div className="text-xs opacity-60 truncate">Property</div>
+        <div className="font-semibold mt-0.5 truncate" title={p.name}>{p.name}</div>
+        <div className="mt-1.5 text-sm line-clamp-2 break-words">
+          {typeof p.value === "string" ? p.value : `[${p.value.refObjectName}]`}
+        </div>
+        <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.importance}</div>
+      </button>
+      
+      {/* Expandable Details Panel */}
+      {isSelected && (
+        <div className="mt-3 overflow-hidden animate-slide-down">
+          <div className="card-base bg-white/95 p-4 border-l-4 border-l-blue-500">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">Property Details</h3>
+              <button 
+                onClick={onToggleDetails}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close details"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                  <input
+                    className="input text-sm"
+                    defaultValue={p.name}
+                    onBlur={(e) => {
+                      dispatch({
+                        type: "UPSERT_PROPERTY",
+                        payload: { ...p, name: e.target.value, updatedAt: Date.now() },
+                      });
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
+                  <input
+                    className="input text-sm"
+                    defaultValue={typeof p.value === "string" ? p.value : p.value.refObjectName}
+                    onBlur={(e) => {
+                      const nextVal = typeof p.value === "string"
+                        ? e.target.value
+                        : { ...p.value, refObjectName: e.target.value };
+                      dispatch({
+                        type: "UPSERT_PROPERTY",
+                        payload: { ...p, value: nextVal, updatedAt: Date.now() },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-gray-600">Importance</span>
+                <ImportanceSegmented
+                  value={p.importance}
+                  onChange={(v) => {
+                    dispatch({
+                      type: "UPSERT_PROPERTY",
+                      payload: { ...p, importance: v, updatedAt: Date.now() },
+                    });
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-gray-100">
+                <button 
+                  className="btn-danger text-xs px-3 py-1.5"
+                  onClick={() => dispatch({ type: "DELETE_PROPERTY", id: p.id })}
+                >
+                  Delete
+                </button>
+                <button 
+                  className="btn-ghost text-xs px-3 py-1.5"
+                  onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p })}
+                >
+                  More options…
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -97,19 +141,44 @@ export function OOPromptPanel({
   state, dispatch
 }: { state: AppState; dispatch: React.Dispatch<Action> }) {
   const { oop, selectedPropertyId, suggestions, modal } = state;
-  const selected = oop.properties.find(p => p.id === selectedPropertyId);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
 
-  // simple sort: highlight -> normal -> avoid -> updatedAt desc
-  const order: Record<string, number> = { highlight: 0, normal: 1, avoid: 2 };
+  // Filter properties based on search term
   const filtered = oop.properties.filter((p: Property) => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (typeof p.value === "string" && p.value.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  const sorted = [...filtered].sort((a: Property, b: Property) =>
-    order[a.importance] - order[b.importance] ||
-    (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
-  );
+
+  // Sort properties based on user selection
+  const sorted = [...filtered].sort((a: Property, b: Property) => {
+    if (sortBy === "none") return 0; // No sorting, maintain original order
+    
+    if (sortBy === "importance") {
+      const order: Record<string, number> = { highlight: 0, normal: 1, avoid: 2 };
+      return order[a.importance] - order[b.importance] || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+    }
+    
+    if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
+    }
+    
+    if (sortBy === "time") {
+      return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+    }
+    
+    return 0;
+  });
+
+  // Cycle through sorting options
+  const cycleSort = () => {
+    const sortOptions: Array<"none" | "importance" | "name" | "time"> = ["none", "importance", "name", "time"];
+    const currentIndex = sortOptions.indexOf(sortBy);
+    const nextIndex = (currentIndex + 1) % sortOptions.length;
+    setSortBy(sortOptions[nextIndex]);
+  };
+
+
 
   const handleAddProperty = (property: Property) => {
     dispatch({ type: "UPSERT_PROPERTY", payload: property });
@@ -166,8 +235,10 @@ export function OOPromptPanel({
     dispatch({ type: "OPEN_MODAL", modal: "conflict-resolve", data: conflict });
   };
 
-  const handleConflictResolution = (_resolution: "keepA" | "keepB" | "merge") => {
+  const handleConflictResolution = (resolution: "keepA" | "keepB" | "merge") => {
     // For now, just remove the conflict - in a real app you'd implement the resolution logic
+    // TODO: Implement resolution logic using the resolution parameter
+    console.log("Resolution selected:", resolution); // Use the parameter to avoid linter warning
     const newConflicts = suggestions.conflicts.filter((c: Conflict) => 
       c.name !== (modal && typeof modal === 'object' && 'name' in modal ? (modal as Conflict).name : null)
     );
@@ -179,21 +250,22 @@ export function OOPromptPanel({
   };
 
   return (
-    <aside className="border-l border-divider bg-panel max-w-[50vw]" style={{ width: "var(--panel-w)" }}>
+    <aside className="panel-shell max-w-[50vw] relative" style={{ width: "var(--panel-w)" }}>
+      {/* Bookmark handle for closing panel */}
+      <BookmarkHandle
+        open={true}
+        attachTo="panel-left"
+        onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
+      />
+      
       {/* Header with Brief (main_task / audience) */}
-      <div className="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-divider p-4">
+      <div className="panel-chrome p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="font-semibold text-text-onLight">OOPrompt</div>
-          <button
-            className="text-sm text-text-onLight hover:text-text-onLight/80 transition-colors"
-            onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
-          >
-            Close ×
-          </button>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <input
-            className="border border-divider rounded-xl px-3 py-2 text-sm bg-white text-text-onLight placeholder:text-text-onLight/60"
+            className="input"
             placeholder="Main task"
             defaultValue={oop.main_task}
             onBlur={(e) => {
@@ -202,7 +274,7 @@ export function OOPromptPanel({
             }}
           />
           <input
-            className="border border-divider rounded-xl px-3 py-2 text-sm bg-white text-text-onLight placeholder:text-text-onLight/60"
+            className="input"
             placeholder="Audience"
             defaultValue={oop.audience}
             onBlur={(e) => {
@@ -225,123 +297,68 @@ export function OOPromptPanel({
       />
 
       {/* Toolbar */}
-      <div className="sticky top-[72px] z-10 bg-panel/95 backdrop-blur border-b border-divider p-3 flex gap-2 items-center">
+      <div className="panel-chrome p-3 flex gap-2 items-center sticky top-[56px] z-10">
         <button 
-          className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-3 py-2 text-sm shadow-xs transition-colors"
+          className="btn-primary w-10 h-10 flex items-center justify-center"
           onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
+          title="Add Property"
         >
-          + Add Property
+          <span className="text-lg font-bold">+</span>
+        </button>
+        <button 
+          className="btn-ghost w-10 h-10 flex items-center justify-center"
+          onClick={cycleSort}
+          title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "importance" ? "Sorting by Importance" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
+        >
+          <span className="text-sm">
+            {sortBy === "none" && "🔀"}
+            {sortBy === "importance" && "🎯"}
+            {sortBy === "name" && "📝"}
+            {sortBy === "time" && "🕒"}
+          </span>
+        </button>
+        <button 
+          className="btn-tonal w-10 h-10 flex items-center justify-center"
+          onClick={handleAISuggestion}
+          title="AI Suggestion"
+        >
+          <span className="text-sm">🤖</span>
         </button>
         <input 
-          className="border border-divider rounded-xl px-3 py-2 text-sm bg-white flex-1 text-text-onLight placeholder:text-text-onLight/60" 
+          className="input flex-1 h-10" 
           placeholder="Search properties…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button 
-          className="border border-divider bg-white hover:bg-gray-50 rounded-xl px-3 py-2 text-sm transition-colors"
-          onClick={handleAISuggestion}
-        >
-          AI Suggestion
-        </button>
       </div>
 
       {/* Grid of read-only cards */}
-      <div className="p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="p-4 grid gap-4 grid-cols-1">
         {sorted.map((p: Property) => (
           <PropertyCard
             key={p.id}
             p={p}
             isSelected={p.id === selectedPropertyId}
             onSelect={() => dispatch({ type: "SELECT_PROPERTY", id: p.id })}
+            onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
+            dispatch={dispatch}
           />
         ))}
       </div>
 
-      {/* Details panel */}
-      <div className="border-t border-divider p-4 bg-white">
-        <div className="text-sm font-semibold mb-3 text-text-onLight">Details</div>
-        {!selected && <div className="text-sm text-text-onLight/60">Select a property to edit.</div>}
-        {selected && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                className="border border-divider rounded-xl px-3 py-2 text-sm bg-white text-text-onLight"
-                defaultValue={selected.name}
-                onBlur={(e) =>
-                  dispatch({
-                    type: "UPSERT_PROPERTY",
-                    payload: { ...selected, name: e.target.value, updatedAt: Date.now() },
-                  })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") e.currentTarget.value = selected.name;
-                }}
-              />
-              <input
-                className="border border-divider rounded-xl px-3 py-2 text-sm bg-white text-text-onLight"
-                defaultValue={typeof selected.value === "string" ? selected.value : selected.value.refObjectName}
-                onBlur={(e) => {
-                  const nextVal = typeof selected.value === "string"
-                    ? e.target.value
-                    : { ...selected.value, refObjectName: e.target.value };
-                  dispatch({
-                    type: "UPSERT_PROPERTY",
-                    payload: { ...selected, value: nextVal, updatedAt: Date.now() },
-                  });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") {
-                    e.currentTarget.value = typeof selected.value === "string" ? selected.value : selected.value.refObjectName;
-                  }
-                }}
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-text-onLight/70">Importance</span>
-              <ImportanceSegmented
-                value={selected.importance}
-                onChange={(v) =>
-                  dispatch({
-                    type: "UPSERT_PROPERTY",
-                    payload: { ...selected, importance: v, updatedAt: Date.now() },
-                  })
-                }
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                className="border border-[#FCA5A5] text-[#B91C1C] hover:bg-[#FEE2E2] rounded-xl px-3 py-2 text-sm transition-colors"
-                onClick={() => dispatch({ type: "DELETE_PROPERTY", id: selected.id })}
-              >
-                Delete
-              </button>
-              <button 
-                className="border border-divider bg-white hover:bg-gray-50 rounded-xl px-3 py-2 text-sm"
-                onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: selected })}
-              >
-                More options…
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      
 
       {/* Undo/Redo */}
       <div className="p-4 flex gap-2">
         <button 
-          className="border border-divider bg-white hover:bg-gray-50 rounded-xl px-3 py-2 text-sm" 
+          className="btn-ghost" 
           onClick={() => dispatch({ type: "UNDO" })}
           disabled={state.past.length === 0}
         >
           Undo
         </button>
         <button 
-          className="border border-divider bg-white hover:bg-gray-50 rounded-xl px-3 py-2 text-sm" 
+          className="btn-ghost" 
           onClick={() => dispatch({ type: "REDO" })}
           disabled={state.future.length === 0}
         >

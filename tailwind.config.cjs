@@ -19,38 +19,27 @@ module.exports = {
         '6': '24px',
         '8': '32px',
       },
-      borderRadius: {
-        xl: "10px",
-        "2xl": "12px",
+      borderRadius: { 
+        xl: "14px", 
+        "2xl": "18px",
+        full: "999px"
       },
       boxShadow: {
-        xs: "0 1px 2px rgba(0,0,0,0.06)",
+        xs: "0 1px 2px rgba(10,15,25,.08)",
+        md: "0 8px 24px rgba(10,15,25,.08)"
       },
       colors: {
-        brand: {
-          600: "#4F46E5",
-          700: "#4338CA",
-        },
-        surface: "#FFFFFF",
-        panel: {
-          DEFAULT: "#F8FAFC",
-          dark: "#0F1115",
-        },
+        brand: { 600: "#1A73E8", 700: "#1557B0" },        // Google blue
+        brandTint: { DEFAULT: "#E8F0FE" },                // soft blue tint
+        surface: { DEFAULT: "#F7F9FC" },                  // page bg
+        panel:   { DEFAULT: "#FFFFFF" },                  // shells/cards
         card: {
-          normal: "#FFFFFF",
-          highlight: "#FFF4D6",
-          avoid: "#111317",
+          normal: "rgba(255,255,255,0.92)",
+          highlight: "#E8F0FE",
+          avoid: "rgba(15,17,21,0.92)"
         },
-        text: {
-          onLight: "#111827",
-          onDark: "#E5E7EB",
-        },
-        divider: "#E5E7EB",
-        intent: {
-          success: "#10B981",
-          warn: "#F59E0B",
-          danger: "#EF4444",
-        },
+        text: { onLight: "#0B1320", onDark: "#E6EAF2" },
+        divider: "rgba(11,19,32,0.10)"
       },
     },
   },

@@ -2,6 +2,7 @@ import { useOOPrompt } from "./state/useOOPrompt";
 import type { OOPromptObject } from "./types";
 import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
+import { BookmarkHandle } from "./components/BookmarkHandle";
 import { extractProperties } from "./api";
 import "./index.css";
 
@@ -70,19 +71,27 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
       {/* Top bar */}
-      <header className="h-14 border-b border-divider bg-white/80 backdrop-blur flex items-center justify-between px-6">
-        <div className="font-semibold text-text-onLight">OOPrompt</div>
-        <select className="border border-divider rounded-xl px-3 py-2 bg-white text-text-onLight text-sm">
-          <option>GPT-4</option>
-          <option>Gemini</option>
-          <option>Claude</option>
-        </select>
+      <header className="h-16 panel-chrome flex items-center justify-between px-8 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-lg">O</span>
+          </div>
+          <div className="font-bold text-xl text-gray-900">OOPrompt</div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-600">AI Model:</div>
+          <select className="border border-gray-200 rounded-xl px-4 py-2 bg-white text-gray-900 text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+            <option>GPT-4</option>
+            <option>Gemini</option>
+            <option>Claude</option>
+          </select>
+        </div>
       </header>
 
       {/* Main grid: chat + (optional) panel */}
-      <div className="flex-1 grid bg-surface" style={{ gridTemplateColumns: state.openPanel ? `1fr ${panelWidth}` : "1fr" }}>
+      <div className="flex-1 grid" style={{ gridTemplateColumns: state.openPanel ? `1fr ${panelWidth}` : "1fr" }}>
         <ChatPanel
           onSend={(msg) => {
             // TODO: call your chat backend
@@ -96,23 +105,13 @@ export default function App() {
           <OOPromptPanel state={state} dispatch={dispatch} />
         )}
 
-        {/* Edge handle to open */}
+        {/* Edge handle to open panel when closed */}
         {!state.openPanel && (
-          <button
+          <BookmarkHandle
+            open={false}
+            attachTo="viewport-right"
             onClick={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
-            className="fixed right-3 top-1/2 -translate-y-1/2 rounded-2xl shadow-xs border border-divider bg-white p-2 hover:shadow transition"
-            style={{
-              position: 'fixed',
-              right: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 50
-            }}
-            aria-label="Open OOPrompt panel"
-            title="Open OOPrompt (Ctrl/Cmd + =)"
-          >
-            <span className="text-lg font-bold text-text-onLight">←</span>
-          </button>
+          />
         )}
       </div>
     </div>

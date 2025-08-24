@@ -99,13 +99,13 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
         </div>
 
         {/* Mode selector */}
-        <div className="flex mb-4 border border-divider rounded-xl overflow-hidden">
+        <div className="flex mb-4 border border-gray-200 rounded-xl overflow-hidden">
           <button
             onClick={() => setMode("structured")}
             className={`flex-1 px-3 py-2 text-sm transition-colors ${
               mode === "structured"
-                ? "bg-brand-600 text-white"
-                : "bg-white hover:bg-gray-50 text-text-onLight"
+                ? "modal-selected"
+                : "modal-unselected"
             }`}
           >
             Structured
@@ -114,8 +114,8 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
             onClick={() => setMode("unstructured")}
             className={`flex-1 px-3 py-2 text-sm transition-colors ${
               mode === "unstructured"
-                ? "bg-brand-600 text-white"
-                : "bg-white hover:bg-gray-50 text-text-onLight"
+                ? "modal-selected"
+                : "modal-unselected"
             }`}
           >
             Unstructured
@@ -125,12 +125,12 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
         {mode === "structured" ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-text-onLight">Name</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-divider rounded-xl px-3 py-2 text-text-onLight placeholder:text-text-onLight/60"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500"
                 placeholder="Property name"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStructuredSubmit();
@@ -139,12 +139,12 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-text-onLight">Value</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Value</label>
               <input
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full border border-divider rounded-xl px-3 py-2 text-text-onLight placeholder:text-text-onLight/60"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500"
                 placeholder="Property value"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStructuredSubmit();
@@ -153,16 +153,16 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-text-onLight">Importance</label>
-              <div className="flex border border-divider rounded-xl overflow-hidden">
+              <label className="block text-sm font-medium mb-2 text-gray-700">Importance</label>
+              <div className="flex border border-gray-200 rounded-xl overflow-hidden">
                 {(["highlight", "normal", "avoid"] as const).map((imp) => (
                   <button
                     key={imp}
                     onClick={() => setImportance(imp)}
                     className={`flex-1 px-3 py-2 text-sm capitalize transition-colors ${
                       importance === imp
-                        ? "bg-brand-600 text-white"
-                        : "bg-white hover:bg-gray-50 text-text-onLight"
+                        ? "modal-selected"
+                        : "modal-unselected"
                     }`}
                   >
                     {imp}
@@ -173,14 +173,14 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleStructuredSubmit}
-                className="flex-1 bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-3 py-2 transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
                 disabled={!name.trim() || !value.trim()}
               >
                 Add Property
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-divider bg-white hover:bg-gray-50 text-text-onLight rounded-xl transition-colors"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
               >
                 Cancel
               </button>
@@ -189,13 +189,13 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-text-onLight">
+              <label className="block text-sm font-medium mb-2 text-gray-700">
                 Describe the property you want to add
               </label>
               <textarea
                 value={unstructuredText}
                 onChange={(e) => setUnstructuredText(e.target.value)}
-                className="w-full border border-divider rounded-xl px-3 py-2 h-24 resize-none text-text-onLight placeholder:text-text-onLight/60"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 h-24 resize-none text-gray-900 placeholder:text-gray-500"
                 placeholder="e.g., The story should have a mysterious tone that builds suspense..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && e.ctrlKey) handleUnstructuredSubmit();
@@ -206,14 +206,14 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleUnstructuredSubmit}
-                className="flex-1 bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-3 py-2 transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
                 disabled={!unstructuredText.trim() || isGenerating}
               >
                 {isGenerating ? "Generating..." : "Generate & Add"}
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-divider bg-white hover:bg-gray-50 text-text-onLight rounded-xl transition-colors"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
               >
                 Cancel
               </button>
