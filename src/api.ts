@@ -1,5 +1,5 @@
-// Placeholder API functions - no real network calls
-// const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// API functions using LLM service
+import { llmService } from './services/llmService';
 
 export async function extractProperties(
   prompt: string, 
@@ -7,17 +7,20 @@ export async function extractProperties(
   audience: string
 ): Promise<{ properties: Array<{ name: string; value: string }> }> {
   console.log('API: extractProperties', { prompt, main_task, audience });
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Return mock extracted properties
-  return {
-    properties: [
-      { name: "Tone", value: "mysterious, hopeful" },
-      { name: "Style", value: "descriptive, engaging" },
-      { name: "Length", value: "medium" }
-    ]
-  };
+  try {
+    return await llmService.extractProperties(prompt, main_task, audience);
+  } catch (error) {
+    console.error('Property extraction failed:', error);
+    // Fallback to mock data if LLM fails
+    return {
+      properties: [
+        { name: "Tone", value: "mysterious, hopeful" },
+        { name: "Style", value: "descriptive, engaging" },
+        { name: "Length", value: "medium" }
+      ]
+    };
+  }
 }
 
 export async function suggest(

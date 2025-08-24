@@ -250,7 +250,7 @@ export function OOPromptPanel({
   };
 
   return (
-    <aside className="panel-shell max-w-[50vw] relative" style={{ width: "var(--panel-w)" }}>
+    <aside className="panel-shell panel-float max-w-[50vw] absolute right-0 top-0 h-full z-50" style={{ width: "var(--panel-w)" }}>
       {/* Bookmark handle for closing panel */}
       <BookmarkHandle
         open={true}

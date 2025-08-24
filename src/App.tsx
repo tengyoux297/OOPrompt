@@ -38,7 +38,6 @@ const seed: OOPromptObject = {
 
 export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
-  const panelWidth = "var(--panel-w)";
 
   const handleOptimize = async (text: string) => {
     try {
@@ -90,8 +89,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main grid: chat + (optional) panel */}
-      <div className="flex-1 grid" style={{ gridTemplateColumns: state.openPanel ? `1fr ${panelWidth}` : "1fr" }}>
+      {/* Main content: chat panel always takes full width and height */}
+      <div className="flex-1 relative h-full">
         <ChatPanel
           onSend={(msg) => {
             // TODO: call your chat backend
@@ -101,8 +100,16 @@ export default function App() {
           onTogglePanel={() => dispatch({ type: "TOGGLE_PANEL" })}
         />
 
+        {/* Floating OOP panel overlay */}
         {state.openPanel && (
-          <OOPromptPanel state={state} dispatch={dispatch} />
+          <>
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm z-40"
+              onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
+            />
+            <OOPromptPanel state={state} dispatch={dispatch} />
+          </>
         )}
 
         {/* Edge handle to open panel when closed */}

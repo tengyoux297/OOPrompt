@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { llmService, type LLMProvider } from "../services/llmService";
 
 type Props = {
   onSend: (msg: string) => void;
@@ -11,6 +12,8 @@ type Message = {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  provider?: LLMProvider;
+  isError?: boolean;
 };
 
 export function ChatPanel({ onSend, onOptimize }: Props) {
@@ -25,17 +28,62 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
     }
   ]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (inputRef.current && inputRef.current.value.trim()) {
       const text = inputRef.current.value.trim();
-      const newMessage: Message = {
+      const userMessage: Message = {
         id: Date.now().toString(),
         text,
         isUser: true,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, newMessage]);
-      onSend(text);
+      setMessages(prev => [...prev, userMessage]);
+      
+      // Add loading message
+      const loadingMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Thinking...",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+      
+      try {
+        // Get AI response
+        const response = await llmService.chat([
+          { role: 'user', content: text }
+        ]);
+        
+        // Replace loading message with AI response
+        setMessages(prev => prev.map(msg => 
+          msg.id === loadingMessage.id 
+            ? {
+                id: msg.id,
+                text: response.content,
+                isUser: false,
+                timestamp: response.timestamp,
+                provider: response.provider
+              }
+            : msg
+        ));
+        
+        onSend(text);
+      } catch (error) {
+        // Replace loading message with error
+        setMessages(prev => prev.map(msg => 
+          msg.id === loadingMessage.id 
+            ? {
+                id: msg.id,
+                text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                isUser: false,
+                timestamp: new Date(),
+                isError: true
+              }
+            : msg
+        ));
+        console.error('Chat error:', error);
+      }
+      
       inputRef.current.value = "";
     }
   };
@@ -44,22 +92,56 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
     const text = inputRef.current?.value || "";
     if (text.trim()) {
       setIsOptimizing(true);
-      onOptimize(text);
-      // Add a system message about optimization
-      const newMessage: Message = {
+      
+      // Add optimization message
+      const optimizeMessage: Message = {
         id: Date.now().toString(),
-        text: "Optimizing and extracting properties...",
+        text: "Analyzing content and extracting properties...",
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, newMessage]);
-      // Reset loading state after a short delay
-      setTimeout(() => setIsOptimizing(false), 2000);
+      setMessages(prev => [...prev, optimizeMessage]);
+      
+      try {
+        // Extract properties using LLM
+        const result = await llmService.extractProperties(text, "Content Analysis", "General");
+        
+        // Replace optimization message with results
+        setMessages(prev => prev.map(msg => 
+          msg.id === optimizeMessage.id 
+            ? {
+                id: msg.id,
+                text: `Properties extracted:\n${result.properties.map(p => `• **${p.name}**: ${p.value}`).join('\n')}`,
+                isUser: false,
+                timestamp: new Date(),
+                provider: 'openai' // Default provider for optimization
+              }
+            : msg
+        ));
+        
+        onOptimize(text);
+      } catch (error) {
+        // Replace optimization message with error
+        setMessages(prev => prev.map(msg => 
+          msg.id === optimizeMessage.id 
+            ? {
+                id: msg.id,
+                text: `Optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                isUser: false,
+                timestamp: new Date(),
+                isError: true
+              }
+            : msg
+        ));
+        console.error('Optimization error:', error);
+      } finally {
+        setIsOptimizing(false);
+      }
     }
   };
 
   return (
-    <div className="relative flex flex-col bg-transparent h-full">
+    <div className="relative flex flex-col bg-transparent h-full chat-container">
       {/* Chat Header */}
       <div className="px-8 py-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
@@ -85,11 +167,19 @@ export function ChatPanel({ onSend, onOptimize }: Props) {
                 </div>
               </div>
             ) : (
-              <div className="inline-block card-base px-5 py-4 text-sm text-gray-700 max-w-[600px] hover:shadow-md transition-all">
-                <div className="text-sm leading-relaxed">{message.text}</div>
-                <div className="text-xs mt-3 text-gray-500 opacity-70 flex items-center gap-1">
+              <div className={`inline-block card-base px-5 py-4 text-sm max-w-[600px] hover:shadow-md transition-all ${
+                message.isError ? 'bg-red-50 border-red-200 text-red-800' : 'text-gray-700'
+              }`}>
+                <div className="text-sm leading-relaxed whitespace-pre-line">{message.text}</div>
+                <div className="text-xs mt-3 text-gray-500 opacity-70 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                   {message.timestamp.toLocaleTimeString()}
+                  {message.provider && (
+                    <>
+                      <span>•</span>
+                      <span className="capitalize">{message.provider}</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}
