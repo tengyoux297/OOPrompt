@@ -136,6 +136,7 @@ export default function App() {
             dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
           }}
           onClose={() => dispatch({ type: "TOGGLE_OBJECT_PANEL", open: false })}
+          onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
         />
         
         {/* Debug info - remove this later */}

@@ -11,9 +11,10 @@ type Props = {
   onSelectObject: (objectId: string) => void;
   onDeleteObject: (objectId: string) => void;
   onClose: () => void;
+  onOpenOOPPanel?: () => void; // New prop to open OOP panel
 };
 
-export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSelectObject, onDeleteObject, onClose }: Props) {
+export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSelectObject, onDeleteObject, onClose, onOpenOOPPanel }: Props) {
   const [historyPopup, setHistoryPopup] = useState<{
     isOpen: boolean;
     objectId: string;
@@ -87,12 +88,14 @@ export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSel
     console.log('ObjectPanel: handleObjectClick called with:', objectId);
     onSelectObject(objectId);
     // Keep the panel open so user can see other objects
+    onOpenOOPPanel?.(); // Automatically open OOP panel when an object is selected
   };
 
   const handleDeleteObject = (event: React.MouseEvent, objectId: string) => {
     event.stopPropagation(); // Prevent object selection when clicking delete
     if (confirm(`Are you sure you want to delete "${objects.find(obj => obj.id === objectId)?.name || 'this object'}"?`)) {
       onDeleteObject(objectId);
+      onOpenOOPPanel?.(); // Automatically open OOP panel after deletion
     }
   };
 
@@ -114,6 +117,7 @@ export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSel
     console.log('ObjectPanel: handleSelectVersion called with version:', version.id, version.main_task);
     onSelectObject(version.id);
     closeHistoryPopup();
+    onOpenOOPPanel?.(); // Automatically open OOP panel when a version is selected
   };
 
   // Get all versions of the current object for history
