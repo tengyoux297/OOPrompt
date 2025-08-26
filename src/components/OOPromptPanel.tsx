@@ -630,6 +630,7 @@ export function OOPromptPanel({
       <MoreOptionsModal
         isOpen={modal === "more-options"}
         property={modal === "more-options" ? (state.modalData as Property) : {} as Property}
+        currentOOP={oop}
         onClose={() => dispatch({ type: "CLOSE_MODAL" })}
         onUpdateProperty={(updatedProperty) => {
           dispatch({ type: "UPSERT_PROPERTY", payload: updatedProperty });

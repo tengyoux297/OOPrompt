@@ -56,16 +56,18 @@ export async function suggest(
 }
 
 export async function generateExamples(
-  property: { name: string; value: string }
+  property: { name: string; value: string },
+  oopromptObject: any // Full OOPromptObject for context
 ): Promise<{ examples: string[] }> {
-  console.log('API: generateExamples', property);
-  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('API: generateExamples', { property, oopromptObject });
   
-  return {
-    examples: [
-      `Example 1 for ${property.name}: ${property.value}`,
-      `Example 2 for ${property.name}: ${property.value}`,
-      `Example 3 for ${property.name}: ${property.value}`
-    ]
-  };
+  try {
+    // Call the real LLM service to generate examples
+    const result = await llmService.generateExamples(property.name, oopromptObject);
+    return result;
+  } catch (error) {
+    console.error('Failed to generate examples:', error);
+    // Return empty examples array on error
+    return { examples: [] };
+  }
 }

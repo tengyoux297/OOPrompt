@@ -1,19 +1,27 @@
-import { useState } from "react";
-import type { Property } from "../types";
+import { useState, useEffect } from "react";
+import type { Property, OOPromptObject } from "../types";
 import { generateExamples } from "../api";
 
 type Props = {
   isOpen: boolean;
   property: Property;
+  currentOOP: OOPromptObject; // Add current OOPrompt object
   onClose: () => void;
   onUpdateProperty: (updatedProperty: Property) => void;
 };
 
-export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }: Props) {
+export function MoreOptionsModal({ isOpen, property, currentOOP, onClose, onUpdateProperty }: Props) {
   const [activeTab, setActiveTab] = useState<"examples" | "references" | "upload">("examples");
   const [examples, setExamples] = useState<string[]>(property.examples || []);
+  const [selectedExamples, setSelectedExamples] = useState<Set<string>>(new Set(property.examples || []));
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [newExample, setNewExample] = useState("");
+
+  // Initialize selected examples when property changes
+  useEffect(() => {
+    setExamples(property.examples || []);
+    setSelectedExamples(new Set(property.examples || []));
+  }, [property.examples]);
 
   const handleGenerateExamples = async () => {
     setIsGeneratingExamples(true);
@@ -21,8 +29,14 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
       const result = await generateExamples({
         name: property.name,
         value: typeof property.value === "string" ? property.value : property.value.refObjectName
-      });
-      setExamples(prev => [...prev, ...result.examples]);
+      }, currentOOP); // Pass the current OOPrompt object
+      
+      // Add new examples to the list but don't select them by default
+      const newExamples = [...examples, ...result.examples];
+      setExamples(newExamples);
+      
+      // Keep existing selections, don't auto-select new examples
+      // Users will need to manually select which new examples they want to keep
     } catch (error) {
       console.error("Failed to generate examples:", error);
     } finally {
@@ -32,17 +46,30 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
 
   const handleAddExample = () => {
     if (newExample.trim()) {
-      setExamples(prev => [...prev, newExample.trim()]);
+      const newExampleText = newExample.trim();
+      setExamples(prev => [...prev, newExampleText]);
+      // Select newly added example by default
+      setSelectedExamples(prev => new Set([...prev, newExampleText]));
       setNewExample("");
     }
   };
 
-  const handleRemoveExample = (index: number) => {
-    setExamples(prev => prev.filter((_, i) => i !== index));
+  const handleToggleExample = (example: string) => {
+    setSelectedExamples(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(example)) {
+        newSelected.delete(example);
+      } else {
+        newSelected.add(example);
+      }
+      return newSelected;
+    });
   };
 
   const handleSaveExamples = () => {
-    const updatedProperty = { ...property, examples, updatedAt: Date.now() };
+    // Only keep the selected examples
+    const selectedExamplesArray = Array.from(selectedExamples);
+    const updatedProperty = { ...property, examples: selectedExamplesArray, updatedAt: Date.now() };
     onUpdateProperty(updatedProperty);
     onClose();
   };
@@ -146,14 +173,25 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
               {/* Examples list */}
               <div className="space-y-2">
                 {examples.map((example, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 rounded-xl border border-gray-200 p-3">
+                  <div 
+                    key={index} 
+                    className={`flex items-center justify-between rounded-xl border p-3 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                      selectedExamples.has(example)
+                        ? "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
+                        : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => handleToggleExample(example)}
+                  >
                     <span className="text-sm text-gray-900 flex-1">{example}</span>
-                    <button
-                      onClick={() => handleRemoveExample(index)}
-                      className="ml-3 text-red-600 hover:text-red-700 text-sm transition-colors"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        selectedExamples.has(example)
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {selectedExamples.has(example) ? "Selected" : "Click to select"}
+                      </span>
+                    </div>
                   </div>
                 ))}
                 {examples.length === 0 && (
@@ -164,11 +202,19 @@ export function MoreOptionsModal({ isOpen, property, onClose, onUpdateProperty }
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <div className="flex-1 text-sm text-gray-600">
+                  {examples.length > 0 && (
+                    <span>
+                      {selectedExamples.size} of {examples.length} examples selected
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={handleSaveExamples}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  disabled={selectedExamples.size === 0}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Save Examples
+                  Save {selectedExamples.size > 0 ? `(${selectedExamples.size})` : ''} Examples
                 </button>
                 <button
                   onClick={onClose}
