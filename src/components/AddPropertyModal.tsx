@@ -1,13 +1,16 @@
 import { useState } from "react";
 import type { Property, Importance } from "../types";
+import { llmService } from "../services/llmService";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (property: Property) => void;
+  currentOOP: any; // Current OOP object to merge with
+  onUpdateOOP: (updatedOOP: any) => void; // Callback to update the OOP object
 };
 
-export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
+export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateOOP }: Props) {
   const [mode, setMode] = useState<"structured" | "unstructured">("structured");
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
@@ -38,19 +41,30 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
     if (unstructuredText.trim()) {
       setIsGenerating(true);
       try {
-        // Simulate AI suggestion - in real app this would call an LLM
-        const suggestedProperty: Property = {
-          id: `p${Date.now()}`,
-          name: "Suggested Property",
-          value: unstructuredText.trim(),
-          importance: "normal",
-          source: "ai-suggested",
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        onAdd(suggestedProperty);
+        console.log('=== Unstructured Property Submission ===');
+        console.log('Free text:', unstructuredText.trim());
+        console.log('Current OOP object:', currentOOP);
+        
+        // Use the LLM service to merge free text with current OOP object
+        const updatedOOP = await llmService.mergeFreeTextWithOOP(
+          unstructuredText.trim(), 
+          currentOOP
+        );
+        
+        console.log('Updated OOP object received:', updatedOOP);
+        
+        // Update the OOP object with the merged result
+        onUpdateOOP(updatedOOP);
+        
+        // Close the modal and reset form
         onClose();
         setUnstructuredText("");
+        
+        console.log('=== Unstructured Property Submission Completed ===');
+      } catch (error) {
+        console.error('Failed to merge free text with OOP object:', error);
+        // TODO: Show error message to user
+        alert(`Failed to process your request: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsGenerating(false);
       }
@@ -108,7 +122,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
                 : "modal-unselected"
             }`}
           >
-            Structured
+            Add by name & value
           </button>
           <button
             onClick={() => setMode("unstructured")}
@@ -118,7 +132,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
                 : "modal-unselected"
             }`}
           >
-            Unstructured
+            Add by free text
           </button>
         </div>
 
@@ -190,13 +204,13 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">
-                Describe the property you want to add
+                Describe new requirements or properties in natural language
               </label>
               <textarea
                 value={unstructuredText}
                 onChange={(e) => setUnstructuredText(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 h-24 resize-none text-gray-900 placeholder:text-gray-500"
-                placeholder="e.g., The story should have a mysterious tone that builds suspense..."
+                placeholder="e.g., The story should have a mysterious tone that builds suspense, or add a requirement for the protagonist to have a specific background..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && e.ctrlKey) handleUnstructuredSubmit();
                   if (e.key === "Escape") onClose();
@@ -209,7 +223,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd }: Props) {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
                 disabled={!unstructuredText.trim() || isGenerating}
               >
-                {isGenerating ? "Generating..." : "Generate & Add"}
+                {isGenerating ? "Adding to prompt..." : "Add to prompt!"}
               </button>
               <button
                 onClick={onClose}

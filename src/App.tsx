@@ -4,6 +4,8 @@ import type { OOPromptObject } from "./types";
 import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
+import { ObjectPanel } from "./components/ObjectPanel";
+
 
 import "./index.css";
 
@@ -14,7 +16,9 @@ const seed: OOPromptObject = {
   audience: "",
   properties: [],
   tabsOrder: ["root"],
-  log: []
+  log: [],
+  createdAt: Date.now(),
+  updatedAt: Date.now()
 };
 
 export default function App() {
@@ -114,12 +118,39 @@ export default function App() {
           }}
         />
 
+        {/* Object Panel - Left side */}
+        <ObjectPanel
+          objects={state.promptObjects}
+          selectedObjectId={state.currentObjectId}
+          isOpen={state.objectPanelOpen}
+          onToggle={() => dispatch({ type: "TOGGLE_OBJECT_PANEL" })}
+          onSelectObject={(objectId) => {
+            console.log('Loading prompt object:', objectId);
+            const obj = state.promptObjects.find(obj => obj.id === objectId);
+            if (obj) {
+              dispatch({ type: "LOAD_PROMPT_OBJECT", payload: obj });
+            }
+          }}
+          onDeleteObject={(objectId) => {
+            console.log('Deleting prompt object:', objectId);
+            dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+          }}
+          onClose={() => dispatch({ type: "TOGGLE_OBJECT_PANEL", open: false })}
+        />
+        
+        {/* Debug info - remove this later */}
+        <div className="fixed bottom-4 left-4 bg-black/80 text-white p-2 rounded text-xs z-50">
+          Debug: {state.promptObjects.length} objects, current: {state.currentObjectId}
+        </div>
+
+
+
         {/* Floating OOP panel overlay */}
         {state.openPanel && (
           <>
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/20 z-40"
               onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
             />
             
@@ -142,9 +173,9 @@ export default function App() {
         {/* Edge handle to open panel when closed */}
         {!state.openPanel && state.oop.main_task && state.oop.main_task.trim() && (
           <BookmarkHandle
-            open={false}
-            attachTo="viewport-right"
-            onClick={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
+            isOpen={false}
+            position="right"
+            onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
           />
         )}
       </div>

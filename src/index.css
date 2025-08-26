@@ -23,6 +23,7 @@ body {
 
   .panel-chrome { @apply bg-white/80 backdrop-blur border-b border-gray-200; }
   .panel-shell  { @apply bg-white/85 backdrop-blur-xl border-l border-white/60 elev-1; }
+  .border-divider { @apply border-gray-200; }
 
   .btn         { @apply rounded-xl px-3 py-2 text-sm transition shadow-xs; }
   .btn-primary { @apply btn bg-blue-600 hover:bg-blue-700 text-white; }

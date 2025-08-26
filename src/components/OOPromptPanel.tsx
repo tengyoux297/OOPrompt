@@ -229,6 +229,16 @@ export function OOPromptPanel({
     console.log('================================');
   }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId]);
 
+  // Auto-open Object Panel when OOP panel is displayed (if there are saved objects)
+  useEffect(() => {
+    if (state.openPanel && state.promptObjects.length > 0) {
+      console.log('=== Auto-Opening Object Panel ===');
+      console.log('OOP panel is open, promptObjects count:', state.promptObjects.length);
+      dispatch({ type: "TOGGLE_OBJECT_PANEL", open: true });
+      console.log('=== Object Panel Auto-Opened ===');
+    }
+  }, [state.openPanel, state.promptObjects.length, dispatch]);
+
   // Cycle through sorting options
   const cycleSort = () => {
     const sortOptions: Array<"none" | "importance" | "name" | "time"> = ["none", "importance", "name", "time"];
@@ -329,9 +339,9 @@ export function OOPromptPanel({
     <aside className="panel-shell panel-float max-w-[50vw] w-full h-full z-50" style={{ width: "var(--panel-w)" }}>
       {/* Bookmark handle for closing panel */}
       <BookmarkHandle
-        open={true}
-        attachTo="panel-left"
-        onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
+        isOpen={true}
+        position="right"
+        onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
       />
       
       {/* Fixed height container with flexbox layout */}
@@ -416,6 +426,18 @@ export function OOPromptPanel({
           >
             <span className="text-sm">🤖</span>
           </button>
+          <button 
+            className="btn-tonal w-10 h-10 flex items-center justify-center"
+            onClick={() => {
+              console.log('=== Saving Current OOP Object ===');
+              console.log('Current OOP object:', oop);
+              dispatch({ type: "SAVE_PROMPT_OBJECT", payload: oop });
+              console.log('=== OOP Object Saved ===');
+            }}
+            title="Save Object"
+          >
+            <span className="text-sm">💾</span>
+          </button>
           <input 
             className="input flex-1 h-10" 
             placeholder="Search properties…"
@@ -456,8 +478,47 @@ export function OOPromptPanel({
           </div>
         </div>
 
-        {/* Send button area - separate block */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-t border-divider">
+        {/* Save and Send buttons area - separate block */}
+        <div className="panel-chrome p-4 flex-shrink-0 border-t border-divider space-y-3">
+          {/* Save button */}
+          <button 
+            className="w-full py-2 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-colors text-sm font-medium"
+            onClick={() => {
+              console.log('=== Save Button Clicked ===');
+              console.log('Saving current OOP object:', oop);
+              console.log('Object ID:', oop.id);
+              console.log('Object name:', oop.name);
+              console.log('Main task:', oop.main_task);
+              console.log('Properties count:', oop.properties.length);
+              
+              // Create a new object with a unique ID for saving
+              const objectToSave = {
+                ...oop,
+                id: oop.id === 'root' ? `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : oop.id,
+                name: oop.name || `Prompt Object ${Date.now()}`,
+                createdAt: oop.id === 'root' ? Date.now() : oop.createdAt || Date.now(),
+                updatedAt: Date.now()
+              };
+              
+              console.log('Object to save with ID:', objectToSave.id);
+              console.log('Is this a new object?', oop.id === 'root');
+              
+              console.log('Object to save:', objectToSave);
+              
+              // Save the current OOP object to the prompt objects list
+              dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
+              
+              // Auto-open the Object Panel to show the newly saved object
+              dispatch({ type: "TOGGLE_OBJECT_PANEL", open: true });
+              
+              console.log('=== OOP Object Saved Successfully ===');
+              console.log('=== Object Panel Auto-Opened ===');
+            }}
+          >
+            💾 Save Prompt Object
+          </button>
+          
+          {/* Send button */}
           <button 
             className={`btn-primary w-full py-3 text-base font-medium ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
@@ -505,7 +566,19 @@ export function OOPromptPanel({
                 
                 console.log('=== Send Process Completed ===');
                 
-                // Step 5: Automatically hide the OOP panel
+                // Step 5: Auto-save the current OOP object before hiding
+                const objectToSave = {
+                  ...oop,
+                  id: oop.id === 'root' ? `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : oop.id,
+                  name: oop.name || `Prompt Object ${Date.now()}`,
+                  createdAt: oop.id === 'root' ? Date.now() : oop.createdAt || Date.now(),
+                  updatedAt: Date.now()
+                };
+                console.log('Auto-saving object with ID:', objectToSave.id);
+                dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
+                console.log('=== OOP Object Auto-Saved After Send ===');
+                
+                // Step 6: Automatically hide the OOP panel
                 dispatch({ type: "TOGGLE_PANEL", open: false });
                 
               } catch (error) {
@@ -534,6 +607,17 @@ export function OOPromptPanel({
         isOpen={modal === "add-property"}
         onClose={() => dispatch({ type: "CLOSE_MODAL" })}
         onAdd={handleAddProperty}
+        currentOOP={oop}
+        onUpdateOOP={(updatedOOP) => {
+          console.log('=== Updating OOP Object from AddPropertyModal ===');
+          console.log('Previous OOP:', oop);
+          console.log('Updated OOP:', updatedOOP);
+          
+          // Update the entire OOP object
+          dispatch({ type: "SET_OOP", payload: updatedOOP });
+          
+          console.log('=== OOP Object Updated Successfully ===');
+        }}
       />
 
       <ConflictResolveModal

@@ -198,7 +198,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       // Add user message only
       const userMessage: Message = {
         id: Date.now().toString(),
-        text: `🔍 Extracting properties...`,
+        text: `🔍 Creating prompt object...`,
         isUser: true,
         timestamp: new Date(),
       };

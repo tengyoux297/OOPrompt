@@ -1,16 +1,16 @@
 
 
-type AttachTo = "viewport-right" | "panel-left";
+type Position = "left" | "right";
 
 export function BookmarkHandle({
-  open,
-  attachTo,
-  onClick,
+  isOpen,
+  onToggle,
+  position = "right",
   className = ""
 }: {
-  open: boolean;
-  attachTo: AttachTo;
-  onClick: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  position?: Position;
   className?: string;
 }) {
   // base geometry (bookmark tab)
@@ -19,11 +19,14 @@ export function BookmarkHandle({
     "transition shadow-xs focus-visible:outline-none " +
     "focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2";
 
-  // placement + shape
-  const closedPos =
-    "fixed right-0 top-1/2 -translate-y-1/2 rounded-l-2xl";
-  const openPos =
-    "absolute -left-10 top-1/2 -translate-y-1/2 rounded-l-2xl";
+  // placement + shape based on position
+  const closedPos = position === "left" 
+    ? "fixed left-0 top-1/2 -translate-y-1/2 rounded-r-2xl"
+    : "fixed right-0 top-1/2 -translate-y-1/2 rounded-l-2xl";
+  
+  const openPos = position === "left"
+    ? "absolute -right-10 top-1/2 -translate-y-1/2 rounded-r-2xl"
+    : "absolute -left-10 top-1/2 -translate-y-1/2 rounded-l-2xl";
 
   // visual skins - constant blue color
   const closedSkin =
@@ -31,20 +34,20 @@ export function BookmarkHandle({
   const openSkin =
     "bg-blue-600 hover:bg-blue-700 text-white ring-1 ring-inset ring-black/5 border border-white/60";
 
-  // chevron: we draw a right chevron and rotate when closed needs ◀
-  const chevron =
-    "h-5 w-5 stroke-current transition-transform " +
-    (open ? "" : "rotate-180");
+  // chevron: direction depends on position
+  const chevron = position === "left"
+    ? "h-5 w-5 stroke-current transition-transform " + (isOpen ? "rotate-180" : "")
+    : "h-5 w-5 stroke-current transition-transform " + (isOpen ? "" : "rotate-180");
 
   return (
     <button
-      aria-label={open ? "Close OOPrompt panel" : "Open OOPrompt panel"}
-      title={open ? "Close panel" : "Open panel"}
-      onClick={onClick}
+      aria-label={isOpen ? "Close panel" : "Open panel"}
+      title={isOpen ? "Close panel" : "Open panel"}
+      onClick={onToggle}
       className={[
         base,
-        attachTo === "viewport-right" ? closedPos : openPos,
-        attachTo === "viewport-right" ? closedSkin : openSkin,
+        isOpen ? openPos : closedPos,
+        isOpen ? openSkin : closedSkin,
         className,
       ].join(" ")}
     >

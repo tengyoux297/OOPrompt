@@ -20,6 +20,8 @@ export type OOPromptObject = {
   properties: Property[];
   tabsOrder: string[];
   log: { ts: number; action: string; payload?: unknown }[];
+  createdAt: number;
+  updatedAt: number;
 };
 
 // UI state types

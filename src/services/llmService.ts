@@ -17,6 +17,7 @@ class LLMService {
   private geminiApiKey: string;
   private claudeApiKey: string;
   private propertyExtractorId: string;
+  private propertyAdderId: string;
   private promptBuilderId: string;
 
   constructor() {
@@ -27,6 +28,8 @@ class LLMService {
     
     // Get the PROPERTY_EXTRACTOR assistant ID
     this.propertyExtractorId = import.meta.env.VITE_PROPERTY_EXTRACTOR || import.meta.env.PROPERTY_EXTRACTOR || '';
+    // Get the PROPERTY_ADDER assistant ID
+    this.propertyAdderId = import.meta.env.VITE_PROPERTY_ADDER || import.meta.env.PROPERTY_ADDER || '';
     // Get the PROMPT_BUILDER assistant ID
     this.promptBuilderId = import.meta.env.VITE_PROMPT_BUILDER || import.meta.env.PROMPT_BUILDER || '';
     
@@ -35,6 +38,9 @@ class LLMService {
     console.log('OpenAI:', !!this.openaiApiKey);
     console.log('Gemini:', !!this.geminiApiKey);
     console.log('Claude:', !!this.claudeApiKey);
+    console.log('PROPERTY_EXTRACTOR:', !!this.propertyExtractorId);
+    console.log('PROPERTY_ADDER:', !!this.propertyAdderId);
+    console.log('PROMPT_BUILDER:', !!this.promptBuilderId);
   }
 
   // OpenAI Chat Completion
@@ -565,6 +571,141 @@ class LLMService {
       }
     } catch (error) { 
       console.error('Assistant-based prompt building failed:', error); 
+      throw error; 
+    }
+  }
+
+  // Merge free text with current OOP object using OpenAI Assistant
+  async mergeFreeTextWithOOP(freeText: string, currentOOP: any): Promise<any> {
+    if (!this.openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    if (!this.propertyAdderId) {
+      throw new Error('PROPERTY_ADDER assistant ID not configured. Please set VITE_PROPERTY_ADDER in your .env file');
+    }
+    console.log('Using PROPERTY_ADDER assistant ID:', this.propertyAdderId);
+    console.log('Merging free text with current OOP object...');
+    console.log('Free text:', freeText);
+    console.log('Current OOP:', currentOOP);
+    
+    try {
+      // Create a thread
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (!threadResponse.ok) {
+        const errorText = await threadResponse.text();
+        console.error('Thread creation error:', threadResponse.status, errorText);
+        throw new Error(`Failed to create thread: ${threadResponse.status} - ${errorText}`);
+      }
+
+      const thread = await threadResponse.json();
+      console.log('Thread created:', thread.id);
+
+      // Add message to thread with the free text and current OOP object
+      const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({ 
+          role: 'user', 
+          content: `Please merge this free text description with the current OOP object to create an updated JSON object. 
+
+Free text description: "${freeText}"
+
+Current OOP object: ${JSON.stringify(currentOOP, null, 2)}
+
+Please return ONLY the updated JSON object, maintaining the same structure but with any new properties or modifications based on the free text description. Do not include any explanations or markdown formatting - just the pure JSON object.` 
+        })
+      });
+      
+      if (!messageResponse.ok) { 
+        throw new Error(`Failed to add message: ${messageResponse.status}`); 
+      }
+
+      const message = await messageResponse.json();
+      console.log('Message sent:', message.id);
+
+      // Run the assistant
+      const runResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({ assistant_id: this.propertyAdderId })
+      });
+      
+      if (!runResponse.ok) { 
+        throw new Error(`Failed to run assistant: ${runResponse.status}`); 
+      }
+      
+      const run = await runResponse.json();
+      console.log('Run created:', run.id);
+
+      // Poll for completion
+      let runStatus = run.status;
+      while (runStatus === 'queued' || runStatus === 'in_progress') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
+          headers: { 
+            'Authorization': `Bearer ${this.openaiApiKey}`, 
+            'OpenAI-Beta': 'assistants=v2' 
+          }
+        });
+        
+        if (statusResponse.ok) { 
+          const runData = await statusResponse.json(); 
+          runStatus = runData.status; 
+          console.log('Run status:', runStatus);
+        }
+      }
+
+      if (runStatus === 'completed') {
+        // Get the messages
+        const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+          headers: { 
+            'Authorization': `Bearer ${this.openaiApiKey}`, 
+            'OpenAI-Beta': 'assistants=v2' 
+          }
+        });
+        
+        if (messagesResponse.ok) {
+          const messages = await messagesResponse.json();
+          const lastMessage = messages.data[0]; // Get the assistant's response
+          const responseText = lastMessage.content[0].text.value;
+          
+          console.log('Assistant response:', responseText);
+          
+          // Try to parse the JSON response
+          try {
+            const updatedOOP = JSON.parse(responseText);
+            console.log('Successfully parsed updated OOP object:', updatedOOP);
+            return updatedOOP;
+          } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError);
+            console.error('Raw response text:', responseText);
+            throw new Error('Assistant returned invalid JSON format');
+          }
+        } else {
+          throw new Error('Failed to get messages from assistant');
+        }
+      } else { 
+        throw new Error(`Assistant run failed with status: ${runStatus}`); 
+      }
+    } catch (error) { 
+      console.error('Assistant-based OOP merging failed:', error); 
       throw error; 
     }
   }
