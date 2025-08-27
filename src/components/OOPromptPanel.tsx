@@ -4,11 +4,13 @@ import type { Importance, OOPromptObject, Property, Suggestion, Conflict } from 
 import { AddPropertyModal } from "./AddPropertyModal";
 import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
+import { ObjectModifierModal } from "./ObjectModifierModal";
 import { SuggestionsBanner } from "./SuggestionsBanner";
 import { BookmarkHandle } from "./BookmarkHandle";
-import { suggest } from "../api";
+// import { suggest } from "../api"; // Deprecated - now using ObjectModifierModal
 import { llmService } from "../services/llmService";
 import type { FileAttachment } from "../services/llmService";
+import { PatchService } from "../services/patchService";
 
 function ImportanceSegmented({
   value, onChange
@@ -424,18 +426,8 @@ export function OOPromptPanel({
     }, 100);
   };
 
-  const handleAISuggestion = async () => {
-    try {
-      const result = await suggest(
-        oop.properties.map(p => ({ name: p.name, value: typeof p.value === "string" ? p.value : p.value.refObjectName })),
-        oop.main_task,
-        oop.audience
-      );
-      dispatch({ type: "SET_SUGGESTIONS", payload: result });
-    } catch (error) {
-      console.error("Failed to get AI suggestions:", error);
-    }
-  };
+  // handleAISuggestion is deprecated - now using ObjectModifierModal
+  // const handleAISuggestion = async () => { ... };
 
   const handleAddSuggestion = (suggestion: Suggestion) => {
     const property: Property = {
@@ -576,8 +568,8 @@ export function OOPromptPanel({
           </button>
           <button 
             className="btn-tonal w-10 h-10 flex items-center justify-center"
-            onClick={handleAISuggestion}
-            title="AI Suggestion"
+            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
+            title="AI Object Analysis"
           >
             <span className="text-sm">🤖</span>
           </button>
@@ -933,6 +925,59 @@ export function OOPromptPanel({
             dispatch({ type: "TOGGLE_PANEL", open: true }); // Keep OOP panel open
           }
         }}
+      />
+
+      <ObjectModifierModal
+        isOpen={modal === "object-modifier"}
+        currentOOP={oop}
+        onClose={() => dispatch({ type: "CLOSE_MODAL" })}
+        onApplyPatches={(patches) => {
+          console.log("🚀 OOPromptPanel: onApplyPatches called with patches:", patches);
+          console.log("🚀 OOPromptPanel: Current oop object has", oop.properties.length, "properties");
+          
+          try {
+            // Validate patches before applying
+            console.log("🔍 OOPromptPanel: Validating patches...");
+            const validationErrors = PatchService.validatePatches(oop, patches);
+            if (validationErrors.length > 0) {
+              console.error("❌ Patch validation failed:", validationErrors);
+              if (onError) {
+                onError("Patch Validation Failed", validationErrors.join("\n"));
+              }
+              return;
+            }
+            console.log("✅ Patch validation passed");
+
+            // Apply patches to create updated OOP object
+            console.log("🔧 OOPromptPanel: Applying patches...");
+            const updatedOOP = PatchService.applyPatches(oop, patches);
+            console.log("✅ OOPromptPanel: Patches applied, updated object has", updatedOOP.properties.length, "properties");
+            
+            // Update the OOP object with the patched version
+            console.log("🔄 OOPromptPanel: Dispatching SET_OOP action...");
+            dispatch({ type: "SET_OOP", payload: updatedOOP });
+            
+            console.log("=== Patches Applied Successfully ===");
+            console.log("Applied patches:", patches);
+            console.log("Previous OOP object state:", JSON.stringify(oop, null, 2));
+            console.log("Updated OOP object state:", JSON.stringify(updatedOOP, null, 2));
+            console.log("Changes summary:");
+            console.log(`  - Properties count: ${oop.properties.length} → ${updatedOOP.properties.length}`);
+            console.log(`  - Main task: "${oop.main_task}" → "${updatedOOP.main_task}"`);
+            console.log(`  - Audience: "${oop.audience}" → "${updatedOOP.audience}"`);
+            console.log("===================================");
+            
+            // Close the modal
+            dispatch({ type: "CLOSE_MODAL" });
+            
+          } catch (error) {
+            console.error("Failed to apply patches:", error);
+            if (onError) {
+              onError("Patch Application Failed", `Failed to apply patches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+          }
+        }}
+        onError={onError}
       />
     </aside>
   );

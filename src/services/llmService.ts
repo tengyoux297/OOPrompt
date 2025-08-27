@@ -2,7 +2,7 @@
 export type LLMProvider = 'openai' | 'gemini' | 'claude';
 
 // Import types from the main types file
-import type { OOPromptObject, Property, FileReference } from '../types';
+import type { OOPromptObject, Property, FileReference, ObjectModifierEnvelope } from '../types';
 
 // Type definitions for internal use
 interface OpenAIMessageData {
@@ -42,6 +42,8 @@ export interface FileAttachment {
   propertyName?: string; // Add property context for better association
   propertyId?: string;   // Add property ID for precise tracking
 }
+
+// Remove this duplicate interface - we already have the proper one in types.ts
 
 class LLMService {
   private openaiApiKey: string;
@@ -1198,6 +1200,171 @@ Remember to:
       }
     } catch (error) { 
       console.error('Example generation failed:', error); 
+      throw error; 
+    }
+  }
+
+  // Object Modifier assistant for AI suggestions and analysis
+  async analyzeObjectModifier(
+    oopromptObject: OOPromptObject,
+    requestType: "conflict_check" | "more_possible_properties" | "modify_language",
+    cursor?: string
+  ): Promise<ObjectModifierEnvelope> {
+    if (!this.openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    // Get the OBJECT_MODIFIER assistant ID from environment
+    const objectModifierId = import.meta.env.VITE_OBJECT_MODIFIER || import.meta.env.OBJECT_MODIFIER || '';
+    if (!objectModifierId) {
+      throw new Error('OBJECT_MODIFIER assistant ID not configured. Please set VITE_OBJECT_MODIFIER in your .env file');
+    }
+
+    console.log('Using OBJECT_MODIFIER assistant ID:', objectModifierId);
+    console.log('Request type:', requestType);
+    console.log('Cursor:', cursor);
+
+    try {
+      // Create a thread
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (!threadResponse.ok) {
+        const errorText = await threadResponse.text();
+        console.error('Thread creation error:', threadResponse.status, errorText);
+        throw new Error(`Failed to create thread: ${threadResponse.status} - ${errorText}`);
+      }
+
+      const thread = await threadResponse.json();
+      console.log('Thread created:', thread.id);
+
+      // Prepare the request data (for logging purposes)
+      console.log('Request data:', {
+        oopromptObject: oopromptObject.id,
+        requestType,
+        cursor: cursor || null
+      });
+
+      // Add message to thread
+      const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({ 
+          role: 'user', 
+          content: `Please analyze this OOPrompt object and provide ${requestType} analysis.
+
+Request Type: ${requestType}
+${cursor ? `Cursor: ${cursor}` : ''}
+
+OOPrompt Object: ${JSON.stringify(oopromptObject, null, 2)}
+
+Please return a JSON response in the exact envelope format specified in the schema. The response must include:
+- schemaVersion: "1.0"
+- requestType: "${requestType}"
+- oopromptId: "${oopromptObject.id}"
+- summary with counts and pagination info
+- uiHints for UI guidance
+- The appropriate data array based on requestType
+- metadata if needed
+
+Ensure the response is valid JSON that can be parsed directly.` 
+        })
+      });
+      
+      if (!messageResponse.ok) { 
+        throw new Error(`Failed to add message: ${messageResponse.status}`); 
+      }
+
+      const message = await messageResponse.json();
+      console.log('Message sent:', message.id);
+
+      // Run the OBJECT_MODIFIER assistant
+      const runResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({ assistant_id: objectModifierId })
+      });
+      
+      if (!runResponse.ok) { 
+        throw new Error(`Failed to run assistant: ${runResponse.status}`); 
+      }
+      
+      const run = await runResponse.json();
+      console.log('Run created:', run.id);
+
+      // Poll for completion
+      let runStatus = run.status;
+      while (runStatus === 'queued' || runStatus === 'in_progress') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
+          headers: { 
+            'Authorization': `Bearer ${this.openaiApiKey}`, 
+            'OpenAI-Beta': 'assistants=v2' 
+          }
+        });
+        
+        if (statusResponse.ok) { 
+          const runData = await statusResponse.json(); 
+          runStatus = runData.status; 
+          console.log('Run status:', runStatus);
+        }
+      }
+
+      if (runStatus === 'completed') {
+        // Get the messages
+        const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+          headers: { 
+            'Authorization': `Bearer ${this.openaiApiKey}`, 
+            'OpenAI-Beta': 'assistants=v2' 
+          }
+        });
+        
+        if (messagesResponse.ok) {
+          const messages = await messagesResponse.json();
+          const lastMessage = messages.data[0]; // Get the assistant's response
+          const responseText = lastMessage.content[0].text.value;
+          
+          console.log('OBJECT_MODIFIER response:', responseText);
+          
+          // Try to parse the JSON response
+          try {
+            const envelope = JSON.parse(responseText);
+            
+            // Basic validation of the envelope structure
+            if (envelope.schemaVersion !== "1.0" || !envelope.requestType || !envelope.oopromptId) {
+              throw new Error('Invalid envelope structure returned by assistant');
+            }
+            
+            console.log('Successfully parsed OBJECT_MODIFIER envelope:', envelope);
+            return envelope;
+          } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError);
+            console.error('Raw response text:', responseText);
+            throw new Error('OBJECT_MODIFIER assistant returned invalid JSON format');
+          }
+        } else {
+          throw new Error('Failed to get messages from OBJECT_MODIFIER assistant');
+        }
+      } else { 
+        throw new Error(`OBJECT_MODIFIER run failed with status: ${runStatus}`); 
+      }
+    } catch (error) { 
+      console.error('OBJECT_MODIFIER analysis failed:', error); 
       throw error; 
     }
   }

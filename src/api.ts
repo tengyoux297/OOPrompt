@@ -24,9 +24,9 @@ export async function extractProperties(
 }
 
 export async function suggest(
-  properties: Array<{ name: string; value: string }>, 
-  main_task: string, 
-  audience: string
+  _properties: Array<{ name: string; value: string }>, 
+  _main_task: string, 
+  _audience: string
 ): Promise<{ 
     suggested: Array<{ name: string; value: string }>;
     conflicts: Array<{ 
@@ -36,22 +36,13 @@ export async function suggest(
       reason: string;
     }>;
   }> {
-  console.log('API: suggest', { properties, main_task, audience });
-  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log('API: suggest - DEPRECATED, use ObjectModifier assistant instead');
+  console.log('This function is kept for backward compatibility but should not be used');
   
+  // Return empty results to encourage using the new ObjectModifier
   return {
-    suggested: [
-      { name: "Pacing", value: "steady build-up" },
-      { name: "Emotion", value: "hopeful anticipation" }
-    ],
-    conflicts: [
-      {
-        name: "Tone",
-        valueA: "mysterious, hopeful",
-        valueB: "dark, ominous",
-        reason: "Conflicting emotional directions"
-      }
-    ]
+    suggested: [],
+    conflicts: []
   };
 }
 

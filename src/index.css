@@ -27,6 +27,7 @@ body {
 
   .btn         { @apply rounded-xl px-3 py-2 text-sm transition shadow-xs; }
   .btn-primary { @apply btn bg-blue-600 hover:bg-blue-700 text-white; }
+  .btn-secondary { @apply btn bg-gray-600 hover:bg-gray-700 text-white; }
   .btn-tonal   { @apply btn bg-blue-50 text-blue-700 hover:bg-blue-100; }
   .btn-ghost   { @apply btn border border-gray-200 bg-white hover:bg-gray-50 text-gray-900; }
   .btn-danger  { @apply btn border border-red-200 text-red-700 hover:bg-red-50; }
@@ -89,6 +90,25 @@ body {
   .chat-container {
     height: calc(100vh - 4rem);
     min-height: calc(100vh - 4rem);
+  }
+
+  /* Custom scrollbar styles */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
   }
 }
 
