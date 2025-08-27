@@ -258,6 +258,14 @@ export function ObjectModifierModal({
       onApplyPatches(patches);
       
       console.log(`🎯 ObjectModifierModal: Patches sent to parent component`);
+      
+      // Reset the menu after applying patches - clear analysis results and selections
+      console.log(`🔄 Resetting AI suggestion menu after applying patches`);
+      setEnvelope(null);
+      setSelectedItems(new Set());
+      setCursor(null);
+      setActiveTab("conflict_check");
+      
       onClose();
     } else {
       console.log(`❌ No patches to apply!`);
