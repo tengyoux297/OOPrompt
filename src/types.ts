@@ -1,6 +1,15 @@
 export type Importance = "avoid" | "normal" | "highlight";
 export type ValueRef = { refObjectId: string; refObjectName: string };
 
+export type FileReference = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  uploadTime: number;
+  storedPath: string;
+};
+
 export type Property = {
   id: string;
   name: string;
@@ -8,6 +17,13 @@ export type Property = {
   importance: Importance;            // single-select via segmented control
   examples?: string[];
   source?: "user" | "ai-suggested";
+  fileReference?: FileReference;     // optional file attachment
+  fileData?: {                       // resolved file data for sending to LLM
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    data: string | ArrayBuffer | null;
+  };
   createdAt: number;
   updatedAt: number;
 };

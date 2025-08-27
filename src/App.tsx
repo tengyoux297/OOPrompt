@@ -5,6 +5,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
 import { ObjectPanel } from "./components/ObjectPanel";
+import { SaveConfirmationModal } from "./components/SaveConfirmationModal";
 
 
 import "./index.css";
@@ -25,8 +26,41 @@ export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
   const [messageFromOOP, setMessageFromOOP] = useState<string | null>(null);
   const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
+  
+  // Save confirmation state
+  const [saveConfirmation, setSaveConfirmation] = useState<{
+    isOpen: boolean;
+    objectToLoad?: OOPromptObject;
+    actionDescription: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    actionDescription: "",
+    onConfirm: () => {}
+  });
 
+  // Function to handle object switching with save confirmation
+  const handleObjectSwitch = (objectToLoad: OOPromptObject, actionDescription: string) => {
+    if (state.hasUnsavedChanges) {
+      setSaveConfirmation({
+        isOpen: true,
+        objectToLoad,
+        actionDescription,
+        onConfirm: () => {
+          dispatch({ type: "LOAD_PROMPT_OBJECT", payload: objectToLoad });
+          setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+        }
+      });
+    } else {
+      // No unsaved changes, proceed directly
+      dispatch({ type: "LOAD_PROMPT_OBJECT", payload: objectToLoad });
+    }
+  };
 
+  // Function to save current object
+  const saveCurrentObject = () => {
+    dispatch({ type: "SAVE_PROMPT_OBJECT", payload: state.oop });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
@@ -128,7 +162,7 @@ export default function App() {
             console.log('Loading prompt object:', objectId);
             const obj = state.promptObjects.find(obj => obj.id === objectId);
             if (obj) {
-              dispatch({ type: "LOAD_PROMPT_OBJECT", payload: obj });
+              handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
             }
           }}
           onDeleteObject={(objectId) => {
@@ -166,6 +200,42 @@ export default function App() {
                   // Clear the message after a short delay to allow the ChatPanel to process it
                   setTimeout(() => setMessageFromOOP(null), 100);
                 }}
+                onCreateEmbeddedObject={(propertyId, parentObjectId) => {
+                  if (state.hasUnsavedChanges) {
+                    setSaveConfirmation({
+                      isOpen: true,
+                      actionDescription: "creating an embedded object",
+                      onConfirm: () => {
+                        dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
+                        dispatch({ type: "CLOSE_MODAL" });
+                        dispatch({ type: "TOGGLE_PANEL", open: true });
+                        setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+                      }
+                    });
+                  } else {
+                    dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
+                    dispatch({ type: "CLOSE_MODAL" });
+                    dispatch({ type: "TOGGLE_PANEL", open: true });
+                  }
+                }}
+                onEmbedExistingObject={(propertyId, objectId, objectName) => {
+                  if (state.hasUnsavedChanges) {
+                    setSaveConfirmation({
+                      isOpen: true,
+                      actionDescription: `embedding "${objectName}"`,
+                      onConfirm: () => {
+                        dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
+                        dispatch({ type: "CLOSE_MODAL" });
+                        dispatch({ type: "TOGGLE_PANEL", open: true });
+                        setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+                      }
+                    });
+                  } else {
+                    dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
+                    dispatch({ type: "CLOSE_MODAL" });
+                    dispatch({ type: "TOGGLE_PANEL", open: true });
+                  }
+                }}
               />
             </div>
           </>
@@ -179,6 +249,23 @@ export default function App() {
             onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
           />
         )}
+
+        {/* Save Confirmation Modal */}
+        <SaveConfirmationModal
+          isOpen={saveConfirmation.isOpen}
+          objectName={state.oop.name || state.oop.main_task || "Current Object"}
+          actionDescription={saveConfirmation.actionDescription}
+          onSaveAndContinue={() => {
+            saveCurrentObject();
+            saveConfirmation.onConfirm();
+          }}
+          onContinueWithoutSaving={() => {
+            saveConfirmation.onConfirm();
+          }}
+          onCancel={() => {
+            setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+          }}
+        />
       </div>
     </div>
   );

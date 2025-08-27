@@ -1,13 +1,13 @@
 import { useState } from "react";
-import type { Property, Importance } from "../types";
+import type { Property, Importance, OOPromptObject } from "../types";
 import { llmService } from "../services/llmService";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (property: Property) => void;
-  currentOOP: any; // Current OOP object to merge with
-  onUpdateOOP: (updatedOOP: any) => void; // Callback to update the OOP object
+  currentOOP: OOPromptObject; // Current OOP object to merge with
+  onUpdateOOP: (updatedOOP: OOPromptObject) => void; // Callback to update the OOP object
 };
 
 export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateOOP }: Props) {
@@ -19,11 +19,11 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleStructuredSubmit = () => {
-    if (name.trim() && value.trim()) {
+    if (name.trim()) {
       const property: Property = {
         id: `p${Date.now()}`,
         name: name.trim(),
-        value: value.trim(),
+        value: value.trim(), // Allow empty values
         importance,
         source: "user",
         createdAt: Date.now(),
@@ -158,8 +158,8 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500"
-                placeholder="Property value"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500 placeholder:text-xs"
+                placeholder="Enter value or leave blank to explore options later"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStructuredSubmit();
                   if (e.key === "Escape") onClose();
@@ -188,7 +188,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               <button
                 onClick={handleStructuredSubmit}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
-                disabled={!name.trim() || !value.trim()}
+                disabled={!name.trim()}
               >
                 Add Property
               </button>

@@ -12,6 +12,13 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface FileAttachment {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  data: string | ArrayBuffer | null;
+}
+
 class LLMService {
   private openaiApiKey: string;
   private geminiApiKey: string;
@@ -47,13 +54,65 @@ class LLMService {
     console.log('EXAMPLE_GENERATOR:', !!this.exampleGeneratorId);
   }
 
-  // OpenAI Chat Completion
-  async chatWithOpenAI(messages: ChatMessage[]): Promise<LLMResponse> {
+  // OpenAI Chat Completion with optional file attachments
+  async chatWithOpenAI(messages: ChatMessage[], fileAttachments?: FileAttachment[]): Promise<LLMResponse> {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
     try {
+      // If we have file attachments, try the OpenAI Assistants API v2
+      if (fileAttachments && fileAttachments.length > 0) {
+        try {
+          console.log('Attempting to use OpenAI Assistants API v2 for file processing...');
+          return await this.chatWithOpenAIAssistants(messages, fileAttachments);
+        } catch (assistantError) {
+          console.warn('OpenAI Assistants API failed, falling back to regular chat completion:', assistantError);
+          
+          // Fallback: Modify the message to include file information
+          const modifiedMessages = messages.map(msg => {
+            if (msg.role === 'user') {
+              const fileInfo = fileAttachments.map(file => 
+                `[File: ${file.fileName} - ${file.fileType} - ${(file.fileSize / 1024).toFixed(1)} KB]`
+              ).join(', ');
+              
+              return {
+                ...msg,
+                content: `${msg.content}\n\nNote: The following files were attached but cannot be processed in this mode: ${fileInfo}\nPlease provide a response based on the available information.`
+              };
+            }
+            return msg;
+          });
+
+          // Use regular chat completion API with modified message
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.openaiApiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: modifiedMessages,
+              max_tokens: 2000,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return {
+            content: data.choices[0].message.content,
+            provider: 'openai',
+            timestamp: new Date(),
+          };
+        }
+      }
+
+      // No files or fallback case - use the regular chat completion API
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -63,7 +122,7 @@ class LLMService {
         body: JSON.stringify({
           model: 'gpt-4',
           messages: messages,
-          max_tokens: 1000,
+          max_tokens: 2000, // Increased for better responses
           temperature: 0.7,
         }),
       });
@@ -80,6 +139,183 @@ class LLMService {
       };
     } catch (error) {
       console.error('OpenAI API error:', error);
+      throw error;
+    }
+  }
+
+  // OpenAI Assistants API v2 for file handling
+  private async chatWithOpenAIAssistants(messages: ChatMessage[], fileAttachments: FileAttachment[]): Promise<LLMResponse> {
+    try {
+      // Create a new thread
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (!threadResponse.ok) {
+        throw new Error(`Failed to create thread: ${threadResponse.status}`);
+      }
+
+      const thread = await threadResponse.json();
+      const threadId = thread.id;
+
+      // Upload files to OpenAI
+      const fileIds: string[] = [];
+      console.log(`Uploading ${fileAttachments.length} files to OpenAI...`);
+      
+      for (const file of fileAttachments) {
+        if (file.data && typeof file.data === 'string') {
+          console.log(`Uploading file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB)`);
+          
+          try {
+            // Convert data URL to blob
+            const response = await fetch(file.data);
+            const blob = await response.blob();
+            
+            console.log(`Converted to blob: ${blob.size} bytes, type: ${blob.type}`);
+            
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('file', blob, file.fileName);
+            formData.append('purpose', 'assistants');
+
+            const uploadResponse = await fetch('https://api.openai.com/v1/files', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${this.openaiApiKey}`,
+              },
+              body: formData
+            });
+
+            if (uploadResponse.ok) {
+              const uploadedFile = await uploadResponse.json();
+              console.log(`File uploaded successfully: ${file.fileName} -> ${uploadedFile.id}`);
+              fileIds.push(uploadedFile.id);
+            } else {
+              const errorText = await uploadResponse.text();
+              console.error(`File upload failed for ${file.fileName}:`, uploadResponse.status, errorText);
+              throw new Error(`File upload failed: ${uploadResponse.status} - ${errorText}`);
+            }
+          } catch (error) {
+            console.error(`Error uploading file ${file.fileName}:`, error);
+            throw error;
+          }
+        }
+      }
+      
+      console.log(`Successfully uploaded ${fileIds.length} files. File IDs:`, fileIds);
+
+      // Add messages to thread
+      for (const message of messages) {
+        const messageData: any = {
+          role: message.role,
+          content: message.content
+        };
+
+        // Add file attachments to the first user message
+        if (message.role === 'user' && fileIds.length > 0) {
+          messageData.attachments = fileIds.map(fileId => ({
+            file_id: fileId,
+            tools: [{ type: "file_search" }]
+          }));
+        }
+
+        console.log('Sending message data:', JSON.stringify(messageData, null, 2));
+
+        const messageResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+            'OpenAI-Beta': 'assistants=v2'
+          },
+          body: JSON.stringify(messageData)
+        });
+
+        if (!messageResponse.ok) {
+          const errorText = await messageResponse.text();
+          console.error('Message creation error:', messageResponse.status, errorText);
+          throw new Error(`Failed to add message: ${messageResponse.status} - ${errorText}`);
+        }
+      }
+
+      // Create a run with the PROMPT_BUILDER assistant
+      const runBody: any = {
+        assistant_id: this.promptBuilderId
+      };
+
+      // Enable file_search tool if we have files
+      if (fileIds.length > 0) {
+        runBody.tools = [{ type: "file_search" }];
+      }
+
+      console.log('Creating run with body:', JSON.stringify(runBody, null, 2));
+
+      const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify(runBody)
+      });
+
+      if (!runResponse.ok) {
+        throw new Error(`Failed to create run: ${runResponse.status}`);
+      }
+
+      const run = await runResponse.json();
+      const runId = run.id;
+
+      // Wait for the run to complete
+      let runStatus = 'queued';
+      while (runStatus === 'queued' || runStatus === 'in_progress') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+          headers: {
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+            'OpenAI-Beta': 'assistants=v2'
+          }
+        });
+
+        if (statusResponse.ok) {
+          const runData = await statusResponse.json();
+          runStatus = runData.status;
+        }
+      }
+
+      if (runStatus === 'failed') {
+        throw new Error('Assistant run failed');
+      }
+
+      // Get the response messages
+      const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (messagesResponse.ok) {
+        const messagesData = await messagesResponse.json();
+        const lastMessage = messagesData.data[0]; // Get the most recent message
+        
+        return {
+          content: lastMessage.content[0].text.value,
+          provider: 'openai',
+          timestamp: new Date(),
+        };
+      } else {
+        throw new Error('Failed to get response messages');
+      }
+    } catch (error) {
+      console.error('OpenAI Assistants API error:', error);
       throw error;
     }
   }
@@ -245,14 +481,14 @@ class LLMService {
   }
 
   // Main chat method - tries providers in order
-  async chat(messages: ChatMessage[], preferredProvider?: LLMProvider): Promise<LLMResponse> {
+  async chat(messages: ChatMessage[], preferredProvider?: LLMProvider, fileAttachments?: FileAttachment[]): Promise<LLMResponse> {
     // If preferred provider is specified, only try that one (no fallback)
     if (preferredProvider) {
       console.log(`Using preferred provider: ${preferredProvider}`);
       try {
         switch (preferredProvider) {
           case 'openai':
-            return await this.chatWithOpenAI(messages);
+            return await this.chatWithOpenAI(messages, fileAttachments);
           case 'gemini':
             return await this.chatWithGemini(messages);
           case 'claude':
@@ -275,7 +511,7 @@ class LLMService {
         console.log(`Trying provider: ${provider}`);
         switch (provider) {
           case 'openai':
-            return await this.chatWithOpenAI(messages);
+            return await this.chatWithOpenAI(messages, fileAttachments);
           case 'gemini':
             return await this.chatWithGemini(messages);
           case 'claude':
@@ -479,6 +715,25 @@ class LLMService {
     
     console.log('Using PROMPT_BUILDER assistant ID:', this.promptBuilderId);
     console.log('API key configured:', !!this.openaiApiKey);
+    
+    // Clean the OOP object to remove fileData (which contains large binary data)
+    const cleanOopObject = {
+      ...oopObject,
+      properties: oopObject.properties?.map((prop: any) => {
+        const cleanProp = { ...prop };
+        // Remove fileData to avoid sending large binary data to the assistant
+        if (cleanProp.fileData) {
+          delete cleanProp.fileData;
+          // Instead, add a note about the file for the assistant
+          if (cleanProp.fileReference) {
+            cleanProp.fileNote = `File attached: ${cleanProp.fileReference.fileName} (${cleanProp.fileReference.fileType})`;
+          }
+        }
+        return cleanProp;
+      }) || []
+    };
+    
+    console.log('Cleaned OOP object for PROMPT_BUILDER:', cleanOopObject);
 
     try {
       // Create a thread
@@ -500,6 +755,11 @@ class LLMService {
       const thread = await threadResponse.json();
 
       // Add message to thread with the OOP object
+      const messageContent = `Please build a prompt based on this OOP object: ${JSON.stringify(cleanOopObject, null, 2)}`;
+      
+      console.log('Message content length:', messageContent.length);
+      console.log('Message content preview:', messageContent.substring(0, 500) + (messageContent.length > 500 ? '...' : ''));
+      
       const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
         method: 'POST',
         headers: {
@@ -509,12 +769,14 @@ class LLMService {
         },
         body: JSON.stringify({ 
           role: 'user', 
-          content: `Please build a prompt based on this OOP object: ${JSON.stringify(oopObject, null, 2)}` 
+          content: messageContent 
         })
       });
       
       if (!messageResponse.ok) { 
-        throw new Error(`Failed to add message: ${messageResponse.status}`); 
+        const errorText = await messageResponse.text();
+        console.error('Message creation error:', messageResponse.status, errorText);
+        throw new Error(`Failed to add message: ${messageResponse.status} - ${errorText}`); 
       }
 
       // Run the assistant

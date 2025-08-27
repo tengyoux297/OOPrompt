@@ -8,6 +8,7 @@ import { SuggestionsBanner } from "./SuggestionsBanner";
 import { BookmarkHandle } from "./BookmarkHandle";
 import { suggest } from "../api";
 import { llmService } from "../services/llmService";
+import type { FileAttachment } from "../services/llmService";
 
 function ImportanceSegmented({
   value, onChange
@@ -46,7 +47,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
     p.importance === "avoid"     ? "card-avoid"     :
                                    "";
   const selectedStyle = isSelected ? "ring-2 ring-blue-500 ring-offset-2 shadow-lg" : "";
-  
+
   return (
     <div className="w-full">
       <button onClick={onSelect} className={`${base} ${style} ${selectedStyle}`}>
@@ -55,9 +56,39 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
         <div className="mt-1.5 text-sm line-clamp-2 break-words">
           {typeof p.value === "string" 
             ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
-            : (p.value?.refObjectName || <span className="text-gray-400 italic">To be added...</span>)
+            : (p.value?.refObjectName 
+                ? <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-200">
+                    <span className="text-blue-500 text-xs font-semibold">object:</span> {p.value.refObjectName}
+                  </span>
+                : <span className="text-gray-400 italic">To be added...</span>)
           }
         </div>
+        
+        {/* File reference display */}
+        {p.fileReference && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded-md border border-green-200">
+              📎 {p.fileReference.fileName}
+            </span>
+            <button
+              className="text-green-600 hover:text-green-700 text-xs"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  console.log('=== Downloading File from Property Card ===');
+                  const { fileStorageService } = await import("../services/fileStorageService");
+                  await fileStorageService.downloadFile(p.fileReference!);
+                } catch (error) {
+                  console.error('Download failed:', error);
+                  alert(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              }}
+              title="Download file"
+            >
+              ⬇️
+            </button>
+          </div>
+        )}
         <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.importance}</div>
       </button>
       
@@ -99,25 +130,37 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
-                  <input
-                    className="input text-sm"
-                    defaultValue={typeof p.value === "string" ? (p.value || "") : (p.value?.refObjectName || "")}
-                    onBlur={(e) => {
-                      const nextVal = typeof p.value === "string"
-                        ? e.target.value
-                        : { ...p.value, refObjectName: e.target.value };
-                      const updatedProperty = { ...p, value: nextVal, updatedAt: Date.now() };
-                      dispatch({
-                        type: "UPSERT_PROPERTY",
-                        payload: updatedProperty,
-                      });
-                      
-                      // Debug: Log updated property
-                      console.log('=== Property Value Updated ===');
-                      console.log('Updated Property:', updatedProperty);
-                      console.log('============================');
-                    }}
-                  />
+                  {typeof p.value === "object" && p.value?.refObjectName ? (
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                      <span className="text-blue-600 font-medium text-sm">
+                        <span className="text-blue-500 text-xs font-semibold">object:</span> {p.value.refObjectName}
+                      </span>
+                      <button 
+                        className="text-xs text-gray-500 hover:text-gray-700 ml-auto"
+                        onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p })}
+                      >
+                        Change…
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      className="input text-sm"
+                      defaultValue={typeof p.value === "string" ? (p.value || "") : ""}
+                      onBlur={(e) => {
+                        const nextVal = e.target.value;
+                        const updatedProperty = { ...p, value: nextVal, updatedAt: Date.now() };
+                        dispatch({
+                          type: "UPSERT_PROPERTY",
+                          payload: updatedProperty,
+                        });
+                        
+                        // Debug: Log updated property
+                        console.log('=== Property Value Updated ===');
+                        console.log('Updated Property:', updatedProperty);
+                        console.log('============================');
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -139,6 +182,71 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                   }}
                 />
               </div>
+
+              {/* File reference management in details panel */}
+              {p.fileReference && (
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600">File Reference</span>
+                    <div className="flex gap-2">
+                      <button 
+                        className="text-xs text-blue-600 hover:text-blue-700"
+                        onClick={async () => {
+                          try {
+                            console.log('=== Downloading File from Details Panel ===');
+                            const { fileStorageService } = await import("../services/fileStorageService");
+                            await fileStorageService.downloadFile(p.fileReference!);
+                          } catch (error) {
+                            console.error('Download failed:', error);
+                            alert(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                          }
+                        }}
+                      >
+                        Download
+                      </button>
+    <button
+                        className="text-xs text-red-600 hover:text-red-700"
+                        onClick={async () => {
+                          try {
+                            const { fileStorageService } = await import("../services/fileStorageService");
+                            await fileStorageService.removeFile(p.fileReference!.id);
+                            const updatedProperty = { ...p, fileReference: undefined, updatedAt: Date.now() };
+                            dispatch({
+                              type: "UPSERT_PROPERTY",
+                              payload: updatedProperty,
+                            });
+                          } catch (error) {
+                            console.error('File removal failed:', error);
+                            alert(`Failed to remove file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600">📎</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-green-800">{p.fileReference.fileName}</div>
+                        <div className="text-xs text-green-600">
+                          {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
+                        </div>
+                        <div className="text-xs text-green-500">
+                          Uploaded: {new Date(p.fileReference.uploadTime).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-green-400">
+                          File ID: {p.fileReference.id}
+                        </div>
+                        <div className="text-xs text-green-400">
+                          Stored: {p.fileReference.storedPath}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button 
@@ -166,7 +274,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                   }}
                 >
                   Delete
-                </button>
+    </button>
               </div>
             </div>
           </div>
@@ -177,18 +285,28 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
 }
 
 export function OOPromptPanel({
-  state, dispatch, onSendMessage
+  state, dispatch, onSendMessage, onCreateEmbeddedObject, onEmbedExistingObject
 }: { 
   state: AppState; 
   dispatch: React.Dispatch<Action>;
   onSendMessage?: (message: string) => void;
+  onCreateEmbeddedObject?: (propertyId: string, parentObjectId: string) => void;
+  onEmbedExistingObject?: (propertyId: string, objectId: string, objectName: string) => void;
 }) {
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
   const [isSending, setIsSending] = useState(false);
+  
+  // Local state for main task and audience inputs to make them controlled
+  const [mainTask, setMainTask] = useState(oop.main_task || "");
+  const [audience, setAudience] = useState(oop.audience || "");
 
-
+  // Sync local state when oop object changes (e.g., when switching objects)
+  useEffect(() => {
+    setMainTask(oop.main_task || "");
+    setAudience(oop.audience || "");
+  }, [oop.id, oop.main_task, oop.audience]);
 
   // Filter properties based on search term
   const filtered = oop.properties.filter((p: Property) => 
@@ -346,19 +464,20 @@ export function OOPromptPanel({
       
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
-        {/* Header with Brief (main_task / audience) */}
+      {/* Header with Brief (main_task / audience) */}
         <div className="panel-chrome p-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold text-text-onLight">OOPrompt</div>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <input
+        <div className="flex items-center justify-between">
+          <div className="font-semibold text-text-onLight">OOPrompt</div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <input
               className="input"
-              placeholder="Main task"
-              defaultValue={oop.main_task || ""}
-              onBlur={(e) => {
-                const next: OOPromptObject = { ...oop, main_task: e.target.value };
-                dispatch({ type: "SET_OOP", payload: next });
+            placeholder="Main task"
+              value={mainTask}
+              onChange={(e) => setMainTask(e.target.value)}
+            onBlur={(e) => {
+              const next: OOPromptObject = { ...oop, main_task: e.target.value };
+              dispatch({ type: "SET_OOP", payload: next });
                 
                 // Debug: Log current state after updating main task
                 setTimeout(() => {
@@ -366,15 +485,16 @@ export function OOPromptPanel({
                   console.log(JSON.stringify(next, null, 2));
                   console.log('==================================================');
                 }, 100);
-              }}
-            />
-            <input
+            }}
+          />
+          <input
               className="input"
-              placeholder="Audience"
-              defaultValue={oop.audience || ""}
-              onBlur={(e) => {
-                const next: OOPromptObject = { ...oop, audience: e.target.value };
-                dispatch({ type: "SET_OOP", payload: next });
+            placeholder="Audience"
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+            onBlur={(e) => {
+              const next: OOPromptObject = { ...oop, audience: e.target.value };
+              dispatch({ type: "SET_OOP", payload: next });
                 
                 // Debug: Log current state after updating audience
                 setTimeout(() => {
@@ -382,27 +502,27 @@ export function OOPromptPanel({
                   console.log(JSON.stringify(next, null, 2));
                   console.log('==================================================');
                 }, 100);
-              }}
-            />
-          </div>
+            }}
+          />
         </div>
+      </div>
 
-        {/* Suggestions Banner */}
-        <SuggestionsBanner
-          suggestions={suggestions.suggested}
-          conflicts={suggestions.conflicts}
-          isVisible={suggestions.isVisible}
-          onAddSuggestion={handleAddSuggestion}
-          onDismissSuggestion={handleDismissSuggestion}
-          onResolveConflict={handleResolveConflict}
-          onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
-        />
+      {/* Suggestions Banner */}
+      <SuggestionsBanner
+        suggestions={suggestions.suggested}
+        conflicts={suggestions.conflicts}
+        isVisible={suggestions.isVisible}
+        onAddSuggestion={handleAddSuggestion}
+        onDismissSuggestion={handleDismissSuggestion}
+        onResolveConflict={handleResolveConflict}
+        onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
+      />
 
-        {/* Toolbar */}
+      {/* Toolbar */}
         <div className="panel-chrome p-3 flex gap-2 items-center flex-shrink-0">
-          <button 
+        <button 
             className="btn-primary w-10 h-10 flex items-center justify-center"
-            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
+          onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
             title="Add Property"
           >
             <span className="text-lg font-bold">+</span>
@@ -437,14 +557,14 @@ export function OOPromptPanel({
             title="Save Object"
           >
             <span className="text-sm">💾</span>
-          </button>
-          <input 
+        </button>
+        <input 
             className="input flex-1 h-10" 
-            placeholder="Search properties…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+          placeholder="Search properties…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
         {/* Properties area with scrollbar */}
         <div className="flex-1 min-h-0">
@@ -455,9 +575,9 @@ export function OOPromptPanel({
                   const isSelected = p.id === selectedPropertyId;
                   console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
                   return (
-                    <PropertyCard
-                      key={p.id}
-                      p={p}
+          <PropertyCard
+            key={p.id}
+            p={p}
                       isSelected={isSelected}
                       onSelect={() => {
                         console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
@@ -473,15 +593,15 @@ export function OOPromptPanel({
                     />
                   );
                 })}
-              </div>
+            </div>
             </div>
           </div>
-        </div>
+      </div>
 
         {/* Save and Send buttons area - separate block */}
         <div className="panel-chrome p-4 flex-shrink-0 border-t border-divider space-y-3">
           {/* Save button */}
-          <button 
+        <button 
             className="w-full py-2 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-colors text-sm font-medium"
             onClick={() => {
               console.log('=== Save Button Clicked ===');
@@ -516,27 +636,99 @@ export function OOPromptPanel({
             }}
           >
             💾 Save Prompt Object
-          </button>
+        </button>
           
           {/* Send button */}
-          <button 
+        <button 
             className={`btn-primary w-full py-3 text-base font-medium ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
               if (isSending) return; // Prevent multiple clicks
               
               console.log('=== Send Button Clicked ===');
-              console.log('Current OOP object:', oop);
+              
+              // Console output: Current JSON Prompt Object
+              console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
+              console.log('║                                CURRENT JSON PROMPT OBJECT                         ║');
+              console.log('╚════════════════════════════════════════════════════════════════════════════════════╝');
+              console.log(JSON.stringify(oop, null, 2));
+              console.log('═══════════════════════════════════════════════════════════════════════════════════════');
               
               setIsSending(true);
               
               try {
-                // Step 1: Prepare only the required fields for PROMPT_BUILDER
+                // Step 1: Function to recursively resolve embedded objects and file references
+                const resolveEmbeddedObjects = async (properties: Property[], depth = 0): Promise<Property[]> => {
+                  if (depth > 10) { // Prevent infinite recursion
+                    console.warn('Maximum embedding depth reached, stopping recursion');
+                    return properties;
+                  }
+                  
+                  const resolvedProperties = await Promise.all(properties.map(async (prop) => {
+                    if (typeof prop.value === 'object' && prop.value?.refObjectId) {
+                      // Find the referenced object (check both saved objects and current object)
+                      const valueRef = prop.value as { refObjectId: string; refObjectName: string };
+                      const referencedObject = state.promptObjects.find(obj => obj.id === valueRef.refObjectId) ||
+                                               (state.oop.id === valueRef.refObjectId ? state.oop : null);
+                      if (referencedObject) {
+                        // Recursively resolve nested embedded objects
+                        const resolvedNestedProperties = await resolveEmbeddedObjects(referencedObject.properties, depth + 1);
+                        
+                        return {
+                          ...prop,
+                          value: {
+                            ...prop.value,
+                            embeddedObject: {
+                              main_task: referencedObject.main_task,
+                              audience: referencedObject.audience,
+                              properties: resolvedNestedProperties
+                            }
+                          }
+                        };
+                      }
+                    }
+                    return prop;
+                  }));
+
+                  return resolvedProperties;
+                };
+
+                // Step 1.5: Function to resolve file references to include actual file data
+                const resolveFileReferences = async (properties: Property[]): Promise<Property[]> => {
+                  const { fileStorageService } = await import("../services/fileStorageService");
+                  
+                  return Promise.all(properties.map(async (prop) => {
+                    if (prop.fileReference) {
+                      try {
+                        // Get the actual file data from storage
+                        const fileData = await fileStorageService.getFileData(prop.fileReference.id);
+                        if (fileData) {
+                          return {
+                            ...prop,
+                            fileData: {
+                              fileName: prop.fileReference.fileName,
+                              fileType: prop.fileReference.fileType,
+                              fileSize: prop.fileReference.fileSize,
+                              data: fileData.data
+                            }
+                          };
+                        }
+                      } catch (error) {
+                        console.warn(`Failed to resolve file reference for property ${prop.name}:`, error);
+                      }
+                    }
+                    return prop;
+                  }));
+                };
+
+                const resolvedProperties = await resolveEmbeddedObjects(oop.properties);
+                const propertiesWithFiles = await resolveFileReferences(resolvedProperties);
+
                 const promptData = {
                   main_task: oop.main_task,
                   audience: oop.audience,
-                  properties: oop.properties
+                  properties: propertiesWithFiles
                 };
-                console.log('Sending to PROMPT_BUILDER:', promptData);
+                console.log('Sending to PROMPT_BUILDER with resolved embedded objects:', promptData);
                 
                 // Step 2: Send to PROMPT_BUILDER assistant
                 console.log('Building prompt with PROMPT_BUILDER assistant...');
@@ -545,13 +737,37 @@ export function OOPromptPanel({
                 
                 // Step 3: Send the built prompt to LLM API
                 console.log('Sending built prompt to LLM API...');
-                console.log('=== FINAL PROMPT SENT TO LLM ===');
-                console.log(builtPrompt);
-                console.log('================================');
                 
+                // Console output: Final Prompt
+                console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
+                console.log('║                                  FINAL PROMPT SENT TO LLM                         ║');
+                console.log('╚════════════════════════════════════════════════════════════════════════════════════╝');
+                console.log(builtPrompt);
+                console.log('═══════════════════════════════════════════════════════════════════════════════════════');
+                
+                // Extract file attachments from properties
+                const fileAttachments: FileAttachment[] = [];
+                propertiesWithFiles.forEach(prop => {
+                  if (prop.fileData) {
+                    fileAttachments.push({
+                      fileName: prop.fileData.fileName,
+                      fileType: prop.fileData.fileType,
+                      fileSize: prop.fileData.fileSize,
+                      data: prop.fileData.data
+                    });
+                  }
+                });
+
+                console.log('=== File Attachments Found ===');
+                console.log('Total files:', fileAttachments.length);
+                fileAttachments.forEach((file, index) => {
+                  console.log(`File ${index + 1}:`, file.fileName, `(${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB)`);
+                });
+                console.log('=============================');
+
                 const llmResponse = await llmService.chat([
                   { role: 'user', content: builtPrompt }
-                ]);
+                ], undefined, fileAttachments);
                 console.log('LLM response:', llmResponse);
                 
                 // Step 4: Send both the built prompt and LLM response to chat panel
@@ -598,7 +814,7 @@ export function OOPromptPanel({
             ) : (
               'Send'
             )}
-          </button>
+        </button>
         </div>
       </div>
 
@@ -631,10 +847,29 @@ export function OOPromptPanel({
         isOpen={modal === "more-options"}
         property={modal === "more-options" ? (state.modalData as Property) : {} as Property}
         currentOOP={oop}
+        promptObjects={state.promptObjects}
         onClose={() => dispatch({ type: "CLOSE_MODAL" })}
         onUpdateProperty={(updatedProperty) => {
           dispatch({ type: "UPSERT_PROPERTY", payload: updatedProperty });
           dispatch({ type: "CLOSE_MODAL" });
+        }}
+        onCreateEmbeddedObject={(propertyId, parentObjectId) => {
+          if (onCreateEmbeddedObject) {
+            onCreateEmbeddedObject(propertyId, parentObjectId);
+          } else {
+            dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
+            dispatch({ type: "CLOSE_MODAL" });
+            dispatch({ type: "TOGGLE_PANEL", open: true }); // Keep OOP panel open
+          }
+        }}
+        onEmbedExistingObject={(propertyId, objectId, objectName) => {
+          if (onEmbedExistingObject) {
+            onEmbedExistingObject(propertyId, objectId, objectName);
+          } else {
+            dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
+            dispatch({ type: "CLOSE_MODAL" });
+            dispatch({ type: "TOGGLE_PANEL", open: true }); // Keep OOP panel open
+          }
         }}
       />
     </aside>

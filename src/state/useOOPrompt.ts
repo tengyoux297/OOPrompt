@@ -13,6 +13,12 @@ export type AppState = {
   modalData?: unknown;
   promptObjects: OOPromptObject[]; // Array of all saved prompt objects
   currentObjectId: string; // ID of the currently loaded object
+  // Tab management for embedded objects
+  openTabs: string[]; // Array of object IDs that are open in tabs
+  activeTabId: string; // ID of the currently active tab
+  // Save state tracking
+  hasUnsavedChanges: boolean; // Track if current object has unsaved changes
+  lastSavedState?: OOPromptObject; // Store last saved state for comparison
 };
 
 export type Action =
@@ -31,7 +37,16 @@ export type Action =
   | { type: "REDO" }
   | { type: "SAVE_PROMPT_OBJECT"; payload: OOPromptObject }
   | { type: "LOAD_PROMPT_OBJECT"; payload: OOPromptObject }
-  | { type: "DELETE_PROMPT_OBJECT"; id: string };
+  | { type: "DELETE_PROMPT_OBJECT"; id: string }
+  // New actions for tab management and embedding
+  | { type: "OPEN_TAB"; objectId: string }
+  | { type: "CLOSE_TAB"; objectId: string }
+  | { type: "SWITCH_TAB"; objectId: string }
+  | { type: "CREATE_EMBEDDED_OBJECT"; payload: { propertyId: string; parentObjectId: string } }
+  | { type: "EMBED_EXISTING_OBJECT"; payload: { propertyId: string; objectId: string; objectName: string } }
+  // Save state tracking actions
+  | { type: "MARK_SAVED" }
+  | { type: "MARK_UNSAVED" };
 
 const KEY = "ooprompt_state_v1";
 
@@ -55,20 +70,39 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       return { ...state, openPanel: action.open ?? !state.openPanel };
     case "TOGGLE_OBJECT_PANEL":
       return { ...state, objectPanelOpen: action.open ?? !state.objectPanelOpen };
-    case "SET_OOP":
-      return pushHistory(state, action.payload);
+    case "SET_OOP": {
+      const updatedState = pushHistory(state, action.payload);
+      
+      // Also update the corresponding object in promptObjects if it exists
+      const objectIndex = state.promptObjects.findIndex(obj => obj.id === action.payload.id);
+      if (objectIndex >= 0) {
+        const updatedPromptObjects = [...state.promptObjects];
+        updatedPromptObjects[objectIndex] = {
+          ...action.payload,
+          updatedAt: Date.now()
+        };
+        
+        return {
+          ...updatedState,
+          promptObjects: updatedPromptObjects,
+          hasUnsavedChanges: true
+        };
+      }
+      
+      return { ...updatedState, hasUnsavedChanges: true };
+    }
     case "UPSERT_PROPERTY": {
       const exists = state.oop.properties.some((p: Property) => p.id === action.payload.id);
       const props = exists
         ? state.oop.properties.map((p: Property) => p.id === action.payload.id ? action.payload : p)
         : [action.payload, ...state.oop.properties];
       const nextOop = logAction(state.oop, "UPSERT_PROPERTY", { propertyId: action.payload.id });
-      return pushHistory(state, { ...nextOop, properties: props } as OOPromptObject);
+      return pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
     }
     case "DELETE_PROPERTY": {
       const props = state.oop.properties.filter((p: Property) => p.id !== action.id);
       const nextOop = logAction(state.oop, "DELETE_PROPERTY", { propertyId: action.id });
-      return pushHistory(state, { ...nextOop, properties: props } as OOPromptObject);
+      return pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
     }
     case "SELECT_PROPERTY":
       return { ...state, selectedPropertyId: action.id };
@@ -144,7 +178,16 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       }
       
       console.log('New promptObjects:', newPromptObjects);
-      return { ...state, promptObjects: newPromptObjects };
+      
+      // If the saved object is the current object, mark as saved
+      const isCurrentObject = action.payload.id === state.currentObjectId;
+      
+      return { 
+        ...state, 
+        promptObjects: newPromptObjects,
+        hasUnsavedChanges: isCurrentObject ? false : state.hasUnsavedChanges,
+        lastSavedState: isCurrentObject ? action.payload : state.lastSavedState
+      };
     }
     case "LOAD_PROMPT_OBJECT": {
       return { ...state, oop: action.payload, currentObjectId: action.payload.id };
@@ -159,6 +202,113 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
         newCurrentObjectId = initial.id;
       }
       return { ...state, promptObjects: newPromptObjects, oop: newOop, currentObjectId: newCurrentObjectId };
+    }
+    case "OPEN_TAB": {
+      const newOpenTabs = state.openTabs.includes(action.objectId) 
+        ? state.openTabs 
+        : [...state.openTabs, action.objectId];
+      return { ...state, openTabs: newOpenTabs, activeTabId: action.objectId };
+    }
+    case "CLOSE_TAB": {
+      const newOpenTabs = state.openTabs.filter(id => id !== action.objectId);
+      const newActiveTabId = state.activeTabId === action.objectId 
+        ? (newOpenTabs.length > 0 ? newOpenTabs[newOpenTabs.length - 1] : state.currentObjectId)
+        : state.activeTabId;
+      return { ...state, openTabs: newOpenTabs, activeTabId: newActiveTabId };
+    }
+    case "SWITCH_TAB": {
+      return { ...state, activeTabId: action.objectId };
+    }
+    case "CREATE_EMBEDDED_OBJECT": {
+      // Find the property and parent object to get the property name and audience
+      const parentObject = state.oop.id === action.payload.parentObjectId 
+        ? state.oop 
+        : state.promptObjects.find(obj => obj.id === action.payload.parentObjectId);
+      
+      const targetProperty = parentObject?.properties.find(prop => prop.id === action.payload.propertyId);
+      const propertyName = targetProperty?.name || "Embedded Object";
+      const parentAudience = parentObject?.audience || "";
+      
+      // Create a new embedded object with property name as both name and main_task for consistency
+      const newEmbeddedObject: OOPromptObject = {
+        id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: propertyName,
+        main_task: propertyName,
+        audience: parentAudience,
+        properties: [],
+        tabsOrder: [],
+        log: [{ ts: Date.now(), action: "CREATE_EMBEDDED_OBJECT", payload: action.payload }],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      // Update the property to reference the new embedded object
+      const updatedProperties = state.oop.properties.map(prop => 
+        prop.id === action.payload.propertyId 
+          ? { 
+              ...prop, 
+              value: { 
+                refObjectId: newEmbeddedObject.id, 
+                refObjectName: newEmbeddedObject.name 
+              },
+              updatedAt: Date.now()
+            }
+          : prop
+      );
+      
+      const updatedOop = { ...state.oop, properties: updatedProperties };
+      
+      // Add to prompt objects and open in new tab
+      const newPromptObjects = [...state.promptObjects, newEmbeddedObject];
+      const newOpenTabs = [...state.openTabs, newEmbeddedObject.id];
+      
+      return pushHistory({ 
+        ...state, 
+        promptObjects: newPromptObjects,
+        openTabs: newOpenTabs,
+        activeTabId: newEmbeddedObject.id
+      }, updatedOop);
+    }
+    case "EMBED_EXISTING_OBJECT": {
+      // Update the property to reference the existing object
+      const updatedProperties = state.oop.properties.map(prop => 
+        prop.id === action.payload.propertyId 
+          ? { 
+              ...prop, 
+              value: { 
+                refObjectId: action.payload.objectId, 
+                refObjectName: action.payload.objectName 
+              },
+              updatedAt: Date.now()
+            }
+          : prop
+      );
+      
+      const updatedOop = { ...state.oop, properties: updatedProperties };
+      
+      // Open the referenced object in a new tab
+      const newOpenTabs = state.openTabs.includes(action.payload.objectId)
+        ? state.openTabs
+        : [...state.openTabs, action.payload.objectId];
+      
+      return pushHistory({ 
+        ...state, 
+        openTabs: newOpenTabs,
+        activeTabId: action.payload.objectId
+      }, updatedOop);
+    }
+    case "MARK_SAVED": {
+      return { 
+        ...state, 
+        hasUnsavedChanges: false,
+        lastSavedState: state.oop
+      };
+    }
+    case "MARK_UNSAVED": {
+      return { 
+        ...state, 
+        hasUnsavedChanges: true
+      };
     }
     default:
       return state;
@@ -180,6 +330,10 @@ export function useOOPrompt(initial: OOPromptObject) {
       modalData: undefined,
       promptObjects: [], // Start with no objects
       currentObjectId: initial.id,
+      openTabs: [initial.id], // Start with the initial object as the first tab
+      activeTabId: initial.id, // Initially active tab is the initial object
+      hasUnsavedChanges: false, // Start with no unsaved changes
+      lastSavedState: initial, // Initial state is considered saved
     }
   );
 
@@ -209,9 +363,11 @@ export function useOOPrompt(initial: OOPromptObject) {
         if (saved.currentObjectId) {
           dispatch({ type: "LOAD_PROMPT_OBJECT", payload: saved.promptObjects?.find((obj: OOPromptObject) => obj.id === saved.currentObjectId) || initial });
         }
-      } catch {}
+      } catch (error) {
+        console.error('Failed to load saved state:', error);
+      }
     }
-  }, []);
+  }, [initial]);
 
   // Keyboard shortcuts
   useEffect(() => {
