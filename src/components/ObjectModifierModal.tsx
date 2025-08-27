@@ -61,6 +61,7 @@ export function ObjectModifierModal({
         cursor || undefined
       );
       
+      console.log(`🔍 Setting envelope with suggestedProperties:`, result.suggestedProperties?.map(p => ({ suggestionId: p.suggestionId, name: p.name })));
       setEnvelope(result);
       setCursor(result.summary.cursor);
     } catch (error) {
@@ -137,15 +138,15 @@ export function ObjectModifierModal({
 
     const patches: JsonPatchOp[] = [];
     
-    // Collect patches from selected items (skip property selection items)
-    selectedItems.forEach(itemId => {
-      console.log(`🔄 Processing selected item: ${itemId}`);
-      
-      // Skip property selection items (they contain ':')
-      if (itemId.includes(':')) {
-        console.log(`⏩ Skipping property selection item: ${itemId}`);
-        return;
-      }
+          // Collect patches from selected items
+      selectedItems.forEach(itemId => {
+        console.log(`🔄 Processing selected item: ${itemId}`);
+        
+        // Skip conflict resolution property selection items (they contain ':' but are not suggested properties)
+        if (itemId.includes(':') && !itemId.startsWith('suggested:')) {
+          console.log(`⏩ Skipping conflict property selection item: ${itemId}`);
+          return;
+        }
       
       switch (activeTab) {
         case "conflict_check":
@@ -182,7 +183,20 @@ export function ObjectModifierModal({
           break;
           
         case "more_possible_properties":
-          const property = envelope.suggestedProperties?.find(p => p.suggestionId === itemId);
+          console.log(`🔍 Looking for property with itemId: ${itemId}`);
+          console.log(`🔍 Available suggestedProperties:`, envelope.suggestedProperties?.map(p => ({ suggestionId: p.suggestionId, name: p.name })));
+          
+          // Try to find property by exact suggestionId match first
+          let property = envelope.suggestedProperties?.find(p => p.suggestionId === itemId);
+          
+          // If not found and itemId starts with 'suggested:', try to find by property name
+          if (!property && itemId.startsWith('suggested:')) {
+            const propertyName = itemId.split(':')[1];
+            console.log(`🔍 Trying to find property by name: ${propertyName}`);
+            property = envelope.suggestedProperties?.find(p => p.name.toLowerCase() === propertyName.toLowerCase());
+          }
+          
+          console.log(`🔍 Found property:`, property);
           if (property) {
             if (property.patch && property.patch.length > 0) {
               // Use the AI-provided patches if available
