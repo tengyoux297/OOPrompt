@@ -194,10 +194,7 @@ export default function App() {
           onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
         />
         
-        {/* Debug info - remove this later */}
-        <div className="fixed bottom-4 left-4 bg-black/80 text-white p-2 rounded text-xs z-50">
-          Debug: {state.promptObjects.length} objects, current: {state.currentObjectId}
-        </div>
+
 
 
 
