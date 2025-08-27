@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import type { 
   ObjectModifierEnvelope, 
   ConflictItem, 
-  JsonPatchOp 
+  JsonPatchOp,
+  Property,
+  Importance
 } from "../types";
 import type { OOPromptObject } from "../types";
 
@@ -181,8 +183,34 @@ export function ObjectModifierModal({
           
         case "more_possible_properties":
           const property = envelope.suggestedProperties?.find(p => p.suggestionId === itemId);
-          if (property?.patch) {
-            patches.push(...property.patch);
+          if (property) {
+            if (property.patch && property.patch.length > 0) {
+              // Use the AI-provided patches if available
+              console.log(`🔄 Using AI-provided patches for property: ${property.name}`);
+              patches.push(...property.patch);
+            } else {
+              // Generate patches manually if AI didn't provide them
+              console.log(`🔄 Generating patches manually for property: ${property.name}`);
+              const newProperty: Property = {
+                id: `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                name: property.name,
+                value: property.valueTemplate?.placeholder || property.valueTemplate?.example || "Value to be filled",
+                importance: "normal" as Importance,
+                source: "ai-suggested",
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              };
+              
+              // Create an "add" patch to add the new property
+              const addPatch: JsonPatchOp = {
+                op: "add",
+                path: "/properties/-",
+                value: newProperty
+              };
+              
+              console.log(`📝 Generated add patch for property:`, addPatch);
+              patches.push(addPatch);
+            }
           }
           break;
           
