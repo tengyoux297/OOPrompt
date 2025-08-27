@@ -8,13 +8,14 @@ type Props = {
   property: Property;
   currentOOP: OOPromptObject; // Add current OOPrompt object
   promptObjects: OOPromptObject[]; // All available prompt objects
+  selectedLLM: 'openai' | 'gemini' | 'claude';
   onClose: () => void;
   onUpdateProperty: (updatedProperty: Property) => void;
   onCreateEmbeddedObject?: (propertyId: string, parentObjectId: string) => void;
   onEmbedExistingObject?: (propertyId: string, objectId: string, objectName: string) => void;
 };
 
-export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, onClose, onUpdateProperty, onCreateEmbeddedObject, onEmbedExistingObject }: Props) {
+export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, selectedLLM, onClose, onUpdateProperty, onCreateEmbeddedObject, onEmbedExistingObject }: Props) {
   const [activeTab, setActiveTab] = useState<"examples" | "Embed" | "reference">("examples");
   const [examples, setExamples] = useState<string[]>(property.examples || []);
   const [selectedExamples, setSelectedExamples] = useState<Set<string>>(new Set(property.examples || []));
@@ -32,6 +33,13 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
     setExamples(property.examples || []);
     setSelectedExamples(new Set(property.examples || []));
   }, [property.examples]);
+
+  // Auto-switch to examples tab if reference tab is hidden for Gemini/Claude
+  useEffect(() => {
+    if (activeTab === "reference" && (selectedLLM === 'gemini' || selectedLLM === 'claude')) {
+      setActiveTab("examples");
+    }
+  }, [selectedLLM, activeTab]);
 
   const handleGenerateExamples = async () => {
     setIsGeneratingExamples(true);
@@ -230,7 +238,15 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
 
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-4">
-          {(["examples", "Embed", "reference"] as const).map((tab) => (
+          {(["examples", "Embed", "reference"] as const)
+            .filter(tab => {
+              // Hide "reference" tab for Gemini and Claude since they don't support file processing
+              if (tab === "reference" && (selectedLLM === 'gemini' || selectedLLM === 'claude')) {
+                return false;
+              }
+              return true;
+            })
+            .map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}

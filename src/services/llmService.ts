@@ -1,6 +1,28 @@
 // LLM API Service for multiple providers
 export type LLMProvider = 'openai' | 'gemini' | 'claude';
 
+// Import types from the main types file
+import type { OOPromptObject, Property, FileReference } from '../types';
+
+// Type definitions for internal use
+interface OpenAIMessageData {
+  role: string;
+  content: string;
+  attachments?: Array<{
+    file_id: string;
+    tools: Array<{ type: string }>;
+  }>;
+}
+
+// Use the proper types from the main types file with extensions for internal use
+interface PropertyData extends Property {
+  fileNote?: string; // Additional field for internal processing
+}
+
+interface OOPObjectData extends Omit<OOPromptObject, 'properties'> {
+  properties: PropertyData[];
+}
+
 export interface LLMResponse {
   content: string;
   provider: LLMProvider;
@@ -17,6 +39,8 @@ export interface FileAttachment {
   fileType: string;
   fileSize: number;
   data: string | ArrayBuffer | null;
+  propertyName?: string; // Add property context for better association
+  propertyId?: string;   // Add property ID for precise tracking
 }
 
 class LLMService {
@@ -211,7 +235,7 @@ class LLMService {
 
       // Add messages to thread
       for (const message of messages) {
-        const messageData: any = {
+        const messageData: OpenAIMessageData = {
           role: message.role,
           content: message.content
         };
@@ -244,7 +268,7 @@ class LLMService {
       }
 
       // Create a run with the PROMPT_BUILDER assistant
-      const runBody: any = {
+      const runBody: { assistant_id: string; tools?: Array<{ type: string }> } = {
         assistant_id: this.promptBuilderId
       };
 
@@ -320,16 +344,36 @@ class LLMService {
     }
   }
 
-  // Google Gemini Chat
-  async chatWithGemini(messages: ChatMessage[]): Promise<LLMResponse> {
+  // Google Gemini Chat with optional file attachments
+  async chatWithGemini(messages: ChatMessage[], fileAttachments?: FileAttachment[]): Promise<LLMResponse> {
     console.log('Gemini API key configured:', !!this.geminiApiKey);
     if (!this.geminiApiKey) {
       throw new Error('Gemini API key not configured');
     }
 
     try {
+      // Handle file attachments by modifying the message content
+      let processedMessages = messages;
+      if (fileAttachments && fileAttachments.length > 0) {
+        console.log(`Gemini: Processing ${fileAttachments.length} file attachments as text references...`);
+        
+        processedMessages = messages.map(msg => {
+          if (msg.role === 'user') {
+            const fileInfo = fileAttachments.map(file => 
+              `[File: ${file.fileName} - ${file.fileType} - ${(file.fileSize / 1024).toFixed(1)} KB]`
+            ).join(', ');
+            
+            return {
+              ...msg,
+              content: `${msg.content}\n\nNote: The following files were referenced but cannot be directly processed by Gemini: ${fileInfo}\nPlease provide a response based on the available text information and acknowledge the attached files.`
+            };
+          }
+          return msg;
+        });
+      }
+
       // Convert messages to Gemini format
-      const geminiMessages = messages.map(msg => ({
+      const geminiMessages = processedMessages.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : msg.role,
         parts: [{ text: msg.content }]
       }));
@@ -342,7 +386,7 @@ class LLMService {
         body: JSON.stringify({
           contents: geminiMessages,
           generationConfig: {
-            maxOutputTokens: 1000,
+            maxOutputTokens: 2000, // Increased for better responses
             temperature: 0.7,
           },
         }),
@@ -367,8 +411,8 @@ class LLMService {
     }
   }
 
-  // Anthropic Claude Chat
-  async chatWithClaude(messages: ChatMessage[]): Promise<LLMResponse> {
+  // Anthropic Claude Chat with optional file attachments
+  async chatWithClaude(messages: ChatMessage[], fileAttachments?: FileAttachment[]): Promise<LLMResponse> {
     console.log('Claude API key configured:', !!this.claudeApiKey);
     if (!this.claudeApiKey) {
       throw new Error('Claude API key not configured');
@@ -377,7 +421,28 @@ class LLMService {
     try {
       console.log('Attempting Claude API call...');
       console.log('API Key length:', this.claudeApiKey?.length || 0);
-      console.log('Messages:', messages);
+      
+      // Handle file attachments by modifying the message content
+      let processedMessages = messages;
+      if (fileAttachments && fileAttachments.length > 0) {
+        console.log(`Claude: Processing ${fileAttachments.length} file attachments as text references...`);
+        
+        processedMessages = messages.map(msg => {
+          if (msg.role === 'user') {
+            const fileInfo = fileAttachments.map(file => 
+              `[File: ${file.fileName} - ${file.fileType} - ${(file.fileSize / 1024).toFixed(1)} KB]`
+            ).join(', ');
+            
+            return {
+              ...msg,
+              content: `${msg.content}\n\nNote: The following files were referenced but cannot be directly processed by Claude: ${fileInfo}\nPlease provide a response based on the available text information and acknowledge the attached files.`
+            };
+          }
+          return msg;
+        });
+      }
+      
+      console.log('Processed messages:', processedMessages);
       
       // Try multiple CORS proxies to find one that works
       const corsProxies = [
@@ -406,8 +471,8 @@ class LLMService {
               },
               body: JSON.stringify({
                 model: 'claude-sonnet-4-20250514',
-                max_tokens: 1000,
-                messages: messages,
+                max_tokens: 2000, // Increased for better responses
+                messages: processedMessages,
               }),
             });
           } else {
@@ -426,8 +491,8 @@ class LLMService {
               },
               body: JSON.stringify({
                 model: 'claude-sonnet-4-20250514',
-                max_tokens: 1000,
-                messages: messages,
+                max_tokens: 2000, // Increased for better responses
+                messages: processedMessages,
               }),
             });
           }
@@ -490,9 +555,9 @@ class LLMService {
           case 'openai':
             return await this.chatWithOpenAI(messages, fileAttachments);
           case 'gemini':
-            return await this.chatWithGemini(messages);
+            return await this.chatWithGemini(messages, fileAttachments);
           case 'claude':
-            return await this.chatWithClaude(messages);
+            return await this.chatWithClaude(messages, fileAttachments);
           default:
             throw new Error(`Unknown provider: ${preferredProvider}`);
         }
@@ -513,9 +578,9 @@ class LLMService {
           case 'openai':
             return await this.chatWithOpenAI(messages, fileAttachments);
           case 'gemini':
-            return await this.chatWithGemini(messages);
+            return await this.chatWithGemini(messages, fileAttachments);
           case 'claude':
-            return await this.chatWithClaude(messages);
+            return await this.chatWithClaude(messages, fileAttachments);
           default:
             throw new Error(`Unknown provider: ${provider}`);
         }
@@ -529,7 +594,7 @@ class LLMService {
   }
 
   // Property extraction using OpenAI Assistant
-  async extractPropertiesWithAssistant(prompt: string): Promise<any> {
+  async extractPropertiesWithAssistant(prompt: string): Promise<OOPObjectData> {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -636,6 +701,8 @@ class LLMService {
             console.error('Failed to parse assistant response:', parseError);
             throw new Error('Invalid JSON response from assistant');
           }
+        } else {
+          throw new Error('Failed to get messages from assistant');
         }
       } else {
         throw new Error(`Assistant run failed with status: ${runStatus}`);
@@ -704,7 +771,7 @@ class LLMService {
   }
 
   // Build prompt using PROMPT_BUILDER assistant
-  async buildPromptWithAssistant(oopObject: any): Promise<string> {
+  async buildPromptWithAssistant(oopObject: OOPObjectData): Promise<string> {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -716,17 +783,21 @@ class LLMService {
     console.log('Using PROMPT_BUILDER assistant ID:', this.promptBuilderId);
     console.log('API key configured:', !!this.openaiApiKey);
     
+    // Count files for property-file associations
+    const propertiesWithFiles = oopObject.properties?.filter((prop: PropertyData) => prop.fileData) || [];
+    
     // Clean the OOP object to remove fileData (which contains large binary data)
     const cleanOopObject = {
       ...oopObject,
-      properties: oopObject.properties?.map((prop: any) => {
+      properties: oopObject.properties?.map((prop: PropertyData) => {
         const cleanProp = { ...prop };
         // Remove fileData to avoid sending large binary data to the assistant
         if (cleanProp.fileData) {
           delete cleanProp.fileData;
-          // Instead, add a note about the file for the assistant
+          // Enhanced property-specific file note
           if (cleanProp.fileReference) {
-            cleanProp.fileNote = `File attached: ${cleanProp.fileReference.fileName} (${cleanProp.fileReference.fileType})`;
+            const fileRef = cleanProp.fileReference as FileReference;
+            cleanProp.fileNote = `File "${fileRef.fileName}" (${fileRef.fileType}) is specifically attached to this "${prop.name}" property and should be used to fulfill the requirements for this property.`;
           }
         }
         return cleanProp;
@@ -734,6 +805,7 @@ class LLMService {
     };
     
     console.log('Cleaned OOP object for PROMPT_BUILDER:', cleanOopObject);
+    console.log(`Properties with files: ${propertiesWithFiles.length}`);
 
     try {
       // Create a thread
@@ -754,11 +826,22 @@ class LLMService {
 
       const thread = await threadResponse.json();
 
-      // Add message to thread with the OOP object
-      const messageContent = `Please build a prompt based on this OOP object: ${JSON.stringify(cleanOopObject, null, 2)}`;
+      // Build enhanced message content with file-property associations
+      let messageContent = `Please build a prompt based on this OOP object: ${JSON.stringify(cleanOopObject, null, 2)}`;
+      
+      // Add explicit file-property associations if files exist
+      if (propertiesWithFiles.length > 0) {
+        const fileAssociations = propertiesWithFiles.map((prop: PropertyData) => {
+          const fileRef = prop.fileReference as FileReference | undefined;
+          return `- File "${fileRef?.fileName || 'Unknown'}" (${fileRef?.fileType || 'Unknown'}) → Property "${prop.name}": Use this file specifically to understand and fulfill the requirements for the "${prop.name}" property.`;
+        }).join('\n');
+        
+        messageContent += `\n\n🔗 IMPORTANT FILE-PROPERTY ASSOCIATIONS:\nThe following files are attached and should be used for their specific properties:\n\n${fileAssociations}\n\nWhen building the prompt, ensure that each file's content influences its associated property specifically. Reference these file associations in the final prompt so the AI knows which file to use for which property requirement.`;
+      }
       
       console.log('Message content length:', messageContent.length);
       console.log('Message content preview:', messageContent.substring(0, 500) + (messageContent.length > 500 ? '...' : ''));
+      console.log('File associations included:', propertiesWithFiles.length > 0);
       
       const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
         method: 'POST',
@@ -842,7 +925,7 @@ class LLMService {
   }
 
   // Merge free text with current OOP object using OpenAI Assistant
-  async mergeFreeTextWithOOP(freeText: string, currentOOP: any): Promise<any> {
+  async mergeFreeTextWithOOP(freeText: string, currentOOP: OOPObjectData): Promise<OOPObjectData> {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -977,7 +1060,7 @@ Please return ONLY the updated JSON object, maintaining the same structure but w
   }
 
   // Generate examples using ExampleGenerator assistant
-  async generateExamples(propertyName: string, oopromptObject: any): Promise<{ examples: string[] }> {
+  async generateExamples(propertyName: string, oopromptObject: OOPObjectData): Promise<{ examples: string[] }> {
     if (!this.exampleGeneratorId) {
       throw new Error('EXAMPLE_GENERATOR assistant ID not configured');
     }

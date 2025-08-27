@@ -30,12 +30,13 @@ function ImportanceSegmented({
   );
 }
 
-function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: { 
+function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, selectedLLM }: { 
   p: Property; 
   onSelect: () => void; 
   isSelected: boolean;
   onToggleDetails: () => void;
   dispatch: React.Dispatch<Action>;
+  selectedLLM: 'openai' | 'gemini' | 'claude';
 }) {
   
   console.log(`PropertyCard render: ${p.id}, isSelected: ${isSelected}, selectedStyle: ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''}`);
@@ -64,8 +65,8 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
           }
         </div>
         
-        {/* File reference display */}
-        {p.fileReference && (
+        {/* File reference display - only show for OpenAI */}
+        {p.fileReference && selectedLLM === 'openai' && (
           <div className="mt-1.5 flex items-center gap-2">
             <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded-md border border-green-200">
               📎 {p.fileReference.fileName}
@@ -87,6 +88,15 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
             >
               ⬇️
             </button>
+          </div>
+        )}
+        
+        {/* Show file unavailable notice for Gemini/Claude */}
+        {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="text-amber-600 text-xs font-medium bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+              📎 {p.fileReference.fileName} (Not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)})
+            </span>
           </div>
         )}
         <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.importance}</div>
@@ -183,8 +193,8 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                 />
               </div>
 
-              {/* File reference management in details panel */}
-              {p.fileReference && (
+              {/* File reference management in details panel - only for OpenAI */}
+              {p.fileReference && selectedLLM === 'openai' && (
                 <div className="pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-gray-600">File Reference</span>
@@ -248,6 +258,29 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
                 </div>
               )}
 
+              {/* Show file unavailable notice for Gemini/Claude in details panel */}
+              {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600">File Reference</span>
+                  </div>
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-600">📎</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-800">{p.fileReference.fileName}</div>
+                        <div className="text-xs text-amber-600">
+                          {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
+                        </div>
+                        <div className="text-xs text-amber-500">
+                          File attachments are not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)}. Switch to OpenAI for file processing.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button 
                   className="btn-primary text-xs px-3 py-1.5"
@@ -285,13 +318,15 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch }: {
 }
 
 export function OOPromptPanel({
-  state, dispatch, onSendMessage, onCreateEmbeddedObject, onEmbedExistingObject
+  state, dispatch, onSendMessage, onCreateEmbeddedObject, onEmbedExistingObject, selectedLLM, onError
 }: { 
   state: AppState; 
   dispatch: React.Dispatch<Action>;
   onSendMessage?: (message: string) => void;
   onCreateEmbeddedObject?: (propertyId: string, parentObjectId: string) => void;
   onEmbedExistingObject?: (propertyId: string, objectId: string, objectName: string) => void;
+  selectedLLM: 'openai' | 'gemini' | 'claude';
+  onError?: (title: string, message: string) => void;
 }) {
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
@@ -579,6 +614,7 @@ export function OOPromptPanel({
             key={p.id}
             p={p}
                       isSelected={isSelected}
+                      selectedLLM={selectedLLM}
                       onSelect={() => {
                         console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
                         // Toggle selection: if already selected, deselect; otherwise select
@@ -723,9 +759,8 @@ export function OOPromptPanel({
                 const resolvedProperties = await resolveEmbeddedObjects(oop.properties);
                 const propertiesWithFiles = await resolveFileReferences(resolvedProperties);
 
-                const promptData = {
-                  main_task: oop.main_task,
-                  audience: oop.audience,
+                const promptData: OOPromptObject = {
+                  ...oop,
                   properties: propertiesWithFiles
                 };
                 console.log('Sending to PROMPT_BUILDER with resolved embedded objects:', promptData);
@@ -745,7 +780,7 @@ export function OOPromptPanel({
                 console.log(builtPrompt);
                 console.log('═══════════════════════════════════════════════════════════════════════════════════════');
                 
-                // Extract file attachments from properties
+                // Extract file attachments from properties with property context
                 const fileAttachments: FileAttachment[] = [];
                 propertiesWithFiles.forEach(prop => {
                   if (prop.fileData) {
@@ -753,7 +788,9 @@ export function OOPromptPanel({
                       fileName: prop.fileData.fileName,
                       fileType: prop.fileData.fileType,
                       fileSize: prop.fileData.fileSize,
-                      data: prop.fileData.data
+                      data: prop.fileData.data,
+                      propertyName: prop.name,  // Include property name for association
+                      propertyId: prop.id       // Include property ID for precise tracking
                     });
                   }
                 });
@@ -761,13 +798,13 @@ export function OOPromptPanel({
                 console.log('=== File Attachments Found ===');
                 console.log('Total files:', fileAttachments.length);
                 fileAttachments.forEach((file, index) => {
-                  console.log(`File ${index + 1}:`, file.fileName, `(${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB)`);
+                  console.log(`File ${index + 1}: "${file.fileName}" (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB) → Property: "${file.propertyName}" (ID: ${file.propertyId})`);
                 });
                 console.log('=============================');
 
                 const llmResponse = await llmService.chat([
                   { role: 'user', content: builtPrompt }
-                ], undefined, fileAttachments);
+                ], selectedLLM, fileAttachments);
                 console.log('LLM response:', llmResponse);
                 
                 // Step 4: Send both the built prompt and LLM response to chat panel
@@ -799,7 +836,31 @@ export function OOPromptPanel({
                 
               } catch (error) {
                 console.error('Send process failed:', error);
-                // TODO: Show error message to user
+                
+                // Show error popup with appropriate message
+                if (onError) {
+                  let errorMessage = 'Unknown error occurred';
+                  
+                  if (error instanceof Error) {
+                    if (error.message.includes('400')) {
+                      errorMessage = `API Error (400): The request was invalid. This may be due to file upload issues or malformed data. Please try again or contact support if the problem persists.`;
+                    } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+                      errorMessage = `Authentication Error: Please check your API keys for ${selectedLLM.toUpperCase()} in the configuration.`;
+                    } else if (error.message.includes('403') || error.message.includes('forbidden')) {
+                      errorMessage = `Permission Error: Your ${selectedLLM.toUpperCase()} API key doesn't have permission for this operation.`;
+                    } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+                      errorMessage = `Rate Limit Error: Too many requests to ${selectedLLM.toUpperCase()}. Please wait a moment and try again.`;
+                    } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+                      errorMessage = `Server Error: ${selectedLLM.toUpperCase()} service is temporarily unavailable. Please try again later.`;
+                    } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+                      errorMessage = `Network Error: Unable to connect to ${selectedLLM.toUpperCase()}. Please check your internet connection.`;
+                    } else {
+                      errorMessage = `${selectedLLM.toUpperCase()} Error: ${error.message}`;
+                    }
+                  }
+                  
+                  onError('Prompt Send Failed', errorMessage);
+                }
               } finally {
                 setIsSending(false);
               }
@@ -848,6 +909,7 @@ export function OOPromptPanel({
         property={modal === "more-options" ? (state.modalData as Property) : {} as Property}
         currentOOP={oop}
         promptObjects={state.promptObjects}
+        selectedLLM={selectedLLM}
         onClose={() => dispatch({ type: "CLOSE_MODAL" })}
         onUpdateProperty={(updatedProperty) => {
           dispatch({ type: "UPSERT_PROPERTY", payload: updatedProperty });

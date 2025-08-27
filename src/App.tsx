@@ -6,6 +6,7 @@ import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
 import { ObjectPanel } from "./components/ObjectPanel";
 import { SaveConfirmationModal } from "./components/SaveConfirmationModal";
+import { ErrorPopup } from "./components/ErrorPopup";
 
 
 import "./index.css";
@@ -39,6 +40,17 @@ export default function App() {
     onConfirm: () => {}
   });
 
+  // Error popup state
+  const [errorPopup, setErrorPopup] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
   // Function to handle object switching with save confirmation
   const handleObjectSwitch = (objectToLoad: OOPromptObject, actionDescription: string) => {
     if (state.hasUnsavedChanges) {
@@ -60,6 +72,15 @@ export default function App() {
   // Function to save current object
   const saveCurrentObject = () => {
     dispatch({ type: "SAVE_PROMPT_OBJECT", payload: state.oop });
+  };
+
+  // Function to show error popup
+  const showError = (title: string, message: string) => {
+    setErrorPopup({
+      isOpen: true,
+      title,
+      message
+    });
   };
 
   return (
@@ -194,6 +215,8 @@ export default function App() {
               <OOPromptPanel 
                 state={state} 
                 dispatch={dispatch} 
+                selectedLLM={selectedLLM}
+                onError={showError}
                 onSendMessage={(message) => {
                   console.log('Message from OOP panel:', message);
                   setMessageFromOOP(message);
@@ -265,6 +288,15 @@ export default function App() {
           onCancel={() => {
             setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
           }}
+        />
+
+        {/* Error Popup */}
+        <ErrorPopup
+          isOpen={errorPopup.isOpen}
+          title={errorPopup.title}
+          message={errorPopup.message}
+          onClose={() => setErrorPopup({ isOpen: false, title: "", message: "" })}
+          autoCloseMs={5000}
         />
       </div>
     </div>
