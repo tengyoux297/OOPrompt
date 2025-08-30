@@ -4,10 +4,10 @@ import type { OOPromptObject } from "../types";
 
 type Props = {
   onSend: (msg: string) => void;
-  onTogglePanel: () => void;
   onExtractProperties?: (oopObject: OOPromptObject) => void;
   messageFromOOP?: string | null;
   selectedLLM: 'openai' | 'gemini' | 'claude';
+  onMessageProcessed?: () => void; // Callback to clear message after processing
 };
 
 type Message = {
@@ -19,9 +19,10 @@ type Message = {
   isError?: boolean;
 };
 
-export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selectedLLM }: Props) {
+export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selectedLLM, onMessageProcessed }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [showOOPNotification, setShowOOPNotification] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -86,49 +87,51 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
   // Handle messages from OOP panel
   useEffect(() => {
     if (messageFromOOP) {
-      // Check if this is a built prompt or AI response
-      if (messageFromOOP.startsWith('📝 Built Prompt:')) {
-        // Built prompt goes to user side
-        const userMessage: Message = {
+      console.log('ChatPanel received messageFromOOP:', messageFromOOP);
+      let messageToAdd: Message;
+      
+      // Check if this is a prompt summary or AI response
+      if (messageFromOOP.startsWith('📝 OOP Panel:')) {
+        // Prompt summary goes to user side
+        messageToAdd = {
           id: Date.now().toString(),
           text: messageFromOOP,
           isUser: true,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, userMessage]);
       } else if (messageFromOOP.startsWith('🤖 AI Response:')) {
         // AI response goes to AI side
-        const aiMessage: Message = {
+        messageToAdd = {
           id: Date.now().toString(),
           text: messageFromOOP.replace('🤖 AI Response: ', ''),
           isUser: false,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, aiMessage]);
-      } else if (messageFromOOP.startsWith('📤 Prompt sent to LLM:')) {
-        // Confirmation message goes to user side
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          text: messageFromOOP,
-          isUser: true,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, userMessage]);
       } else {
         // Fallback: treat as user message
-        const userMessage: Message = {
+        messageToAdd = {
           id: Date.now().toString(),
           text: `📤 Sent from OOP Panel: ${messageFromOOP}`,
           isUser: true,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, userMessage]);
       }
       
-      // Clear the message to avoid duplicates
-      // Note: We'll need to clear this from the parent component
+      // Add the message to the chat
+      console.log('Adding message to chat:', messageToAdd);
+      setMessages(prev => [...prev, messageToAdd]);
+      
+      // Show notification briefly
+      setShowOOPNotification(true);
+      setTimeout(() => setShowOOPNotification(false), 3000);
+      
+      // Notify parent that message has been processed
+      if (onMessageProcessed) {
+        console.log('Notifying parent that message was processed');
+        onMessageProcessed();
+      }
     }
-  }, [messageFromOOP]);
+  }, [messageFromOOP, onMessageProcessed]);
 
   const handleSend = async () => {
     if (inputRef.current && inputRef.current.value.trim()) {
@@ -195,14 +198,8 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       const text = inputRef.current.value.trim();
       setIsOptimizing(true);
       
-      // Add user message only
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        text: `🔍 Creating prompt object...`,
-        isUser: true,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, userMessage]);
+      // No need to add a message for property extraction
+      // The OOP panel will handle showing the results
 
       try {
         const oopObject = await llmService.extractPropertiesWithAssistant(text);
@@ -223,6 +220,16 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
 
     return (
     <div className="relative flex flex-col bg-transparent h-full chat-container">
+      {/* OOP Panel Notification */}
+      {showOOPNotification && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+            <span className="text-blue-200">📝</span>
+            <span className="text-sm font-medium">New message from OOP Panel</span>
+          </div>
+        </div>
+      )}
+      
       {/* Messages Container - Scrollable area */}
       <div className="flex-1 overflow-y-auto px-8 pt-8 pb-32 min-h-0">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -232,11 +239,22 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             {message.isUser ? (
-              <div className="max-w-xs lg:max-w-md px-5 py-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                <div className="text-sm leading-relaxed font-medium">{message.text}</div>
+              <div className={`max-w-xs lg:max-w-md px-5 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow ${
+                message.text.includes('📝 OOP Panel:')
+                  ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white' // Special styling for OOP messages
+                  : 'bg-gradient-to-br from-blue-600 to-blue-700 text-white' // Regular user messages
+              }`}>
+                <div className="text-sm leading-relaxed font-medium" 
+                     dangerouslySetInnerHTML={{ __html: formatAIResponse(message.text) }}></div>
                 <div className="text-xs mt-3 text-white/70 opacity-80 flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
                   {message.timestamp.toLocaleTimeString()}
+                  {message.text.includes('📝 OOP Panel:') && (
+                    <>
+                      <span>•</span>
+                      <span>OOP Panel</span>
+                    </>
+                  )}
                 </div>
               </div>
                          ) : (
@@ -256,6 +274,12 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                        <span className="capitalize">{message.provider === 'openai' ? 'OpenAI' : message.provider === 'gemini' ? 'Gemini' : message.provider === 'claude' ? 'Claude' : message.provider}</span>
                      </>
                    )}
+                   {message.text.includes('🤖 AI Response:') && (
+                     <>
+                       <span>•</span>
+                       <span>OOP Response</span>
+                     </>
+                   )}
                  </div>
                </div>
              )}
@@ -273,32 +297,46 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
               className="flex-1 input bg-transparent border-0 focus:ring-0 focus:ring-offset-0 text-gray-800 placeholder:text-gray-500 text-base"
               placeholder="Ask me anything or describe what you'd like to optimize..."
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.ctrlKey && e.key === "Enter") {
+                  // Ctrl+Enter: Send message directly
+                  e.preventDefault();
                   handleSend();
+                } else if (e.key === "Enter" && !e.ctrlKey) {
+                  // Enter: Extract properties and open OOP Panel
+                  e.preventDefault();
+                  handleExtractProperties();
                 }
               }}
             />
             <div className="flex gap-3">
-              <button
-                className="btn-ghost hover:bg-gray-100 transition-colors px-6"
-                onClick={handleSend}
-              >
-                Send
-              </button>
-              <button
-                className={`btn-primary hover:shadow-md transition-all duration-200 px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
-                onClick={handleExtractProperties}
-                disabled={isOptimizing}
-              >
-                {isOptimizing ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Processing...</span>
+                <button
+                  className="btn-ghost hover:bg-gray-100 transition-colors px-6"
+                  onClick={handleSend}
+                  title="Send message (Ctrl+Enter)"
+                >
+                  <div className="flex flex-col items-center">
+                    <span>Send</span>
+                    <span className="text-xs text-gray-500 font-mono">Ctrl+↵</span>
                   </div>
-                ) : (
-                  'OOPrompt'
-                )}
-              </button>
+                </button>
+                <button
+                  className={`btn-primary hover:shadow-md transition-all duration-200 px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  onClick={handleExtractProperties}
+                  disabled={isOptimizing}
+                  title="Open OOP Panel (Enter)"
+                >
+                  {isOptimizing ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Processing...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <span>OOPrompt</span>
+                      <span className="text-xs text-white/70 font-mono">↵</span>
+                    </div>
+                  )}
+                </button>
             </div>
           </div>
         </div>

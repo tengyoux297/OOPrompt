@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOOPrompt } from "./state/useOOPrompt";
 import type { OOPromptObject } from "./types";
 import { ChatPanel } from "./components/ChatPanel";
@@ -26,7 +26,18 @@ const seed: OOPromptObject = {
 export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
   const [messageFromOOP, setMessageFromOOP] = useState<string | null>(null);
+  const [messageQueue, setMessageQueue] = useState<string[]>([]);
   const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
+  
+  // Process message queue
+  useEffect(() => {
+    if (messageQueue.length > 0 && !messageFromOOP) {
+      const nextMessage = messageQueue[0];
+      console.log('Processing next message from queue:', nextMessage);
+      setMessageFromOOP(nextMessage);
+      setMessageQueue(prev => prev.slice(1));
+    }
+  }, [messageQueue, messageFromOOP]);
   
   // Save confirmation state
   const [saveConfirmation, setSaveConfirmation] = useState<{
@@ -112,73 +123,14 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main content: chat panel always takes full width and height */}
-      <div className="flex-1 relative h-full pt-16">
-        <ChatPanel
-          onSend={(msg) => {
-            // TODO: call your chat backend
-            console.log("Send:", msg);
-          }}
-          onTogglePanel={() => dispatch({ type: "TOGGLE_PANEL" })}
-          messageFromOOP={messageFromOOP}
-          selectedLLM={selectedLLM}
-          onExtractProperties={(oopObject) => {
-            console.log('Extracted OOP object:', oopObject);
-            console.log('Properties count:', oopObject.properties?.length || 0);
-            console.log('Properties:', oopObject.properties);
-            
-            // Validate and normalize the properties
-            if (oopObject.properties && Array.isArray(oopObject.properties) && oopObject.properties.length > 0) {
-              const normalizedProperties = oopObject.properties.map((prop, index) => {
-                // Ensure each property has required fields
-                return {
-                  id: prop.id || `extracted_${Date.now()}_${index}`,
-                  name: prop.name || `Property ${index + 1}`,
-                  value: prop.value || "",
-                  importance: prop.importance || "normal",
-                  examples: prop.examples || [],
-                  source: prop.source || "ai-suggested",
-                  createdAt: prop.createdAt || Date.now(),
-                  updatedAt: prop.updatedAt || Date.now(),
-                };
-              });
-              
-              const normalizedOOP = {
-                ...oopObject,
-                properties: normalizedProperties
-              };
-              
-              console.log('Normalized properties:', normalizedProperties);
-              
-              // Update the OOP state with normalized properties
-              dispatch({ type: "SET_OOP", payload: normalizedOOP });
-            } else {
-              console.warn('No properties found in extracted object, keeping main_task and audience in their dedicated fields');
-              
-              // Keep the OOP object as-is, with main_task and audience in their proper fields
-              // Don't create duplicate property cards for these fields
-              const cleanOOP = {
-                ...oopObject,
-                properties: [] // Empty properties array - no cards to display
-              };
-              
-              console.log('No properties extracted, main_task and audience remain in dedicated input fields');
-              dispatch({ type: "SET_OOP", payload: cleanOOP });
-            }
-            
-            // Reset property selection to ensure details panel works
-            dispatch({ type: "SELECT_PROPERTY", id: undefined });
-            // Open the panel to show the extracted properties
-            dispatch({ type: "TOGGLE_PANEL", open: true });
-          }}
-        />
-
-        {/* Object Panel - Left side */}
+      {/* Main content: chat panel with left sidebar */}
+      <div className="flex-1 relative h-full pt-16 flex">
+        {/* Object Panel - Always visible left sidebar */}
         <ObjectPanel
           objects={state.promptObjects}
           selectedObjectId={state.currentObjectId}
-          isOpen={state.objectPanelOpen}
-          onToggle={() => dispatch({ type: "TOGGLE_OBJECT_PANEL" })}
+          isOpen={true}
+          onToggle={() => {}} // No-op since panel is always open
           onSelectObject={(objectId) => {
             console.log('Loading prompt object:', objectId);
             const obj = state.promptObjects.find(obj => obj.id === objectId);
@@ -190,9 +142,23 @@ export default function App() {
             console.log('Deleting prompt object:', objectId);
             dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
           }}
-          onClose={() => dispatch({ type: "TOGGLE_OBJECT_PANEL", open: false })}
+          onClose={() => {}} // No-op since panel is always open
           onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
         />
+
+        {/* Chat Panel - Takes remaining width */}
+        <div className="flex-1">
+          <ChatPanel 
+            onSend={(msg) => console.log('Chat message:', msg)}
+            onExtractProperties={(oopObject) => {
+              dispatch({ type: "SET_OOP", payload: oopObject });
+              dispatch({ type: "TOGGLE_PANEL", open: true });
+            }}
+            messageFromOOP={messageFromOOP}
+            selectedLLM={selectedLLM}
+            onMessageProcessed={() => setMessageFromOOP(null)}
+          />
+        </div>
         
 
 
@@ -216,9 +182,11 @@ export default function App() {
                 onError={showError}
                 onSendMessage={(message) => {
                   console.log('Message from OOP panel:', message);
-                  setMessageFromOOP(message);
-                  // Clear the message after a short delay to allow the ChatPanel to process it
-                  setTimeout(() => setMessageFromOOP(null), 100);
+                  setMessageQueue(prev => {
+                    const newQueue = [...prev, message];
+                    console.log('Updated message queue:', newQueue);
+                    return newQueue;
+                  });
                 }}
                 onCreateEmbeddedObject={(propertyId, parentObjectId) => {
                   if (state.hasUnsavedChanges) {

@@ -330,6 +330,7 @@ export function OOPromptPanel({
   selectedLLM: 'openai' | 'gemini' | 'claude';
   onError?: (title: string, message: string) => void;
 }) {
+  const [showSuccess, setShowSuccess] = useState(false);
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
@@ -666,6 +667,21 @@ export function OOPromptPanel({
             💾 Save Prompt Object
         </button>
           
+          {/* Status notifications */}
+          {isSending && (
+            <div className="flex items-center justify-center gap-2 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+              <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+              <span>Building prompt and sending to {selectedLLM.toUpperCase()}...</span>
+            </div>
+          )}
+          
+          {showSuccess && (
+            <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <span className="text-green-600">✓</span>
+              <span>Prompt sent successfully! Closing panel...</span>
+            </div>
+          )}
+          
           {/* Send button */}
         <button 
             className={`btn-primary w-full py-3 text-base font-medium ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
@@ -799,12 +815,19 @@ export function OOPromptPanel({
                 ], selectedLLM, fileAttachments);
                 console.log('LLM response:', llmResponse);
                 
-                // Step 4: Send both the built prompt and LLM response to chat panel
+                // Step 4: Send the prompt summary and LLM response to chat panel
                 if (onSendMessage) {
-                  // Send confirmation that prompt was sent to LLM
-                  onSendMessage(`📤 Prompt sent to LLM: Processing...`);
-                  // Send the built prompt from the assistant (user side)
-                  onSendMessage(`📝 Built Prompt: ${builtPrompt}`);
+                  // Send a summary of what was sent with meaningful information
+                  let promptSummary;
+                  if (oop.main_task && oop.main_task.trim()) {
+                    promptSummary = `📝 OOP Panel: ${oop.main_task}`;
+                  } else if (oop.properties.length > 0) {
+                    const propertyCount = oop.properties.length;
+                    promptSummary = `📝 OOP Panel: ${oop.name || 'Task'} with ${propertyCount} property${propertyCount !== 1 ? 's' : ''}`;
+                  } else {
+                    promptSummary = `📝 OOP Panel: ${oop.name || 'New Task'}`;
+                  }
+                  onSendMessage(promptSummary);
                   // Send the LLM response (AI side)
                   onSendMessage(`🤖 AI Response: ${llmResponse.content}`);
                 }
@@ -823,8 +846,12 @@ export function OOPromptPanel({
                 dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
                 console.log('=== OOP Object Auto-Saved After Send ===');
                 
-                // Step 6: Automatically hide the OOP panel
-                dispatch({ type: "TOGGLE_PANEL", open: false });
+                // Step 6: Show success notification briefly before hiding
+                setShowSuccess(true);
+                setTimeout(() => {
+                  setShowSuccess(false);
+                  dispatch({ type: "TOGGLE_PANEL", open: false });
+                }, 1500);
                 
               } catch (error) {
                 console.error('Send process failed:', error);
@@ -862,7 +889,7 @@ export function OOPromptPanel({
             {isSending ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Building Prompt...</span>
+                <span>Processing...</span>
               </div>
             ) : (
               'Send'

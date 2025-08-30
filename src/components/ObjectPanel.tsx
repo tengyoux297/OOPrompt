@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import type { OOPromptObject } from "../types";
-import { BookmarkHandle } from "./BookmarkHandle";
 import { HistoryPopup } from "./HistoryPopup";
 
 type Props = {
@@ -25,19 +24,10 @@ export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSel
     position: { x: 0, y: 0 }
   });
 
-  const togglePanel = () => {
-    onToggle();
-  };
-
   // Debug logging for selectedObjectId changes
   useEffect(() => {
     console.log('ObjectPanel: selectedObjectId changed to:', selectedObjectId);
   }, [selectedObjectId]);
-
-  // Don't show anything if there are no objects
-  if (objects.length === 0) {
-    return null;
-  }
 
 
 
@@ -141,119 +131,109 @@ export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSel
 
   return (
     <>
-      {/* Bookmark handle - only visible when panel is closed */}
-      {!isOpen && (
-        <BookmarkHandle
-          isOpen={false}
-          onToggle={togglePanel}
-          position="left"
-          className="z-40"
-        />
-      )}
-
-      {/* Object Panel */}
-      {isOpen && (
-        <aside className="fixed top-0 left-0 bottom-0 z-50 h-screen w-80 bg-white border-r border-gray-200 shadow-lg">
-          {/* Bookmark handle for closing panel - positioned on right edge of panel */}
-          <BookmarkHandle
-            isOpen={true}
-            position="left"
-            onToggle={togglePanel}
-            className="z-10"
-          />
+             {/* Object Panel - Always visible on left side */}
+       <aside className="fixed top-16 left-0 bottom-0 z-40 h-[calc(100vh-4rem)] w-80 bg-white border-r border-gray-300 shadow-lg">
           
           <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="panel-chrome p-4 border-b border-divider flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Object Panel</h2>
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label="Close object panel"
-                >
-                  ×
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                {displayObjects.length} unique prompt object{displayObjects.length !== 1 ? 's' : ''} available
-              </p>
-              {/* Debug info */}
-              <p className="text-xs text-gray-400 mt-1">
-                Selected: {selectedObjectId || 'none'}
-              </p>
-            </div>
+                         {/* Header */}
+             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
+               {/* Blue Title Bar with Button */}
+               <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg px-4 py-2 flex items-center justify-between">
+                 <h3 className="text-white font-semibold text-sm">History Prompts</h3>
+                 <button
+                   onClick={onOpenOOPPanel}
+                   className="p-1.5 text-white hover:text-blue-100 hover:bg-blue-500 rounded-lg transition-all duration-200"
+                   aria-label="New prompt"
+                   title="New prompt"
+                 >
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                   </svg>
+                 </button>
+               </div>
+             </div>
 
-            {/* Objects List */}
-            <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
-              {displayObjects.map((obj) => {
-                const isSelected = selectedObjectId === obj.id;
-                console.log(`Object ${obj.id} (${obj.main_task}): isSelected = ${isSelected}, selectedObjectId = ${selectedObjectId}`);
-                
-                return (
-                  <div
-                    key={obj.id}
-                    className={`card-base cursor-pointer transition-all duration-200 hover:shadow-md p-4 ${
-                      isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''
-                    }`}
-                    onClick={() => handleObjectClick(obj.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-3">
-                        <div className="font-semibold text-sm leading-tight text-gray-900 mb-2 break-words" title={obj.main_task}>
-                          {obj.main_task || <span className="text-gray-400 italic">No main task</span>}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-1">
-                          {obj.properties.length} propert{obj.properties.length !== 1 ? 'ies' : 'y'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Last updated: {obj.updatedAt ? new Date(obj.updatedAt).toLocaleString() : 
-                            obj.log && obj.log.length > 0 ? new Date(obj.log[obj.log.length - 1].ts).toLocaleString() : 
-                            'Just now'}
-                        </div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {/* History Button */}
-                        <button
-                          onClick={(e) => handleHistoryClick(e, obj.id)}
-                          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                          aria-label={`View history for ${obj.name}`}
-                          title="View version history"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                        
-                        {/* Delete Button */}
-                        <button
-                          onClick={(e) => handleDeleteObject(e, obj.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          aria-label={`Delete ${obj.name}`}
-                          title="Delete object"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="panel-chrome p-4 border-t border-divider flex-shrink-0">
-              <div className="text-sm text-gray-500 text-center">
-                Click on an object to load it into the OOP panel
-              </div>
-            </div>
-          </div>
-        </aside>
-      )}
+                         {/* Objects List */}
+             <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
+               {displayObjects.map((obj) => {
+                 const isSelected = selectedObjectId === obj.id;
+                 console.log(`Object ${obj.id} (${obj.main_task}): isSelected = ${isSelected}, selectedObjectId = ${selectedObjectId}`);
+                 
+                 return (
+                   <div
+                     key={obj.id}
+                     className={`group cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 hover:border-gray-300 px-4 py-4 rounded-xl bg-white ${
+                       isSelected ? 'ring-2 ring-blue-500 ring-offset-2 border-blue-300 shadow-lg bg-blue-50' : 'hover:bg-gray-50'
+                     }`}
+                     onClick={() => handleObjectClick(obj.id)}
+                   >
+                     <div className="flex items-start justify-between">
+                       <div className="flex-1 min-w-0 pr-3">
+                         <div className="font-semibold text-sm leading-tight text-gray-900 mb-2 break-words line-clamp-2" title={obj.main_task}>
+                           {obj.main_task || <span className="text-gray-400 italic">No main task</span>}
+                         </div>
+                         <div className="flex items-center gap-3 text-xs text-gray-500">
+                           <span className="flex items-center gap-1">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                             </svg>
+                             {obj.properties.length} propert{obj.properties.length !== 1 ? 'ies' : 'y'}
+                           </span>
+                           <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                           <span className="flex items-center gap-1">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                             </svg>
+                             {obj.updatedAt ? new Date(obj.updatedAt).toLocaleDateString() : 'Just now'}
+                           </span>
+                         </div>
+                       </div>
+                       
+                       {/* Action Buttons - Only visible on hover */}
+                       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                         {/* History Button */}
+                         <button
+                           onClick={(e) => handleHistoryClick(e, obj.id)}
+                           className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200"
+                           aria-label={`View history for ${obj.name}`}
+                           title="View version history"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                           </svg>
+                         </button>
+                         
+                         {/* Delete Button */}
+                         <button
+                           onClick={(e) => handleDeleteObject(e, obj.id)}
+                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
+                           aria-label={`Delete ${obj.name}`}
+                           title="Delete object"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                           </svg>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 );
+               })}
+                          </div>
+ 
+             {/* Footer */}
+             <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+               <div className="text-center">
+                 <div className="text-xs text-gray-500 mb-1">
+                   {displayObjects.length} prompt{displayObjects.length !== 1 ? 's' : ''} in history
+                 </div>
+                 <div className="text-xs text-gray-400">
+                   Click to load • Hover for actions
+                 </div>
+               </div>
+             </div>
+           </div>
+         </aside>
 
       {/* History Popup */}
       {historyPopup.isOpen && (
