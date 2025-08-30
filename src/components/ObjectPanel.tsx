@@ -5,15 +5,12 @@ import { HistoryPopup } from "./HistoryPopup";
 type Props = {
   objects: OOPromptObject[];
   selectedObjectId: string | undefined;
-  isOpen: boolean;
-  onToggle: () => void;
   onSelectObject: (objectId: string) => void;
   onDeleteObject: (objectId: string) => void;
-  onClose: () => void;
   onOpenOOPPanel?: () => void; // New prop to open OOP panel
 };
 
-export function ObjectPanel({ objects, selectedObjectId, isOpen, onToggle, onSelectObject, onDeleteObject, onClose, onOpenOOPPanel }: Props) {
+export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDeleteObject, onOpenOOPPanel }: Props) {
   const [historyPopup, setHistoryPopup] = useState<{
     isOpen: boolean;
     objectId: string;

@@ -129,8 +129,6 @@ export default function App() {
         <ObjectPanel
           objects={state.promptObjects}
           selectedObjectId={state.currentObjectId}
-          isOpen={true}
-          onToggle={() => {}} // No-op since panel is always open
           onSelectObject={(objectId) => {
             console.log('Loading prompt object:', objectId);
             const obj = state.promptObjects.find(obj => obj.id === objectId);
@@ -142,7 +140,6 @@ export default function App() {
             console.log('Deleting prompt object:', objectId);
             dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
           }}
-          onClose={() => {}} // No-op since panel is always open
           onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
         />
 
