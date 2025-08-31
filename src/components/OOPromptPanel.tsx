@@ -362,32 +362,49 @@ export function OOPromptPanel({
 
   // Sort properties based on user selection
   const sorted = [...filtered].sort((a: Property, b: Property) => {
-    if (sortBy === "none") return 0; // No sorting, maintain original order
+    console.log(`Sorting: ${sortBy}, comparing properties:`, { a: a.name, b: b.name, aAction: a.action, bAction: b.action });
+    
+    if (sortBy === "none") {
+      console.log('No sorting applied');
+      return 0; // No sorting, maintain original order
+    }
     
     try {
       if (sortBy === "action") {
-        const actionOrder = getActionOrder(a.action) - getActionOrder(b.action);
+        const actionOrderA = getActionOrder(a.action);
+        const actionOrderB = getActionOrder(b.action);
+        const actionOrder = actionOrderA - actionOrderB;
+        console.log(`Action sorting: ${a.action}(${actionOrderA}) vs ${b.action}(${actionOrderB}) = ${actionOrder}`);
+        
         if (actionOrder !== 0) return actionOrder;
+        
         // Fallback to time if action order is the same
         const timeA = a.updatedAt ?? a.createdAt ?? 0;
         const timeB = b.updatedAt ?? b.createdAt ?? 0;
-        return timeB - timeA;
+        const timeOrder = timeB - timeA;
+        console.log(`Time fallback: ${timeA} vs ${timeB} = ${timeOrder}`);
+        return timeOrder;
       }
       
       if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
+        const nameOrder = a.name.localeCompare(b.name);
+        console.log(`Name sorting: "${a.name}" vs "${b.name}" = ${nameOrder}`);
+        return nameOrder;
       }
       
       if (sortBy === "time") {
         const timeA = a.createdAt ?? a.updatedAt ?? 0;
         const timeB = b.createdAt ?? b.updatedAt ?? 0;
-        return timeB - timeA;
+        const timeOrder = timeB - timeA;
+        console.log(`Time sorting: ${timeA} vs ${timeB} = ${timeOrder}`);
+        return timeOrder;
       }
     } catch (error) {
       console.error('Error during sorting:', error, { a, b, sortBy });
       return 0; // Fallback to no sorting on error
     }
     
+    console.log('No sorting condition matched, returning 0');
     return 0;
   });
 
@@ -400,10 +417,18 @@ export function OOPromptPanel({
       filtered, 
       sorted, 
       selectedPropertyId,
-      propertiesCount: oop.properties.length 
+      propertiesCount: oop.properties.length,
+      sortBy,
+      sortByType: typeof sortBy
+    });
+    console.log('=== Sorting Debug ===', {
+      sortBy,
+      filteredCount: filtered.length,
+      sortedCount: sorted.length,
+      firstProperty: filtered[0] ? { name: filtered[0].name, action: filtered[0].action, createdAt: filtered[0].createdAt, updatedAt: filtered[0].updatedAt } : null
     });
     console.log('================================');
-  }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId]);
+  }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId, sortBy]);
 
 
 
@@ -436,11 +461,20 @@ export function OOPromptPanel({
 
   // Get action order for display (avoid, normal, highlight)
   const getActionOrder = (action: string) => {
+    console.log(`getActionOrder called with: "${action}"`);
     switch (action) {
-      case "avoid": return 0;
-      case "normal": return 1;
-      case "highlight": return 2;
-      default: return 1;
+      case "avoid": 
+        console.log('Returning 0 for avoid');
+        return 0;
+      case "normal": 
+        console.log('Returning 1 for normal');
+        return 1;
+      case "highlight": 
+        console.log('Returning 2 for highlight');
+        return 2;
+      default: 
+        console.log(`Unknown action "${action}", returning 1`);
+        return 1;
     }
   };
 
@@ -515,9 +549,15 @@ export function OOPromptPanel({
   console.log('=== OOPromptPanel Render ===');
   
   // Safety check for oop object
-  if (!oop || !Array.isArray(oop.properties)) {
-    console.warn('Invalid oop object or properties array:', oop);
+  if (!oop) {
+    console.warn('Invalid oop object:', oop);
     return null;
+  }
+  
+  // Ensure properties is an array, but don't fail if it's empty
+  if (!Array.isArray(oop.properties)) {
+    console.warn('Properties is not an array, converting to empty array:', oop.properties);
+    oop.properties = [];
   }
   
   return (
