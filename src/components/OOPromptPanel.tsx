@@ -349,25 +349,43 @@ export function OOPromptPanel({
   }, [oop.id, oop.main_task, oop.audience]);
 
   // Filter properties based on search term
-  const filtered = oop.properties.filter((p: Property) => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (typeof p.value === "string" && p.value.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filtered = (oop?.properties || []).filter((p: Property) => {
+    try {
+      if (!p || !p.name) return false;
+      return p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (typeof p.value === "string" && p.value.toLowerCase().includes(searchTerm.toLowerCase()));
+    } catch (error) {
+      console.error('Error filtering property:', error, p);
+      return false;
+    }
+  });
 
   // Sort properties based on user selection
   const sorted = [...filtered].sort((a: Property, b: Property) => {
     if (sortBy === "none") return 0; // No sorting, maintain original order
     
-    if (sortBy === "action") {
-      return getActionOrder(a.action) - getActionOrder(b.action) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
-    }
-    
-    if (sortBy === "name") {
-      return a.name.localeCompare(b.name);
-    }
-    
-    if (sortBy === "time") {
-      return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+    try {
+      if (sortBy === "action") {
+        const actionOrder = getActionOrder(a.action) - getActionOrder(b.action);
+        if (actionOrder !== 0) return actionOrder;
+        // Fallback to time if action order is the same
+        const timeA = a.updatedAt ?? a.createdAt ?? 0;
+        const timeB = b.updatedAt ?? b.createdAt ?? 0;
+        return timeB - timeA;
+      }
+      
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      
+      if (sortBy === "time") {
+        const timeA = a.createdAt ?? a.updatedAt ?? 0;
+        const timeB = b.createdAt ?? b.updatedAt ?? 0;
+        return timeB - timeA;
+      }
+    } catch (error) {
+      console.error('Error during sorting:', error, { a, b, sortBy });
+      return 0; // Fallback to no sorting on error
     }
     
     return 0;
@@ -401,10 +419,19 @@ export function OOPromptPanel({
 
   // Cycle through sorting options
   const cycleSort = () => {
-    const sortOptions: Array<"none" | "action" | "name" | "time"> = ["none", "action", "name", "time"];
-    const currentIndex = sortOptions.indexOf(sortBy);
-    const nextIndex = (currentIndex + 1) % sortOptions.length;
-    setSortBy(sortOptions[nextIndex]);
+    try {
+      const sortOptions: Array<"none" | "action" | "name" | "time"> = ["none", "action", "name", "time"];
+      const currentIndex = sortOptions.indexOf(sortBy);
+      const nextIndex = (currentIndex + 1) % sortOptions.length;
+      const newSortBy = sortOptions[nextIndex];
+      
+      console.log(`Sorting: ${sortBy} -> ${newSortBy}`);
+      setSortBy(newSortBy);
+    } catch (error) {
+      console.error('Error in cycleSort:', error);
+      // Reset to no sorting on error
+      setSortBy("none");
+    }
   };
 
   // Get action order for display (avoid, normal, highlight)
@@ -486,6 +513,12 @@ export function OOPromptPanel({
   };
 
   console.log('=== OOPromptPanel Render ===');
+  
+  // Safety check for oop object
+  if (!oop || !Array.isArray(oop.properties)) {
+    console.warn('Invalid oop object or properties array:', oop);
+    return null;
+  }
   
   return (
     <>
@@ -608,27 +641,37 @@ export function OOPromptPanel({
             <div className="p-4">
               <div className="grid gap-4 grid-cols-1">
                 {sorted.map((p: Property) => {
-                  const isSelected = p.id === selectedPropertyId;
-                  console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
-                  return (
-          <PropertyCard
-            key={p.id}
-            p={p}
-                      isSelected={isSelected}
-                      selectedLLM={selectedLLM}
-                      onSelect={() => {
-                        console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
-                        // Toggle selection: if already selected, deselect; otherwise select
-                        if (isSelected) {
-                          dispatch({ type: "SELECT_PROPERTY", id: undefined });
-                        } else {
-                          dispatch({ type: "SELECT_PROPERTY", id: p.id });
-                        }
-                      }}
-                      onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
-                      dispatch={dispatch}
-                    />
-                  );
+                  try {
+                    if (!p || !p.id || !p.name) {
+                      console.warn('Invalid property found:', p);
+                      return null;
+                    }
+                    
+                    const isSelected = p.id === selectedPropertyId;
+                    console.log(`Property ${p.id}: name="${p.name}", isSelected=${isSelected}, selectedPropertyId=${selectedPropertyId}, value="${p.value}"`);
+                    return (
+                      <PropertyCard
+                        key={p.id}
+                        p={p}
+                        isSelected={isSelected}
+                        selectedLLM={selectedLLM}
+                        onSelect={() => {
+                          console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
+                          // Toggle selection: if already selected, deselect; otherwise select
+                          if (isSelected) {
+                            dispatch({ type: "SELECT_PROPERTY", id: undefined });
+                          } else {
+                            dispatch({ type: "SELECT_PROPERTY", id: p.id });
+                          }
+                        }}
+                        onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
+                        dispatch={dispatch}
+                      />
+                    );
+                  } catch (error) {
+                    console.error('Error rendering property:', error, p);
+                    return null;
+                  }
                 })}
             </div>
             </div>

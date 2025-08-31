@@ -124,20 +124,20 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
       {/* Multi-Page Interactive Tutorial */}
       {showWelcome && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] h-full max-h-[95vh] overflow-hidden mx-2 sm:mx-4 flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 sm:p-4 md:p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">🎉 Welcome to OOPrompt!</h1>
-                  <p className="text-blue-100 text-lg">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">🎉 Welcome to OOPrompt!</h1>
+                  <p className="text-blue-100 text-sm sm:text-base md:text-lg">
                     Master the art of structured AI prompting step by step
                   </p>
                 </div>
                 <button
                   onClick={() => setShowWelcome(false)}
-                  className="text-white hover:text-blue-200 transition-colors text-2xl"
+                  className="text-white hover:text-blue-200 transition-colors text-xl sm:text-2xl ml-2 flex-shrink-0"
                 >
                   ✕
                 </button>
@@ -153,34 +153,34 @@ export default function App() {
             </div>
 
             {/* Tutorial Content - Single Page View */}
-            <div className="p-8 h-[36rem] overflow-y-auto">
+            <div className="p-3 sm:p-4 md:p-6 lg:p-8 h-full overflow-y-auto flex-1">
               {tutorialPage === 1 && (
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-200">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="text-3xl">💬</div>
-                    <h3 className="text-2xl font-bold text-blue-900">Step 1: Start with a Natural Prompt</h3>
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 sm:p-4 md:p-6 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl">💬</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900">Step 1: Start with a Natural Prompt</h3>
                   </div>
-                  <p className="text-gray-700 mb-6 text-lg">
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
                     Begin just like you would with any AI chat - write naturally about what you want to accomplish.
                   </p>
-                  <div className="bg-white p-6 rounded-lg border border-blue-200">
-                    <div className="space-y-3">
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <div className="font-medium text-blue-900 mb-2">Natural Input:</div>
-                        <div className="text-gray-700 italic text-sm">
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-blue-200">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+                        <div className="font-medium text-blue-900 mb-1 sm:mb-2 text-sm sm:text-base">Natural Input:</div>
+                        <div className="text-gray-700 italic text-xs sm:text-sm">
                           "I need to create a marketing strategy for launching our new eco-friendly product. It should target environmentally conscious consumers and include social media campaigns, influencer partnerships, and sustainability messaging."
                         </div>
                       </div>
-                      <div className="text-center text-xl text-blue-400">↓</div>
-                      <div className="p-3 bg-green-50 rounded-lg">
-                        <div className="font-medium text-green-900 mb-2">OOPrompt Converts To:</div>
-                        <div className="text-gray-700 text-sm">
+                      <div className="text-center text-lg sm:text-xl text-blue-400">↓</div>
+                      <div className="p-2 sm:p-3 bg-green-50 rounded-lg">
+                        <div className="font-medium text-green-900 mb-1 sm:mb-2 text-sm sm:text-base">OOPrompt Converts To:</div>
+                        <div className="text-gray-700 text-xs sm:text-sm">
                           A structured object with properties like "Product Type", "Target Audience", "Marketing Channels", "Key Messages", etc.
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 text-base text-blue-600">
+                  <div className="mt-3 sm:mt-4 text-sm sm:text-base text-blue-600">
                     💡 <strong>Pro tip:</strong> The more natural and detailed your initial prompt, the better OOPrompt can structure it!
                   </div>
                 </div>
@@ -191,41 +191,41 @@ export default function App() {
 
 
               {tutorialPage === 2 && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="text-3xl">➕</div>
-                    <h3 className="text-2xl font-bold text-green-900">Step 2: Add Detailed Properties</h3>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:p-4 md:p-6 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl">➕</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-green-900">Step 2: Add Detailed Properties</h3>
                   </div>
-                  <p className="text-gray-700 mb-6 text-lg">
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
                     Break down your task into specific properties that define requirements, constraints, and priorities.
                   </p>
-                  <div className="bg-white p-6 rounded-lg border border-green-200">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <span className="text-orange-600 font-bold text-xl">‼️</span>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-green-200">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <span className="text-orange-600 font-bold text-lg sm:text-xl">‼️</span>
                         <div className="flex-1">
-                          <div className="font-medium text-orange-900 text-base">Product Features</div>
-                          <div className="text-orange-700 text-sm">Highlight eco-friendly materials, sustainable packaging, and carbon-neutral production</div>
+                          <div className="font-medium text-orange-900 text-sm sm:text-base">Product Features</div>
+                          <div className="text-orange-700 text-xs sm:text-sm">Highlight eco-friendly materials, sustainable packaging, and carbon-neutral production</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-gray-600 font-bold text-xl">⚪</span>
+                      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <span className="text-gray-600 font-bold text-lg sm:text-xl">⚪</span>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900 text-base">Budget Constraints</div>
-                          <div className="text-gray-700 text-sm">Marketing budget: $50,000, timeline: 3 months</div>
+                          <div className="font-medium text-gray-900 text-sm sm:text-base">Budget Constraints</div>
+                          <div className="text-gray-700 text-xs sm:text-sm">Marketing budget: $50,000, timeline: 3 months</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                        <span className="text-red-600 font-bold text-xl">❌</span>
+                      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
+                        <span className="text-red-600 font-bold text-lg sm:text-xl">❌</span>
                         <div className="flex-1">
-                          <div className="font-medium text-red-900 text-base">Avoid</div>
-                          <div className="text-red-700 text-sm">Greenwashing, overly technical language, aggressive sales tactics</div>
+                          <div className="font-medium text-red-900 text-sm sm:text-base">Avoid</div>
+                          <div className="text-red-700 text-xs sm:text-sm">Greenwashing, overly technical language, aggressive sales tactics</div>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-6 text-base text-green-600">
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base text-green-600">
                     💡 <strong>Pro tip:</strong> Use the action buttons to prioritize: ‼️ (highlight), ⚪ (normal), ❌ (avoid)
                   </div>
                 </div>
@@ -298,16 +298,16 @@ export default function App() {
                   </div>
                   
                   {/* Embedded Objects Feature */}
-                  <div className="mt-8 p-8 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-4 mb-4">
-                      <span className="text-blue-600 font-bold text-3xl">🔗</span>
-                      <span className="font-medium text-blue-900 text-xl">Embed Other Prompt Objects</span>
+                  <div className="mt-6 sm:mt-8 p-4 sm:p-6 md:p-8 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                      <span className="text-blue-600 font-bold text-2xl sm:text-3xl">🔗</span>
+                      <span className="font-medium text-blue-900 text-base sm:text-lg md:text-xl">Embed Other Prompt Objects</span>
                     </div>
-                    <p className="text-blue-700 mb-6 text-lg">
+                    <p className="text-blue-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
                       You can use one prompt object to define a property in another prompt object, creating powerful nested structures.
                     </p>
-                    <div className="bg-white p-6 rounded-lg border border-blue-200">
-                      <div className="text-blue-800 text-lg">
+                    <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-blue-200">
+                      <div className="text-blue-800 text-sm sm:text-base md:text-lg">
                         <strong>Example:</strong> In your "Marketing Strategy" object, you can have a "Competitor Analysis" property that references a separate "Competitor Research" prompt object with its own detailed properties.
                       </div>
                     </div>
@@ -316,44 +316,44 @@ export default function App() {
               )}
 
               {tutorialPage === 4 && (
-                <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-6 rounded-xl border border-violet-200">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="text-3xl">🤖</div>
-                    <h3 className="text-2xl font-bold text-violet-900">Step 4: Get AI Assistance</h3>
+                <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-3 sm:p-4 md:p-6 rounded-xl border border-violet-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl">🤖</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-violet-900">Step 4: Get AI Assistance</h3>
                   </div>
-                  <p className="text-gray-700 mb-6 text-lg">
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
                     OOPrompt offers three powerful AI tools to enhance your prompts and resolve conflicts.
                   </p>
-                  <div className="bg-white p-6 rounded-lg border border-violet-200">
-                    <div className="space-y-3">
-                      <div className="font-medium text-violet-900 text-base mb-3">Three AI Tools Available</div>
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <span className="text-blue-600 font-bold text-xl">🔍</span>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-violet-200">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="font-medium text-violet-900 text-sm sm:text-base mb-2 sm:mb-3">Three AI Tools Available</div>
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <span className="text-blue-600 font-bold text-lg sm:text-xl">🔍</span>
                           <div>
-                            <div className="font-medium text-blue-900 text-base">Conflict Check</div>
-                            <div className="text-blue-700 mb-2 text-sm">AI automatically detects conflicting properties and suggests resolutions</div>
-                            <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                            <div className="font-medium text-blue-900 text-sm sm:text-base">Conflict Check</div>
+                            <div className="text-blue-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI automatically detects conflicting properties and suggests resolutions</div>
+                            <div className="text-xs text-blue-600 bg-blue-100 p-1 sm:p-2 rounded">
                               <strong>Example:</strong> "Budget: $50,000" vs "Budget: $100,000" - AI helps you choose or merge
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <span className="text-green-600 font-bold text-xl">➕</span>
+                        <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                          <span className="text-green-600 font-bold text-lg sm:text-xl">➕</span>
                           <div>
-                            <div className="font-medium text-green-900 text-base">More Properties</div>
-                            <div className="text-green-700 mb-2 text-sm">AI suggests additional properties to make your prompt more comprehensive</div>
-                            <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
+                            <div className="font-medium text-green-900 text-sm sm:text-base">More Properties</div>
+                            <div className="text-green-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI suggests additional properties to make your prompt more comprehensive</div>
+                            <div className="text-xs text-green-600 bg-green-100 p-1 sm:p-2 rounded">
                               <strong>Example:</strong> "Add 'Timeline Constraints' and 'Success Metrics' properties"
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                          <span className="text-purple-600 font-bold text-xl">✏️</span>
+                        <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <span className="text-purple-600 font-bold text-lg sm:text-xl">✏️</span>
                           <div>
-                            <div className="font-medium text-purple-900 text-base">Language Modify</div>
-                            <div className="text-purple-700 mb-2 text-sm">AI improves the language and clarity of your existing properties</div>
-                            <div className="text-xs text-purple-600 bg-purple-100 p-2 rounded">
+                            <div className="font-medium text-purple-900 text-sm sm:text-base">Language Modify</div>
+                            <div className="text-purple-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI improves the language and clarity of your existing properties</div>
+                            <div className="text-xs text-purple-600 bg-purple-100 p-1 sm:p-2 rounded">
                               <strong>Example:</strong> "Refine 'Target Audience' from 'young people' to 'Millennials and Gen Z aged 18-35'"
                             </div>
                           </div>
@@ -361,62 +361,62 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6 text-base text-violet-600">
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base text-violet-600">
                     💡 <strong>Pro tip:</strong> Click the 💡 button in the toolbar to access all three AI tools and enhance your prompt!
                   </div>
                 </div>
               )}
 
               {tutorialPage === 5 && (
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl border border-red-200">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="text-3xl">🚀</div>
-                    <h3 className="text-2xl font-bold text-red-900">Step 5: Save & Send</h3>
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 p-3 sm:p-4 md:p-6 rounded-xl border border-red-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl">🚀</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-red-900">Step 5: Save & Send</h3>
                   </div>
-                  <p className="text-gray-700 mb-6 text-lg">
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
                     Save your work and send your perfectly structured prompt to get amazing AI results.
                   </p>
-                  <div className="bg-white p-6 rounded-lg border border-red-200">
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-red-200">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <div className="font-medium text-red-900 text-base mb-2">Save Options</div>
+                          <div className="font-medium text-red-900 text-sm sm:text-base mb-2">Save Options</div>
                           <div className="space-y-2">
-                            <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg border border-green-200">
-                              <span className="text-green-600 text-lg">💾</span>
-                              <span className="text-green-800 text-sm">Save to Library</span>
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-green-50 rounded-lg border border-green-200">
+                              <span className="text-green-600 text-base sm:text-lg">💾</span>
+                              <span className="text-green-800 text-xs sm:text-sm">Save to Library</span>
                             </div>
-                            <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                              <span className="text-blue-600 text-lg">📁</span>
-                              <span className="text-blue-800 text-sm">Export as File</span>
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                              <span className="text-blue-600 text-base sm:text-lg">📁</span>
+                              <span className="text-blue-800 text-xs sm:text-sm">Export as File</span>
                             </div>
-                            <div className="flex items-center gap-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-                              <span className="text-purple-600 text-lg">🔗</span>
-                              <span className="text-purple-800 text-sm">Share Link</span>
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                              <span className="text-purple-600 text-base sm:text-lg">🔗</span>
+                              <span className="text-purple-800 text-xs sm:text-sm">Share Link</span>
                             </div>
                           </div>
                         </div>
                         <div>
-                          <div className="font-medium text-red-900 text-base mb-2">Send to AI</div>
+                          <div className="font-medium text-red-900 text-sm sm:text-base mb-2">Send to AI</div>
                           <div className="space-y-2">
-                            <div className="flex items-center gap-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
-                              <span className="text-orange-600 text-lg">🚀</span>
-                              <span className="text-orange-800 text-sm">Send to ChatGPT</span>
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                              <span className="text-orange-600 text-base sm:text-lg">🚀</span>
+                              <span className="text-orange-800 text-xs sm:text-sm">Send to ChatGPT</span>
                             </div>
-                            <div className="flex items-center gap-3 p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-                              <span className="text-indigo-600 text-lg">🤖</span>
-                              <span className="text-indigo-800 text-sm">Send to Claude</span>
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-indigo-50 rounded-lg border border-indigo-200">
+                              <span className="text-indigo-600 text-base sm:text-lg">🤖</span>
+                              <span className="text-indigo-800 text-xs sm:text-sm">Send to Claude</span>
                             </div>
-                            <div className="flex items-center gap-3 bg-emerald-50 rounded-lg border border-emerald-200 p-2">
-                              <span className="text-emerald-600 text-lg">💎</span>
-                              <span className="text-emerald-800 text-sm">Send to Gemini</span>
+                            <div className="flex items-center gap-2 sm:gap-3 bg-emerald-50 rounded-lg border border-emerald-200 p-2">
+                              <span className="text-emerald-600 text-base sm:text-lg">💎</span>
+                              <span className="text-emerald-800 text-xs sm:text-sm">Send to Gemini</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6 text-base text-red-600">
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base text-red-600">
                     💡 <strong>Pro tip:</strong> Save your prompts to build a reusable library of effective structures!
                   </div>
                 </div>
@@ -424,18 +424,18 @@ export default function App() {
             </div>
 
             {/* Navigation & Action Buttons */}
-            <div className="bg-white border-t border-gray-200 p-6 rounded-b-2xl">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">ESC</kbd> to close
+            <div className="bg-white border-t border-gray-200 p-3 sm:p-4 md:p-6 rounded-b-2xl">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+                <div className="text-xs sm:text-sm text-gray-500 order-3 sm:order-1">
+                  Press <kbd className="px-1 sm:px-2 py-1 bg-gray-100 rounded text-xs">ESC</kbd> to close
                 </div>
                 
                 {/* Navigation */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 order-2">
                   <button
                     onClick={() => setTutorialPage(Math.max(1, tutorialPage - 1))}
                     disabled={tutorialPage === 1}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-lg transition-colors text-sm sm:text-base ${
                       tutorialPage === 1 
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -444,14 +444,14 @@ export default function App() {
                     ← Previous
                   </button>
                   
-                  <span className="text-sm text-gray-500">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     {tutorialPage} of 5
                   </span>
                   
                   <button
                     onClick={() => setTutorialPage(Math.min(5, tutorialPage + 1))}
                     disabled={tutorialPage === 5}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-lg transition-colors text-sm sm:text-base ${
                       tutorialPage === 5 
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -462,17 +462,17 @@ export default function App() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3 order-1 sm:order-3">
                   <button
                     onClick={() => setShowWelcome(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="px-3 sm:px-4 md:px-6 py-1 sm:py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm sm:text-base"
                   >
                     Skip Tutorial
                   </button>
                   {tutorialPage === 5 && (
                     <button
                       onClick={() => setShowWelcome(false)}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                      className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 text-sm sm:text-base"
                     >
                       Start Creating!
                     </button>
