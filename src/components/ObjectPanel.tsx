@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDeleteObject, onOpenOOPPanel }: Props) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [historyPopup, setHistoryPopup] = useState<{
     isOpen: boolean;
     objectId: string;
@@ -129,11 +130,29 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
   return (
     <>
              {/* Object Panel - Always visible on left side */}
-       <aside className="fixed top-16 left-0 bottom-0 z-40 h-[calc(100vh-4rem)] w-80 bg-white border-r border-gray-300 shadow-lg">
+       <aside className="lg:fixed lg:top-16 lg:left-0 lg:bottom-0 lg:z-40 lg:h-[calc(100vh-4rem)] lg:w-80 w-full h-auto bg-white border-r border-gray-300 shadow-lg lg:shadow-lg order-first lg:order-none">
           
           <div className="flex flex-col h-full">
                          {/* Header */}
              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
+               {/* Mobile Toggle Button */}
+               <div className="lg:hidden mb-3">
+                 <button
+                   onClick={() => setIsCollapsed(!isCollapsed)}
+                   className="w-full p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-between text-sm font-medium text-gray-700 transition-colors"
+                 >
+                   <span>History Prompts</span>
+                   <svg 
+                     className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+                     fill="none" 
+                     stroke="currentColor" 
+                     viewBox="0 0 24 24"
+                   >
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                   </svg>
+                 </button>
+               </div>
+               
                {/* Blue Title Bar with Button */}
                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg px-4 py-2 flex items-center justify-between">
                  <h3 className="text-white font-semibold text-sm">History Prompts</h3>
@@ -151,7 +170,9 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
              </div>
 
                          {/* Objects List */}
-             <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
+             <div className={`flex-1 overflow-y-auto min-h-0 p-3 space-y-2 transition-all duration-300 ${
+               isCollapsed ? 'lg:block hidden' : 'block'
+             }`}>
                {displayObjects.map((obj) => {
                  const isSelected = selectedObjectId === obj.id;
                  console.log(`Object ${obj.id} (${obj.main_task}): isSelected = ${isSelected}, selectedObjectId = ${selectedObjectId}`);
@@ -219,7 +240,9 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                           </div>
  
              {/* Footer */}
-             <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+             <div className={`p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 transition-all duration-300 ${
+               isCollapsed ? 'lg:block hidden' : 'block'
+             }`}>
                <div className="text-center">
                  <div className="text-xs text-gray-500 mb-1">
                    {displayObjects.length} prompt{displayObjects.length !== 1 ? 's' : ''} in history

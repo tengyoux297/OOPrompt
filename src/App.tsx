@@ -97,15 +97,15 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
       {/* Top bar - Fixed at top */}
-      <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-8 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">O</span>
+      <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-sm sm:text-lg">O</span>
           </div>
-          <div className="font-bold text-xl text-gray-900">OOPrompt</div>
+          <div className="font-bold text-lg sm:text-xl text-gray-900">OOPrompt</div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-600">AI Model:</div>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI Model:</div>
           <select 
             value={selectedLLM === 'openai' ? 'GPT-4' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
             onChange={(e) => {
@@ -114,7 +114,7 @@ export default function App() {
               else if (value === 'Gemini') setSelectedLLM('gemini');
               else if (value === 'Claude') setSelectedLLM('claude');
             }}
-            className="border border-gray-200 rounded-xl px-4 py-2 bg-white text-gray-900 text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
+            className="border border-gray-200 rounded-xl px-2 sm:px-3 lg:px-4 py-2 bg-white text-gray-900 text-xs sm:text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
           >
             <option>GPT-4</option>
             <option>Gemini</option>
@@ -124,8 +124,8 @@ export default function App() {
       </header>
 
       {/* Main content: chat panel with left sidebar */}
-      <div className="flex-1 relative h-full pt-16 flex">
-        {/* Object Panel - Always visible left sidebar */}
+      <div className="flex-1 relative h-full pt-16 flex flex-col lg:flex-row">
+        {/* Object Panel - Responsive left sidebar */}
         <ObjectPanel
           objects={state.promptObjects}
           selectedObjectId={state.currentObjectId}
@@ -144,7 +144,7 @@ export default function App() {
         />
 
         {/* Chat Panel - Takes remaining width */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <ChatPanel 
             onSend={(msg) => console.log('Chat message:', msg)}
             onExtractProperties={(oopObject) => {
@@ -170,8 +170,8 @@ export default function App() {
               onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
             />
             
-            {/* Panel - fixed positioning, full screen height */}
-            <div className="fixed top-0 right-0 bottom-0 z-50 h-screen">
+            {/* Panel - responsive positioning */}
+            <div className="fixed top-0 right-0 bottom-0 z-50 h-screen w-full lg:w-auto lg:max-w-4xl">
               <OOPromptPanel 
                 state={state} 
                 dispatch={dispatch} 

@@ -522,7 +522,7 @@ export function ObjectModifierModal({
       />
       
              {/* Modal */}
-       <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+               <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
          
          {/* Floating Apply Button removed to avoid overlap with fixed actions section */}
         {/* Header - Fixed height */}

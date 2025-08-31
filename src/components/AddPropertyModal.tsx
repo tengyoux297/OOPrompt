@@ -90,16 +90,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
       }}
     >
       <div 
-        className="modal-content"
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '24px',
-          width: '100%',
-          maxWidth: '448px',
-          margin: '0 16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}
+        className="modal-content bg-white rounded-xl p-4 sm:p-6 w-full max-w-md mx-4 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-text-onLight">Add Property</h2>
@@ -184,17 +175,17 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
                 ))}
               </div>
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
               <button
                 onClick={handleStructuredSubmit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-sm sm:text-base"
                 disabled={!name.trim()}
               >
                 Add Property
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -217,17 +208,17 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
                 }}
               />
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
               <button
                 onClick={handleUnstructuredSubmit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-sm sm:text-base"
                 disabled={!unstructuredText.trim() || isGenerating}
               >
                 {isGenerating ? "Adding to prompt..." : "Add to prompt!"}
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-sm sm:text-base"
               >
                 Cancel
               </button>

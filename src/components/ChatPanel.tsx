@@ -231,7 +231,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       )}
       
       {/* Messages Container - Scrollable area */}
-      <div className="flex-1 overflow-y-auto px-8 pt-8 pb-32 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-8 pb-32 min-h-0">
         <div className="max-w-4xl mx-auto space-y-6">
         {messages.map((message) => (
           <div
@@ -239,7 +239,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             {message.isUser ? (
-              <div className={`max-w-xs lg:max-w-md px-5 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow ${
+              <div className={`max-w-[280px] sm:max-w-xs lg:max-w-md px-3 sm:px-4 lg:px-5 py-3 sm:py-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow ${
                 message.text.includes('📝 OOP Panel:')
                   ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white' // Special styling for OOP messages
                   : 'bg-gradient-to-br from-blue-600 to-blue-700 text-white' // Regular user messages
@@ -258,7 +258,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                 </div>
               </div>
                          ) : (
-               <div className={`inline-block card-base px-5 py-4 text-sm max-w-[600px] hover:shadow-md transition-all ${
+               <div className={`inline-block card-base px-3 sm:px-4 lg:px-5 py-3 sm:py-4 text-sm max-w-[280px] sm:max-w-md lg:max-w-[600px] hover:shadow-md transition-all ${
                  message.isError ? 'bg-red-50 border-red-200 text-red-800' : 'text-gray-700'
                }`}>
                                    <div 
@@ -289,9 +289,9 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       </div>
 
       {/* Input Area - Fixed at bottom of screen */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/50 to-white/50 z-10">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200/60 p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-gray-50/50 to-white/50 z-10">
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-4 items-center card-base bg-white/95 px-4 py-4 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex gap-2 sm:gap-3 lg:gap-4 items-center card-base bg-white/95 px-3 sm:px-4 py-3 sm:py-4 shadow-sm hover:shadow-md transition-all duration-200">
             <input
               ref={inputRef}
               className="flex-1 input bg-transparent border-0 focus:ring-0 focus:ring-offset-0 text-gray-800 placeholder:text-gray-500 text-base"
@@ -308,19 +308,19 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                 }
               }}
             />
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
                 <button
-                  className="btn-ghost hover:bg-gray-100 transition-colors px-6"
+                  className="btn-ghost hover:bg-gray-100 transition-colors px-3 sm:px-4 lg:px-6"
                   onClick={handleSend}
                   title="Send message (Ctrl+Enter)"
                 >
                   <div className="flex flex-col items-center">
-                    <span>Send</span>
-                    <span className="text-xs text-gray-500 font-mono">Ctrl+↵</span>
+                    <span className="text-sm sm:text-base">Send</span>
+                    <span className="text-xs text-gray-500 font-mono hidden sm:block">Ctrl+↵</span>
                   </div>
                 </button>
                 <button
-                  className={`btn-primary hover:shadow-md transition-all duration-200 px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  className={`btn-primary hover:shadow-md transition-all duration-200 px-3 sm:px-4 lg:px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
                   onClick={handleExtractProperties}
                   disabled={isOptimizing}
                   title="Open OOP Panel (Enter)"
@@ -328,12 +328,12 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                   {isOptimizing ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Processing...</span>
+                      <span className="text-sm sm:text-base">Processing...</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center">
-                      <span>OOPrompt</span>
-                      <span className="text-xs text-white/70 font-mono">↵</span>
+                      <span className="text-sm sm:text-base">OOPrompt</span>
+                      <span className="text-xs text-white/70 font-mono hidden sm:block">↵</span>
                     </div>
                   )}
                 </button>
