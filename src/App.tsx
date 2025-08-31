@@ -161,7 +161,7 @@ export default function App() {
                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900">Step 1: Start with a Natural Prompt</h3>
                   </div>
                   <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
-                    Begin just like you would with any AI chat - write naturally about what you want to accomplish.
+                    To begin with, write naturally about what you want to do, just like how you do to a common AI chat bot!
                   </p>
                   <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-blue-200">
                     <div className="space-y-2 sm:space-y-3">
@@ -181,7 +181,7 @@ export default function App() {
                     </div>
                   </div>
                   <div className="mt-3 sm:mt-4 text-sm sm:text-base text-blue-600">
-                    💡 <strong>Pro tip:</strong> The more natural and detailed your initial prompt, the better OOPrompt can structure it!
+                  ☛ <strong>Pro tip:</strong> You do not need to include all details at once. You can always add more properties easily by our system!
                   </div>
                 </div>
               )}
@@ -197,12 +197,12 @@ export default function App() {
                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-green-900">Step 2: Add Detailed Properties</h3>
                   </div>
                   <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
-                    Break down your task into specific properties that define requirements, constraints, and priorities.
+                    Some properties are extracted from your initial prompt. You can always add more at any time.
                   </p>
                   <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-green-200">
                     <div className="space-y-2 sm:space-y-3">
                       <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <span className="text-orange-600 font-bold text-lg sm:text-xl">‼️</span>
+                        <span className="text-orange-600 font-bold text-lg sm:text-xl">🟠</span>
                         <div className="flex-1">
                           <div className="font-medium text-orange-900 text-sm sm:text-base">Product Features</div>
                           <div className="text-orange-700 text-xs sm:text-sm">Highlight eco-friendly materials, sustainable packaging, and carbon-neutral production</div>
@@ -216,7 +216,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
-                        <span className="text-red-600 font-bold text-lg sm:text-xl">❌</span>
+                        <span className="text-red-600 font-bold text-lg sm:text-xl">⚫️</span>
                         <div className="flex-1">
                           <div className="font-medium text-red-900 text-sm sm:text-base">Avoid</div>
                           <div className="text-red-700 text-xs sm:text-sm">Greenwashing, overly technical language, aggressive sales tactics</div>
@@ -226,81 +226,85 @@ export default function App() {
                   </div>
                   
                   <div className="mt-4 sm:mt-6 text-sm sm:text-base text-green-600">
-                    💡 <strong>Pro tip:</strong> Use the action buttons to prioritize: ‼️ (highlight), ⚪ (normal), ❌ (avoid)
+                  ☛ <strong>Pro tip:</strong> Use the action buttons to manage properties: 🟠 (highlight), ⚪ (normal), ⚫️ (avoid)
                   </div>
                 </div>
               )}
 
               {tutorialPage === 3 && (
-                <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-8 rounded-xl border border-purple-200">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="text-4xl">✏️</div>
-                    <h3 className="text-3xl font-bold text-purple-900">Step 3: Modify Properties</h3>
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-3 sm:p-4 md:p-6 rounded-xl border border-purple-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl md:text-4xl">✏️</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900">Step 3: Modify Properties</h3>
                   </div>
-                  <p className="text-gray-700 mb-8 text-xl">
-                    Customize your properties with various modification options to fine-tune your prompt structure.
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
+                    Now you can further define and modify your properties!
                   </p>
-                  <div className="bg-white p-8 rounded-lg border border-purple-200">
-                    <div className="space-y-4">
-                      <div className="font-medium text-purple-900 text-lg mb-4">Property Modification Options</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <span className="text-blue-600 font-bold text-xl">✏️</span>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-purple-200">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="font-medium text-purple-900 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 md:mb-4">Property Modification Options</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-2 sm:space-y-3">
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <span className="text-blue-600 font-bold text-lg sm:text-xl">📝</span>
                             <div>
-                              <div className="font-medium text-blue-900">Edit Content</div>
-                              <div className="text-sm text-blue-700">Click on property text to edit names and values</div>
+                              <div className="font-medium text-blue-900 text-sm sm:text-base">Edit Content</div>
+                              <div className="text-xs sm:text-sm text-blue-700">Click on property text to edit names and values</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                            <span className="text-green-600 font-bold text-xl">⚡</span>
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                            <span className="text-green-600 font-bold text-lg sm:text-xl">📍</span>
                             <div>
-                              <div className="font-medium text-green-900">Change Actions</div>
-                              <div className="text-sm text-green-700">Use highlight (‼️), normal (⚪), or avoid (❌)</div>
+                              <div className="font-medium text-green-900 text-sm sm:text-base">Change Actions</div>
+                              <div className="text-xs sm:text-sm text-green-700">Use highlight (🟠), normal (⚪), or avoid (⚫️)</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                            <span className="text-orange-600 font-bold text-xl">🔗</span>
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                            <span className="text-orange-600 font-bold text-lg sm:text-xl">🔑</span>
                             <div>
-                              <div className="font-medium text-orange-900">Embed Objects</div>
-                              <div className="text-sm text-orange-700">Link properties to other prompt objects</div>
+                              <div className="font-medium text-orange-900 text-sm sm:text-base">Embed Objects</div>
+                              <div className="text-xs sm:text-sm text-orange-700">Include another prompt as a property</div>
                             </div>
                           </div>
                         </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                            <span className="text-purple-600 font-bold text-xl">📎</span>
+                        
+                        <div className="space-y-2 sm:space-y-3">
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
+                            <span className="text-red-600 font-bold text-lg sm:text-xl">🗑️</span>
                             <div>
-                              <div className="font-medium text-purple-900">File Attachments</div>
-                              <div className="text-sm text-purple-700">Add documents, images, or data files</div>
+                              <div className="font-medium text-red-900 text-sm sm:text-base">Delete Properties</div>
+                              <div className="text-xs sm:text-sm text-red-700">Remove properties you no longer need</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                            <span className="text-red-600 font-bold text-xl">🗑️</span>
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <span className="text-purple-600 font-bold text-lg sm:text-xl">🔗</span>
                             <div>
-                              <div className="font-medium text-red-900">Delete Properties</div>
-                              <div className="text-sm text-red-700">Remove properties you no longer need</div>
+                              <div className="font-medium text-purple-900 text-sm sm:text-base">File Attachments</div>
+                              <div className="text-xs sm:text-sm text-purple-700">Add files to any property as references</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <span className="text-gray-600 font-bold text-xl">⚙️</span>
+                          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="text-gray-600 font-bold text-lg sm:text-xl">💬</span>
                             <div>
-                              <div className="font-medium text-gray-900">More Options</div>
-                              <div className="text-sm text-gray-700">Advanced settings and configurations</div>
+                              <div className="font-medium text-gray-900 text-sm sm:text-base">Add Examples</div>
+                              <div className="text-xs sm:text-sm text-gray-700">Add examples to your properties to help AI understand better</div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-8 text-xl text-purple-600">
-                    💡 <strong>Pro tip:</strong> Use the "More options..." button for advanced features like embedding objects and file attachments!
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-purple-600">
+                  ☛ <strong>Pro tip:</strong> Use the "More options..." button for advanced functionalities like embedding objects and file attachments!
+                  </div>
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-purple-600">
+                  ☛ <strong>Pro tip:</strong> Try to create and add a new prompot object for complex properties!
                   </div>
                   
                   {/* Embedded Objects Feature */}
                   <div className="mt-6 sm:mt-8 p-4 sm:p-6 md:p-8 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-                      <span className="text-blue-600 font-bold text-2xl sm:text-3xl">🔗</span>
+                      <span className="text-blue-600 font-bold text-2xl sm:text-3xl">🔑</span>
                       <span className="font-medium text-blue-900 text-base sm:text-lg md:text-xl">Embed Other Prompt Objects</span>
                     </div>
                     <p className="text-blue-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
@@ -312,27 +316,62 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
+
                 </div>
               )}
 
               {tutorialPage === 4 && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:p-4 md:p-6 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                    <div className="text-2xl sm:text-3xl md:text-4xl">💾</div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-green-900">Step 4: Save & Version Control</h3>
+                  </div>
+                  <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
+                    Save your prompt objects to the left sidebar library for easy management.
+                  </p>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-green-200">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="text-green-600 font-bold text-lg sm:text-xl">📚</span>
+                        <div>
+                          <div className="font-medium text-green-900 text-sm sm:text-base">Left Sidebar Library</div>
+                          <div className="text-green-700 text-xs sm:text-sm">You can access all your saved prompts from the left sidebar.</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="text-green-600 font-bold text-lg sm:text-xl">🔄</span>
+                        <div>
+                          <div className="font-medium text-green-900 text-sm sm:text-base">Version Control</div>
+                          <div className="text-green-700 text-xs sm:text-sm">You can go back to any history version of each saved prompt object.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-green-600">
+                  ☛ <strong>Pro tip:</strong> Save your work regularly to build a library of reusable prompt structures!
+                  </div>
+                </div>
+              )}
+
+              {tutorialPage === 5 && (
                 <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-3 sm:p-4 md:p-6 rounded-xl border border-violet-200">
                   <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                     <div className="text-2xl sm:text-3xl">🤖</div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-violet-900">Step 4: Get AI Assistance</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-violet-900">Step 5: Get AI Assistance</h3>
                   </div>
                   <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
-                    OOPrompt offers three powerful AI tools to enhance your prompts and resolve conflicts.
+                    OOPrompt provides 3 powerful AI tools help you modify and improve your prompt!
                   </p>
                   <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-violet-200">
                     <div className="space-y-2 sm:space-y-3">
-                      <div className="font-medium text-violet-900 text-sm sm:text-base mb-2 sm:mb-3">Three AI Tools Available</div>
+                      <div className="font-medium text-violet-900 text-sm sm:text-base mb-2 sm:mb-3">3 Powerful AI Tools Available</div>
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <span className="text-blue-600 font-bold text-lg sm:text-xl">🔍</span>
                           <div>
                             <div className="font-medium text-blue-900 text-sm sm:text-base">Conflict Check</div>
-                            <div className="text-blue-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI automatically detects conflicting properties and suggests resolutions</div>
+                            <div className="text-blue-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI automatically detects conflicting properties and suggests resolutions. Sometimes maybe you forget you have already added some properties!</div>
                             <div className="text-xs text-blue-600 bg-blue-100 p-1 sm:p-2 rounded">
                               <strong>Example:</strong> "Budget: $50,000" vs "Budget: $100,000" - AI helps you choose or merge
                             </div>
@@ -342,7 +381,7 @@ export default function App() {
                           <span className="text-green-600 font-bold text-lg sm:text-xl">➕</span>
                           <div>
                             <div className="font-medium text-green-900 text-sm sm:text-base">More Properties</div>
-                            <div className="text-green-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI suggests additional properties to make your prompt more comprehensive</div>
+                            <div className="text-green-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI suggests more related properties that can possibly add to your prompt. Maybe some you need but forgot to add!</div>
                             <div className="text-xs text-green-600 bg-green-100 p-1 sm:p-2 rounded">
                               <strong>Example:</strong> "Add 'Timeline Constraints' and 'Success Metrics' properties"
                             </div>
@@ -352,9 +391,9 @@ export default function App() {
                           <span className="text-purple-600 font-bold text-lg sm:text-xl">✏️</span>
                           <div>
                             <div className="font-medium text-purple-900 text-sm sm:text-base">Language Modify</div>
-                            <div className="text-purple-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI improves the language and clarity of your existing properties</div>
+                            <div className="text-purple-700 mb-1 sm:mb-2 text-xs sm:text-sm">AI improves the clarity of the language in your existing properties. Not good at summarizing? No worries!</div>
                             <div className="text-xs text-purple-600 bg-purple-100 p-1 sm:p-2 rounded">
-                              <strong>Example:</strong> "Refine 'Target Audience' from 'young people' to 'Millennials and Gen Z aged 18-35'"
+                              <strong>Example:</strong> "Refine 'readers' to 'target audience'"
                             </div>
                           </div>
                         </div>
@@ -362,62 +401,51 @@ export default function App() {
                     </div>
                   </div>
                   <div className="mt-4 sm:mt-6 text-sm sm:text-base text-violet-600">
-                    💡 <strong>Pro tip:</strong> Click the 💡 button in the toolbar to access all three AI tools and enhance your prompt!
+                  ☛ <strong>Pro tip:</strong> Click the 💡 button in the toolbar to access all three AI tools and help you modify your prompt!
                   </div>
                 </div>
               )}
 
-              {tutorialPage === 5 && (
+              {tutorialPage === 6 && (
                 <div className="bg-gradient-to-r from-red-50 to-pink-50 p-3 sm:p-4 md:p-6 rounded-xl border border-red-200">
                   <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                     <div className="text-2xl sm:text-3xl">🚀</div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-red-900">Step 5: Save & Send</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-red-900">Step 6: Send to AI</h3>
                   </div>
                   <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base md:text-lg">
-                    Save your work and send your perfectly structured prompt to get amazing AI results.
+                    Send your optimized prompt to your favorite AI model and get results!
                   </p>
                   <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border border-red-200">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <div className="font-medium text-red-900 text-sm sm:text-base mb-2">Save Options</div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-green-50 rounded-lg border border-green-200">
-                              <span className="text-green-600 text-base sm:text-lg">💾</span>
-                              <span className="text-green-800 text-xs sm:text-sm">Save to Library</span>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                              <span className="text-blue-600 text-base sm:text-lg">📁</span>
-                              <span className="text-blue-800 text-xs sm:text-sm">Export as File</span>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-                              <span className="text-purple-600 text-base sm:text-lg">🔗</span>
-                              <span className="text-purple-800 text-xs sm:text-sm">Share Link</span>
-                            </div>
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="text-center">
+                        <div className="font-medium text-red-900 text-base sm:text-lg mb-4">Available AI Models</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200">
+                            <span className="text-orange-600 text-2xl sm:text-3xl">🟩</span>
+                            <span className="text-orange-800 text-sm sm:text-base font-medium">ChatGPT</span>
+                            <span className="text-orange-700 text-xs text-center">Powerful language model for creative tasks</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                            <span className="text-emerald-600 text-2xl sm:text-3xl">🟦</span>
+                            <span className="text-emerald-800 text-sm sm:text-base font-medium">Gemini</span>
+                            <span className="text-emerald-700 text-xs text-center">Multimodal AI for complex tasks</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                            <span className="text-indigo-600 text-2xl sm:text-3xl">🟧</span>
+                            <span className="text-indigo-800 text-sm sm:text-base font-medium">Claude</span>
+                            <span className="text-indigo-700 text-xs text-center">Advanced reasoning and analysis</span>
                           </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-red-900 text-sm sm:text-base mb-2">Send to AI</div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
-                              <span className="text-orange-600 text-base sm:text-lg">🚀</span>
-                              <span className="text-orange-800 text-xs sm:text-sm">Send to ChatGPT</span>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-                              <span className="text-indigo-600 text-base sm:text-lg">🤖</span>
-                              <span className="text-indigo-800 text-xs sm:text-sm">Send to Claude</span>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3 bg-emerald-50 rounded-lg border border-emerald-200 p-2">
-                              <span className="text-emerald-600 text-base sm:text-lg">💎</span>
-                              <span className="text-emerald-800 text-xs sm:text-sm">Send to Gemini</span>
-                            </div>
+                      </div>
+                      <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <span className="text-blue-600 text-lg sm:text-xl">☛</span>
+                          <div className="text-blue-800 text-xs sm:text-sm">
+                            <strong>Pro tip:</strong> Each AI model has different strengths. Try multiple models to see which works best for your specific task!
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-4 sm:mt-6 text-sm sm:text-base text-red-600">
-                    💡 <strong>Pro tip:</strong> Save your prompts to build a reusable library of effective structures!
                   </div>
                 </div>
               )}
@@ -445,14 +473,14 @@ export default function App() {
                   </button>
                   
                   <span className="text-xs sm:text-sm text-gray-500">
-                    {tutorialPage} of 5
+                    {tutorialPage} of 6
                   </span>
                   
                   <button
-                    onClick={() => setTutorialPage(Math.min(5, tutorialPage + 1))}
-                    disabled={tutorialPage === 5}
+                    onClick={() => setTutorialPage(Math.min(6, tutorialPage + 1))}
+                    disabled={tutorialPage === 6}
                     className={`px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-lg transition-colors text-sm sm:text-base ${
-                      tutorialPage === 5 
+                      tutorialPage === 6 
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
@@ -469,7 +497,7 @@ export default function App() {
                   >
                     Skip Tutorial
                   </button>
-                  {tutorialPage === 5 && (
+                  {tutorialPage === 6 && (
                     <button
                       onClick={() => setShowWelcome(false)}
                       className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 text-sm sm:text-base"
