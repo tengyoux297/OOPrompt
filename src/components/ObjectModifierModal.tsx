@@ -18,6 +18,109 @@ type Props = {
 
 type RequestType = "conflict_check" | "more_possible_properties" | "modify_language";
 
+// Helper function to format property names for display
+function formatPropertyName(name: string): string {
+  return name
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .split(' ')
+    .map(word => {
+      // Handle common abbreviations and technical terms
+             const commonAbbr = {
+         'id': 'ID',
+         'url': 'URL',
+         'api': 'API',
+         'ui': 'UI',
+         'ux': 'UX',
+         'ai': 'AI',
+         'llm': 'LLM',
+         'gpt': 'GPT',
+         'html': 'HTML',
+         'css': 'CSS',
+         'js': 'JavaScript',
+         'json': 'JSON',
+         'xml': 'XML',
+         'sql': 'SQL',
+         'db': 'Database',
+         'dbms': 'DBMS',
+         'http': 'HTTP',
+         'https': 'HTTPS',
+         'ftp': 'FTP',
+         'ssh': 'SSH',
+         'tcp': 'TCP',
+         'udp': 'UDP',
+         'ip': 'IP',
+         'dns': 'DNS',
+         'ssl': 'SSL',
+         'tls': 'TLS',
+         'oauth': 'OAuth',
+         'jwt': 'JWT',
+         'rss': 'RSS',
+         'sdk': 'SDK',
+         'cli': 'CLI',
+         'gui': 'GUI',
+         'cpu': 'CPU',
+         'gpu': 'GPU',
+         'ram': 'RAM',
+         'rom': 'ROM',
+         'hdd': 'HDD',
+         'ssd': 'SSD',
+         'usb': 'USB',
+         'hdmi': 'HDMI',
+         'wifi': 'WiFi',
+         'bluetooth': 'Bluetooth',
+         'gps': 'GPS',
+         'nfc': 'NFC',
+         'qr': 'QR',
+         'pdf': 'PDF',
+         'doc': 'Document',
+         'txt': 'Text',
+         'img': 'Image',
+         'pic': 'Picture',
+         'vid': 'Video',
+         'aud': 'Audio',
+         'mp3': 'MP3',
+         'mp4': 'MP4',
+         'avi': 'AVI',
+         'jpg': 'JPEG',
+         'jpeg': 'JPEG',
+         'png': 'PNG',
+         'gif': 'GIF',
+         'svg': 'SVG',
+         'zip': 'ZIP',
+         'rar': 'RAR',
+         'tar': 'TAR',
+         'gz': 'GZIP',
+         '7z': '7-Zip'
+       };
+      
+      const lowerWord = word.toLowerCase();
+      if (commonAbbr[lowerWord as keyof typeof commonAbbr]) {
+        return commonAbbr[lowerWord as keyof typeof commonAbbr];
+      }
+      
+      // Handle camelCase
+      if (/^[a-z][a-zA-Z]*$/.test(word)) {
+        return word.replace(/([A-Z])/g, ' $1').trim();
+      }
+      
+      // Handle PascalCase
+      if (/^[A-Z][a-zA-Z]*$/.test(word)) {
+        return word.replace(/([A-Z])/g, ' $1').trim();
+      }
+      
+      // Handle snake_case and kebab-case
+      if (word.includes('_') || word.includes('-')) {
+        return word.replace(/[_-]/g, ' ');
+      }
+      
+      // Default: capitalize first letter, lowercase rest
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ')
+    .trim();
+}
+
 export function ObjectModifierModal({ 
   isOpen, 
   onClose, 
@@ -435,16 +538,24 @@ export function ObjectModifierModal({
              }`}
              onClick={() => handleItemToggle(property.suggestionId)}
            >
-             <div className="flex items-start justify-between">
-               <div className="flex-1">
-                 <div className="flex items-center gap-2 mb-2">
-                   <div className="font-semibold text-base text-gray-900">{property.name}</div>
-                   <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+             <div className="flex items-start gap-4">
+               <div className="flex-1 min-w-0">
+                 <div className="flex items-start gap-2 mb-2">
+                   <div className="flex-1 min-w-0">
+                     <div className="font-semibold text-gray-900 break-words leading-tight" style={{
+                       fontSize: property.name.length > 20 ? '0.875rem' : 
+                                property.name.length > 15 ? '1rem' : 
+                                property.name.length > 10 ? '1.125rem' : '1.25rem'
+                     }}>
+                       {formatPropertyName(property.name)}
+                     </div>
+                   </div>
+                   <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
                      AI Suggested
                    </div>
                  </div>
-                 <div className="text-sm text-gray-700 mb-2 leading-relaxed">{property.rationale}</div>
-                                 {property.valueTemplate && (
+                 <div className="text-sm text-gray-700 mb-2 leading-relaxed break-words">{property.rationale}</div>
+                 {property.valueTemplate && (
                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                      <div className="text-xs font-medium text-blue-800 mb-1">💡 Suggested Value Format:</div>
                      <div className="text-xs text-blue-700 space-y-1">
@@ -473,8 +584,8 @@ export function ObjectModifierModal({
                      </div>
                    </div>
                  )}
-              </div>
-                             <div className="flex items-center gap-3 ml-3">
+               </div>
+               <div className="flex flex-col items-end gap-3 flex-shrink-0">
                  <div className="text-center">
                    <div className="text-xs text-gray-500 mb-1">AI Confidence</div>
                    <div className="flex items-center gap-1">
@@ -496,7 +607,7 @@ export function ObjectModifierModal({
                    className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  />
                </div>
-            </div>
+             </div>
           </div>
         ))}
       </div>
