@@ -426,37 +426,76 @@ export function ObjectModifierModal({
     return (
       <div className="space-y-2">
         {envelope.suggestedProperties.map(property => (
-          <div 
-            key={property.suggestionId}
-            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-              selectedItems.has(property.suggestionId)
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => handleItemToggle(property.suggestionId)}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="font-medium text-sm">{property.name}</div>
-                <div className="text-sm text-gray-600 mt-1">{property.rationale}</div>
-                {property.valueTemplate && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Template: {property.valueTemplate.type}
-                    {property.valueTemplate.placeholder && ` - ${property.valueTemplate.placeholder}`}
-                  </div>
-                )}
+                     <div 
+             key={property.suggestionId}
+             className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+               selectedItems.has(property.suggestionId)
+                 ? "border-blue-500 bg-blue-50 shadow-md"
+                 : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+             }`}
+             onClick={() => handleItemToggle(property.suggestionId)}
+           >
+             <div className="flex items-start justify-between">
+               <div className="flex-1">
+                 <div className="flex items-center gap-2 mb-2">
+                   <div className="font-semibold text-base text-gray-900">{property.name}</div>
+                   <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                     AI Suggested
+                   </div>
+                 </div>
+                 <div className="text-sm text-gray-700 mb-2 leading-relaxed">{property.rationale}</div>
+                                 {property.valueTemplate && (
+                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                     <div className="text-xs font-medium text-blue-800 mb-1">💡 Suggested Value Format:</div>
+                     <div className="text-xs text-blue-700 space-y-1">
+                       {property.valueTemplate.type === "string" && (
+                         <div>• <strong>Text input</strong> - Enter any words or sentences</div>
+                       )}
+                       {property.valueTemplate.type === "number" && (
+                         <div>• <strong>Number input</strong> - Enter a numeric value</div>
+                       )}
+                       {property.valueTemplate.type === "enum" && (
+                         <div>• <strong>Choose from options</strong> - Select one of the available choices</div>
+                       )}
+                       {property.valueTemplate.type === "json" && (
+                         <div>• <strong>Structured data</strong> - Enter in a specific format</div>
+                       )}
+                       
+                       {property.valueTemplate.placeholder && (
+                         <div>• <strong>Suggested:</strong> "{property.valueTemplate.placeholder}"</div>
+                       )}
+                       {property.valueTemplate.example && (
+                         <div>• <strong>Example:</strong> "{property.valueTemplate.example}"</div>
+                       )}
+                       {property.valueTemplate.enumValues && property.valueTemplate.enumValues.length > 0 && (
+                         <div>• <strong>Available options:</strong> {property.valueTemplate.enumValues.join(", ")}</div>
+                       )}
+                     </div>
+                   </div>
+                 )}
               </div>
-              <div className="flex items-center gap-2 ml-3">
-                <div className="text-xs text-gray-500">
-                  {Math.round(property.confidence * 100)}% confidence
-                </div>
-                <input
-                  type="checkbox"
-                  checked={selectedItems.has(property.suggestionId)}
-                  onChange={() => handleItemToggle(property.suggestionId)}
-                  className="w-4 h-4 text-blue-600"
-                />
-              </div>
+                             <div className="flex items-center gap-3 ml-3">
+                 <div className="text-center">
+                   <div className="text-xs text-gray-500 mb-1">AI Confidence</div>
+                   <div className="flex items-center gap-1">
+                     <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                       <div 
+                         className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
+                         style={{ width: `${Math.round(property.confidence * 100)}%` }}
+                       ></div>
+                     </div>
+                     <span className="text-xs font-medium text-gray-700">
+                       {Math.round(property.confidence * 100)}%
+                     </span>
+                   </div>
+                 </div>
+                 <input
+                   type="checkbox"
+                   checked={selectedItems.has(property.suggestionId)}
+                   onChange={() => handleItemToggle(property.suggestionId)}
+                   className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 />
+               </div>
             </div>
           </div>
         ))}
@@ -638,12 +677,29 @@ export function ObjectModifierModal({
                     {renderConflicts()}
                   </div>
                 )}
-                {activeTab === "more_possible_properties" && (
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">➕ Property Suggestions</h4>
-                    {renderSuggestedProperties()}
-                  </div>
-                )}
+                                 {activeTab === "more_possible_properties" && (
+                   <div>
+                     <h4 className="text-lg font-semibold text-gray-900 mb-4">➕ Property Suggestions</h4>
+                     
+                     {/* Helpful Instructions */}
+                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                       <div className="flex items-start gap-3">
+                         <div className="text-blue-600 text-lg">💡</div>
+                         <div className="text-sm text-blue-800">
+                           <div className="font-medium mb-2">How to use AI Property Suggestions:</div>
+                           <ul className="space-y-1 text-blue-700">
+                             <li>• <strong>Review</strong> each suggested property and its explanation</li>
+                             <li>• <strong>Check</strong> the suggested value format to understand what to enter</li>
+                             <li>• <strong>Select</strong> properties you want to add by checking the boxes</li>
+                             <li>• <strong>Click "Apply Selected"</strong> to add them to your prompt</li>
+                           </ul>
+                         </div>
+                       </div>
+                     </div>
+                     
+                     {renderSuggestedProperties()}
+                   </div>
+                 )}
                 {activeTab === "modify_language" && (
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900 mb-4">✏️ Language Improvements</h4>
