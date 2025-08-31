@@ -28,7 +28,33 @@ export default function App() {
   const [messageFromOOP, setMessageFromOOP] = useState<string | null>(null);
   const [messageQueue, setMessageQueue] = useState<string[]>([]);
   const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [tutorialPage, setTutorialPage] = useState(1);
   
+  // Show welcome tutorial when website first loads
+  useEffect(() => {
+    console.log('=== Website Loaded - Showing Welcome Tutorial ===');
+    // Small delay to ensure everything is rendered
+    const timer = setTimeout(() => {
+      setShowWelcome(true);
+      console.log('Welcome tutorial activated');
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Keyboard support for closing tutorial
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showWelcome) {
+        setShowWelcome(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showWelcome]);
+
   // Process message queue
   useEffect(() => {
     if (messageQueue.length > 0 && !messageFromOOP) {
@@ -96,8 +122,371 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
+      {/* Multi-Page Interactive Tutorial */}
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">🎉 Welcome to OOPrompt!</h1>
+                  <p className="text-blue-100 text-lg">
+                    Master the art of structured AI prompting step by step
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowWelcome(false)}
+                  className="text-white hover:text-blue-200 transition-colors text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="bg-gray-100 h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
+                style={{ width: `${(tutorialPage / 5) * 100}%` }}
+              ></div>
+            </div>
+
+            {/* Tutorial Content - Single Page View */}
+            <div className="p-10 h-[32rem] overflow-y-auto">
+              {tutorialPage === 1 && (
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-8 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="text-4xl">💬</div>
+                    <h3 className="text-3xl font-bold text-blue-900">Step 1: Start with a Natural Prompt</h3>
+                  </div>
+                  <p className="text-gray-700 mb-8 text-xl">
+                    Begin just like you would with any AI chat - write naturally about what you want to accomplish.
+                  </p>
+                  <div className="bg-white p-8 rounded-lg border border-blue-200">
+                    <div className="space-y-4">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <div className="font-medium text-blue-900 mb-2">Natural Input:</div>
+                        <div className="text-gray-700 italic">
+                          "I need to create a marketing strategy for launching our new eco-friendly product. It should target environmentally conscious consumers and include social media campaigns, influencer partnerships, and sustainability messaging."
+                        </div>
+                      </div>
+                      <div className="text-center text-2xl text-blue-400">↓</div>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <div className="font-medium text-green-900 mb-2">OOPrompt Converts To:</div>
+                        <div className="text-gray-700">
+                          A structured object with properties like "Product Type", "Target Audience", "Marketing Channels", "Key Messages", etc.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 text-lg text-blue-600">
+                    💡 <strong>Pro tip:</strong> The more natural and detailed your initial prompt, the better OOPrompt can structure it!
+                  </div>
+                </div>
+              )}
+
+
+
+
+
+              {tutorialPage === 2 && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="text-4xl">➕</div>
+                    <h3 className="text-3xl font-bold text-green-900">Step 2: Add Detailed Properties</h3>
+                  </div>
+                  <p className="text-gray-700 mb-8 text-xl">
+                    Break down your task into specific properties that define requirements, constraints, and priorities.
+                  </p>
+                  <div className="bg-white p-8 rounded-lg border border-green-200">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <span className="text-orange-600 font-bold text-2xl">‼️</span>
+                        <div className="flex-1">
+                          <div className="font-medium text-orange-900 text-lg">Product Features</div>
+                          <div className="text-orange-700">Highlight eco-friendly materials, sustainable packaging, and carbon-neutral production</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <span className="text-gray-600 font-bold text-2xl">⚪</span>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-lg">Budget Constraints</div>
+                          <div className="text-gray-700">Marketing budget: $50,000, timeline: 3 months</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                        <span className="text-red-600 font-bold text-2xl">❌</span>
+                        <div className="flex-1">
+                          <div className="font-medium text-red-900 text-lg">Avoid</div>
+                          <div className="text-red-700">Greenwashing, overly technical language, aggressive sales tactics</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Embedded Objects Feature */}
+                  <div className="mt-8 p-8 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-4 mb-4">
+                      <span className="text-blue-600 font-bold text-3xl">🔗</span>
+                      <span className="font-medium text-blue-900 text-xl">Embed Other Prompt Objects</span>
+                    </div>
+                    <p className="text-blue-700 mb-6 text-lg">
+                      You can use one prompt object to define a property in another prompt object, creating powerful nested structures.
+                    </p>
+                    <div className="bg-white p-6 rounded-lg border border-blue-200">
+                      <div className="text-blue-800 text-lg">
+                        <strong>Example:</strong> In your "Marketing Strategy" object, you can have a "Competitor Analysis" property that references a separate "Competitor Research" prompt object with its own detailed properties.
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 text-xl text-green-600">
+                    💡 <strong>Pro tip:</strong> Use the action buttons to prioritize: ‼️ (highlight), ⚪ (normal), ❌ (avoid)
+                  </div>
+                </div>
+              )}
+
+              {tutorialPage === 3 && (
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-8 rounded-xl border border-purple-200">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="text-4xl">✏️</div>
+                    <h3 className="text-3xl font-bold text-purple-900">Step 3: Modify Properties</h3>
+                  </div>
+                  <p className="text-gray-700 mb-8 text-xl">
+                    Customize your properties with various modification options to fine-tune your prompt structure.
+                  </p>
+                  <div className="bg-white p-8 rounded-lg border border-purple-200">
+                    <div className="space-y-4">
+                      <div className="font-medium text-purple-900 text-lg mb-4">Property Modification Options</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <span className="text-blue-600 font-bold text-xl">✏️</span>
+                            <div>
+                              <div className="font-medium text-blue-900">Edit Content</div>
+                              <div className="text-sm text-blue-700">Click on property text to edit names and values</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <span className="text-green-600 font-bold text-xl">⚡</span>
+                            <div>
+                              <div className="font-medium text-green-900">Change Actions</div>
+                              <div className="text-sm text-green-700">Use highlight (‼️), normal (⚪), or avoid (❌)</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                            <span className="text-orange-600 font-bold text-xl">🔗</span>
+                            <div>
+                              <div className="font-medium text-orange-900">Embed Objects</div>
+                              <div className="text-sm text-orange-700">Link properties to other prompt objects</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <span className="text-purple-600 font-bold text-xl">📎</span>
+                            <div>
+                              <div className="font-medium text-purple-900">File Attachments</div>
+                              <div className="text-sm text-purple-700">Add documents, images, or data files</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                            <span className="text-red-600 font-bold text-xl">🗑️</span>
+                            <div>
+                              <div className="font-medium text-red-900">Delete Properties</div>
+                              <div className="text-sm text-red-700">Remove properties you no longer need</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="text-gray-600 font-bold text-xl">⚙️</span>
+                            <div>
+                              <div className="font-medium text-gray-900">More Options</div>
+                              <div className="text-sm text-gray-700">Advanced settings and configurations</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 text-xl text-purple-600">
+                    💡 <strong>Pro tip:</strong> Use the "More options..." button for advanced features like embedding objects and file attachments!
+                  </div>
+                </div>
+              )}
+
+              {tutorialPage === 4 && (
+                <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-8 rounded-xl border border-violet-200">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="text-4xl">🤖</div>
+                    <h3 className="text-3xl font-bold text-violet-900">Step 4: Get AI Assistance</h3>
+                  </div>
+                  <p className="text-gray-700 mb-8 text-xl">
+                    OOPrompt offers three powerful AI tools to enhance your prompts and resolve conflicts.
+                  </p>
+                  <div className="bg-white p-8 rounded-lg border border-violet-200">
+                    <div className="space-y-4">
+                      <div className="font-medium text-violet-900 text-lg mb-4">Three AI Tools Available</div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <span className="text-blue-600 font-bold text-2xl">🔍</span>
+                          <div>
+                            <div className="font-medium text-blue-900 text-lg">Conflict Check</div>
+                            <div className="text-blue-700 mb-2">AI automatically detects conflicting properties and suggests resolutions</div>
+                            <div className="text-sm text-blue-600 bg-blue-100 p-2 rounded">
+                              <strong>Example:</strong> "Budget: $50,000" vs "Budget: $100,000" - AI helps you choose or merge
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                          <span className="text-green-600 font-bold text-2xl">➕</span>
+                          <div>
+                            <div className="font-medium text-green-900 text-lg">More Properties</div>
+                            <div className="text-green-700 mb-2">AI suggests additional properties to make your prompt more comprehensive</div>
+                            <div className="text-sm text-green-600 bg-green-100 p-2 rounded">
+                              <strong>Example:</strong> "Add 'Timeline Constraints' and 'Success Metrics' properties"
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <span className="text-purple-600 font-bold text-2xl">✏️</span>
+                          <div>
+                            <div className="font-medium text-purple-900 text-lg">Language Modify</div>
+                            <div className="text-purple-700 mb-2">AI improves the language and clarity of your existing properties</div>
+                            <div className="text-sm text-purple-600 bg-purple-100 p-2 rounded">
+                              <strong>Example:</strong> "Refine 'Target Audience' from 'young people' to 'Millennials and Gen Z aged 18-35'"
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 text-xl text-violet-600">
+                    💡 <strong>Pro tip:</strong> Click the 💡 button in the toolbar to access all three AI tools and enhance your prompt!
+                  </div>
+                </div>
+              )}
+
+              {tutorialPage === 5 && (
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 p-8 rounded-xl border border-red-200">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="text-4xl">🚀</div>
+                    <h3 className="text-3xl font-bold text-red-900">Step 5: Save & Send</h3>
+                  </div>
+                  <p className="text-gray-700 mb-8 text-xl">
+                    Save your work and send your perfectly structured prompt to get amazing AI results.
+                  </p>
+                  <div className="bg-white p-8 rounded-lg border border-red-200">
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <div className="font-medium text-red-900 text-lg mb-3">Save Options</div>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <span className="text-green-600 text-xl">💾</span>
+                              <span className="text-green-800">Save to Library</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <span className="text-blue-600 text-xl">📁</span>
+                              <span className="text-blue-800">Export as File</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                              <span className="text-purple-600 text-xl">🔗</span>
+                              <span className="text-purple-800">Share Link</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-red-900 text-lg mb-3">Send to AI</div>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                              <span className="text-orange-600 text-xl">🚀</span>
+                              <span className="text-orange-800">Send to ChatGPT</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                              <span className="text-indigo-600 text-xl">🤖</span>
+                              <span className="text-indigo-800">Send to Claude</span>
+                            </div>
+                            <div className="flex items-center gap-3 bg-emerald-50 rounded-lg border border-emerald-200 p-3">
+                              <span className="text-emerald-600 text-xl">💎</span>
+                              <span className="text-emerald-800">Send to Gemini</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 text-xl text-red-600">
+                    💡 <strong>Pro tip:</strong> Save your prompts to build a reusable library of effective structures!
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation & Action Buttons */}
+            <div className="bg-white border-t border-gray-200 p-8 rounded-b-2xl">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">ESC</kbd> to close
+                </div>
+                
+                {/* Navigation */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setTutorialPage(Math.max(1, tutorialPage - 1))}
+                    disabled={tutorialPage === 1}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      tutorialPage === 1 
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    ← Previous
+                  </button>
+                  
+                  <span className="text-sm text-gray-500">
+                    {tutorialPage} of 5
+                  </span>
+                  
+                  <button
+                    onClick={() => setTutorialPage(Math.min(5, tutorialPage + 1))}
+                    disabled={tutorialPage === 5}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      tutorialPage === 5 
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Next →
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowWelcome(false)}
+                    className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    Skip Tutorial
+                  </button>
+                  {tutorialPage === 5 && (
+                    <button
+                      onClick={() => setShowWelcome(false)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                    >
+                      Start Creating!
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top bar - Fixed at top */}
-      <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
+        {/* Top bar - Fixed at top */}
+        <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
             <span className="text-white font-bold text-sm sm:text-lg">O</span>

@@ -12,6 +12,8 @@ import { llmService } from "../services/llmService";
 import type { FileAttachment } from "../services/llmService";
 import { PatchService } from "../services/patchService";
 
+
+
 function ActionSegmented({
   value, onChange
 }: { value: PropertyAction; onChange: (v: PropertyAction) => void }) {
@@ -385,6 +387,8 @@ export function OOPromptPanel({
     console.log('================================');
   }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId]);
 
+
+
   // Auto-open Object Panel when OOP panel is displayed (if there are saved objects)
   useEffect(() => {
     if (state.openPanel && state.promptObjects.length > 0) {
@@ -481,14 +485,17 @@ export function OOPromptPanel({
     dispatch({ type: "CLOSE_MODAL" });
   };
 
+  console.log('=== OOPromptPanel Render ===');
+  
   return (
-    <aside className="panel-shell panel-float max-w-[50vw] w-full h-full z-50" style={{ width: "var(--panel-w)" }}>
-      {/* Bookmark handle for closing panel */}
-      <BookmarkHandle
-        isOpen={true}
-        position="right"
-        onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
-      />
+    <>
+      <aside className="panel-shell panel-float max-w-[50vw] w-full h-full z-50" style={{ width: "var(--panel-w)" }}>
+        {/* Bookmark handle for closing panel */}
+        <BookmarkHandle
+          isOpen={true}
+          position="right"
+          onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
+        />
       
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
@@ -496,6 +503,7 @@ export function OOPromptPanel({
         <div className="panel-chrome p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="font-semibold text-text-onLight">OOPrompt</div>
+
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <input
@@ -562,9 +570,9 @@ export function OOPromptPanel({
           >
             <span className="text-sm">
               {sortBy === "none" && "🔀"}
-              {sortBy === "action" && "🎯"}
-              {sortBy === "name" && "📝"}
-              {sortBy === "time" && "🕒"}
+              {sortBy === "action" && "‼️"}
+              {sortBy === "name" && "🆎"}
+              {sortBy === "time" && "⌛"}
             </span>
           </button>
           <button 
@@ -572,7 +580,7 @@ export function OOPromptPanel({
             onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
             title="AI Object Analysis"
           >
-            <span className="text-sm">🤖</span>
+            <span className="text-sm">💡</span>
           </button>
           <button 
             className="btn-tonal w-10 h-10 flex items-center justify-center"
@@ -1005,7 +1013,9 @@ export function OOPromptPanel({
           }
         }}
         onError={onError}
-      />
-    </aside>
+              />
+      </aside>
+    </>
   );
 }
+
