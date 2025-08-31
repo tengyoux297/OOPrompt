@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
-import type { Importance, OOPromptObject, Property, Suggestion, Conflict } from "../types";
+import type { Action as PropertyAction, OOPromptObject, Property, Suggestion, Conflict } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
 import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
@@ -12,10 +12,10 @@ import { llmService } from "../services/llmService";
 import type { FileAttachment } from "../services/llmService";
 import { PatchService } from "../services/patchService";
 
-function ImportanceSegmented({
+function ActionSegmented({
   value, onChange
-}: { value: Importance; onChange: (v: Importance) => void }) {
-  const opts: Importance[] = ["highlight", "normal", "avoid"];
+}: { value: PropertyAction; onChange: (v: PropertyAction) => void }) {
+  const opts: PropertyAction[] = ["highlight", "normal", "avoid"];
   return (
     <div className="segmented">
       {opts.map(o => (
@@ -46,8 +46,8 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
   
   const base = "card-base text-left p-4 w-full transition-all duration-200";
   const style =
-    p.importance === "highlight" ? "card-highlight" :
-    p.importance === "avoid"     ? "card-avoid"     :
+    p.action === "highlight" ? "card-highlight" :
+    p.action === "avoid"     ? "card-avoid"     :
                                    "";
   const selectedStyle = isSelected ? "ring-2 ring-blue-500 ring-offset-2 shadow-lg" : "";
 
@@ -101,7 +101,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
             </span>
           </div>
         )}
-        <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.importance}</div>
+        <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.action}</div>
       </button>
       
       {/* Expandable Details Panel */}
@@ -177,18 +177,18 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-600">Importance</span>
-                <ImportanceSegmented
-                  value={p.importance}
+                <span className="text-xs font-medium text-gray-600">Action</span>
+                <ActionSegmented
+                  value={p.action}
                   onChange={(v) => {
-                    const updatedProperty = { ...p, importance: v, updatedAt: Date.now() };
+                    const updatedProperty = { ...p, action: v, updatedAt: Date.now() };
                     dispatch({
                       type: "UPSERT_PROPERTY",
                       payload: updatedProperty,
                     });
                     
                     // Debug: Log updated property
-                    console.log('=== Property Importance Updated ===');
+                    console.log('=== Property Action Updated ===');
                     console.log('Updated Property:', updatedProperty);
                     console.log('==================================');
                   }}
@@ -333,7 +333,7 @@ export function OOPromptPanel({
   const [showSuccess, setShowSuccess] = useState(false);
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"none" | "importance" | "name" | "time">("none");
+  const [sortBy, setSortBy] = useState<"none" | "action" | "name" | "time">("none");
   const [isSending, setIsSending] = useState(false);
   
   // Local state for main task and audience inputs to make them controlled
@@ -356,8 +356,8 @@ export function OOPromptPanel({
   const sorted = [...filtered].sort((a: Property, b: Property) => {
     if (sortBy === "none") return 0; // No sorting, maintain original order
     
-    if (sortBy === "importance") {
-      return getImportanceOrder(a.importance) - getImportanceOrder(b.importance) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+    if (sortBy === "action") {
+      return getActionOrder(a.action) - getActionOrder(b.action) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
     }
     
     if (sortBy === "name") {
@@ -397,15 +397,15 @@ export function OOPromptPanel({
 
   // Cycle through sorting options
   const cycleSort = () => {
-    const sortOptions: Array<"none" | "importance" | "name" | "time"> = ["none", "importance", "name", "time"];
+    const sortOptions: Array<"none" | "action" | "name" | "time"> = ["none", "action", "name", "time"];
     const currentIndex = sortOptions.indexOf(sortBy);
     const nextIndex = (currentIndex + 1) % sortOptions.length;
     setSortBy(sortOptions[nextIndex]);
   };
 
-  // Get importance order for display (avoid, normal, highlight)
-  const getImportanceOrder = (importance: string) => {
-    switch (importance) {
+  // Get action order for display (avoid, normal, highlight)
+  const getActionOrder = (action: string) => {
+    switch (action) {
       case "avoid": return 0;
       case "normal": return 1;
       case "highlight": return 2;
@@ -435,7 +435,7 @@ export function OOPromptPanel({
       id: `p${Date.now()}`,
       name: suggestion.name,
       value: suggestion.value,
-      importance: "normal",
+              action: "normal",
       source: "ai-suggested",
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -558,11 +558,11 @@ export function OOPromptPanel({
           <button 
             className="btn-ghost w-10 h-10 flex items-center justify-center"
             onClick={cycleSort}
-            title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "importance" ? "Sorting by Importance" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
+            title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "action" ? "Sorting by Action" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
           >
             <span className="text-sm">
               {sortBy === "none" && "🔀"}
-              {sortBy === "importance" && "🎯"}
+              {sortBy === "action" && "🎯"}
               {sortBy === "name" && "📝"}
               {sortBy === "time" && "🕒"}
             </span>

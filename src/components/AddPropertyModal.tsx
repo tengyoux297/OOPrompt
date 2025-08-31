@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Property, Importance, OOPromptObject } from "../types";
+import type { Property, Action, OOPromptObject } from "../types";
 import { llmService } from "../services/llmService";
 
 type Props = {
@@ -14,7 +14,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
   const [mode, setMode] = useState<"structured" | "unstructured">("structured");
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
-  const [importance, setImportance] = useState<Importance>("normal");
+  const [action, setAction] = useState<Action>("normal");
   const [unstructuredText, setUnstructuredText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -24,7 +24,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         id: `p${Date.now()}`,
         name: name.trim(),
         value: value.trim(), // Allow empty values
-        importance,
+        action,
         source: "user",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -33,7 +33,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
       onClose();
       setName("");
       setValue("");
-      setImportance("normal");
+      setAction("normal");
     }
   };
 
@@ -167,14 +167,14 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Importance</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Action</label>
               <div className="flex border border-gray-200 rounded-xl overflow-hidden">
                 {(["highlight", "normal", "avoid"] as const).map((imp) => (
                   <button
                     key={imp}
-                    onClick={() => setImportance(imp)}
-                    className={`flex-1 px-3 py-2 text-sm capitalize transition-colors ${
-                      importance === imp
+                    onClick={() => setAction(imp)}
+                    className={`flex-1 px-3 py-3 text-sm capitalize transition-colors ${
+                      action === imp
                         ? "modal-selected"
                         : "modal-unselected"
                     }`}

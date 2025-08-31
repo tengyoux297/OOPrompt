@@ -4,7 +4,7 @@ import type {
   ConflictItem, 
   JsonPatchOp,
   Property,
-  Importance
+  Action
 } from "../types";
 import type { OOPromptObject } from "../types";
 
@@ -209,7 +209,7 @@ export function ObjectModifierModal({
                 id: `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 name: property.name,
                 value: property.valueTemplate?.placeholder || property.valueTemplate?.example || "Value to be filled",
-                importance: "normal" as Importance,
+                action: "normal" as Action,
                 source: "ai-suggested",
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -887,9 +887,9 @@ function ConflictCard({
                           {prop.value && typeof prop.value === 'string' && (
                             <div className="text-xs text-gray-600 mt-1">"{prop.value}"</div>
                           )}
-                          {prop.importance && (
+                          {prop.action && (
                             <div className="text-xs text-gray-500 mt-1">
-                              Importance: {prop.importance}
+                              Action: {prop.action}
                             </div>
                           )}
                         </div>

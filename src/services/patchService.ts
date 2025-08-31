@@ -478,7 +478,7 @@ export class PatchService {
       id: newId,
       name: template.name,
       value,
-      importance: "normal",
+              action: "normal",
       source: "ai-suggested",
       createdAt: Date.now(),
       updatedAt: Date.now(),
