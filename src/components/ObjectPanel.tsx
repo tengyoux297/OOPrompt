@@ -130,7 +130,7 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
   return (
     <>
              {/* Object Panel - Always visible on left side */}
-       <aside className="lg:fixed lg:top-16 lg:left-0 lg:bottom-0 lg:z-40 lg:h-[calc(100vh-4rem)] lg:w-[25%] w-full h-auto bg-white border-r border-gray-300 shadow-lg lg:shadow-lg order-first lg:order-none">
+       <aside className="lg:fixed lg:top-16 lg:left-0 lg:bottom-0 lg:z-40 lg:h-[calc(100vh-4rem)] lg:w-[20%] w-full h-auto bg-white border-r border-gray-300 shadow-lg lg:shadow-lg order-first lg:order-none">
           
           <div className="flex flex-col h-full">
                          {/* Header */}
