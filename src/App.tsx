@@ -524,16 +524,16 @@ export default function App() {
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI Model:</div>
           <select 
-            value={selectedLLM === 'openai' ? 'GPT-4o' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
+            value={selectedLLM === 'openai' ? 'GPT-4.1' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
             onChange={(e) => {
               const value = e.target.value;
-              if (value === 'GPT-4o') setSelectedLLM('openai');
+              if (value === 'GPT-4.1') setSelectedLLM('openai');
               else if (value === 'Gemini') setSelectedLLM('gemini');
               else if (value === 'Claude') setSelectedLLM('claude');
             }}
             className="border border-gray-200 rounded-xl px-2 sm:px-3 lg:px-4 py-2 bg-white text-gray-900 text-xs sm:text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
           >
-            <option>GPT-4o</option>
+            <option>GPT-4.1</option>
             <option>Gemini</option>
             <option>Claude</option>
           </select>
