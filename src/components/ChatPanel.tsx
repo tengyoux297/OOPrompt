@@ -222,7 +222,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
     <div className="relative flex flex-col bg-transparent h-full chat-container">
       {/* OOP Panel Notification */}
       {showOOPNotification && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 lg:left-[62.5%] lg:transform-none z-50">
           <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
             <span className="text-blue-200">📝</span>
             <span className="text-sm font-medium">New message from OOP Panel</span>
@@ -232,7 +232,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       
       {/* Messages Container - Scrollable area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-8 pb-32 min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto lg:ml-[25%] lg:mr-0 space-y-6">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -288,9 +288,9 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom of screen */}
+      {/* Input Area - Fixed at bottom of screen, accounting for sidebar */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200/60 p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-gray-50/50 to-white/50 z-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto lg:ml-[25%] lg:mr-0">
           <div className="flex gap-2 sm:gap-3 lg:gap-4 items-center card-base bg-white/95 px-3 sm:px-4 py-3 sm:py-4 shadow-sm hover:shadow-md transition-all duration-200">
             <input
               ref={inputRef}
