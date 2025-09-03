@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --panel-w: 440px; }
+:root { --panel-w: 25vw; }
 
 body {
   background:
