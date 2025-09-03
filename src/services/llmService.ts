@@ -53,6 +53,7 @@ class LLMService {
   private propertyAdderId: string;
   private promptBuilderId: string;
   private exampleGeneratorId: string;
+  private responderId: string;
 
   constructor() {
     // Try VITE_ prefixed keys first, then fallback to non-prefixed
@@ -68,6 +69,8 @@ class LLMService {
     this.promptBuilderId = import.meta.env.VITE_PROMPT_BUILDER || import.meta.env.PROMPT_BUILDER || '';
     // Get the EXAMPLE_GENERATOR assistant ID
     this.exampleGeneratorId = import.meta.env.VITE_EXAMPLE_GENERATOR || import.meta.env.EXAMPLE_GENERATOR || '';
+    // Get the RESPONDER assistant ID
+    this.responderId = import.meta.env.VITE_RESPONDER || import.meta.env.RESPONDER || '';
     
     // Debug logging for API keys
     console.log('LLM Service initialized with API keys:');
@@ -78,93 +81,21 @@ class LLMService {
     console.log('PROPERTY_ADDER:', !!this.propertyAdderId);
     console.log('PROMPT_BUILDER:', !!this.promptBuilderId);
     console.log('EXAMPLE_GENERATOR:', !!this.exampleGeneratorId);
+    console.log('RESPONDER:', !!this.responderId);
   }
 
-  // OpenAI Chat Completion with optional file attachments
+  // OpenAI Chat Completion - Always use Assistants API
   async chatWithOpenAI(messages: ChatMessage[], fileAttachments?: FileAttachment[]): Promise<LLMResponse> {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
     try {
-      // If we have file attachments, try the OpenAI Assistants API v2
-      if (fileAttachments && fileAttachments.length > 0) {
-        try {
-          console.log('Attempting to use OpenAI Assistants API v2 for file processing...');
-          return await this.chatWithOpenAIAssistants(messages, fileAttachments);
-        } catch (assistantError) {
-          console.warn('OpenAI Assistants API failed, falling back to regular chat completion:', assistantError);
-          
-          // Fallback: Modify the message to include file information
-          const modifiedMessages = messages.map(msg => {
-            if (msg.role === 'user') {
-              const fileInfo = fileAttachments.map(file => 
-                `[File: ${file.fileName} - ${file.fileType} - ${(file.fileSize / 1024).toFixed(1)} KB]`
-              ).join(', ');
-              
-              return {
-                ...msg,
-                content: `${msg.content}\n\nNote: The following files were attached but cannot be processed in this mode: ${fileInfo}\nPlease provide a response based on the available information.`
-              };
-            }
-            return msg;
-          });
-
-          // Use regular chat completion API with modified message
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.openaiApiKey}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-4',
-              messages: modifiedMessages,
-              max_tokens: 2000,
-              temperature: 0.7,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
-          }
-
-          const data = await response.json();
-          return {
-            content: data.choices[0].message.content,
-            provider: 'openai',
-            timestamp: new Date(),
-          };
-        }
-      }
-
-      // No files or fallback case - use the regular chat completion API
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: messages,
-          max_tokens: 2000, // Increased for better responses
-          temperature: 0.7,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        content: data.choices[0].message.content,
-        provider: 'openai',
-        timestamp: new Date(),
-      };
+      // Always use OpenAI Assistants API v2
+      console.log('Using OpenAI Assistants API v2...');
+      return await this.chatWithOpenAIAssistants(messages, fileAttachments || []);
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      console.error('OpenAI Assistants API error:', error);
       throw error;
     }
   }
@@ -269,9 +200,9 @@ class LLMService {
         }
       }
 
-      // Create a run with the PROMPT_BUILDER assistant
+      // Create a run with the RESPONDER assistant
       const runBody: { assistant_id: string; tools?: Array<{ type: string }> } = {
-        assistant_id: this.promptBuilderId
+        assistant_id: this.responderId
       };
 
       // Enable file_search tool if we have files
@@ -380,7 +311,7 @@ class LLMService {
         parts: [{ text: msg.content }]
       }));
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent?key=${this.geminiApiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
