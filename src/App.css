@@ -40,3 +40,27 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Custom scrollbar styles for HistoryPopup */
+.history-popup-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.history-popup-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-popup-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.history-popup-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.history-popup-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

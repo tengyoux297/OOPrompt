@@ -17,41 +17,48 @@ export function HistoryPopup({ object, versions, isOpen, onClose, onSelectVersio
   // Calculate optimal position when popup opens
   useEffect(() => {
     if (isOpen && popupRef.current) {
-      const popup = popupRef.current;
-      const popupRect = popup.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const windowWidth = window.innerWidth;
+      // Use a small delay to ensure the popup has rendered and we can get accurate dimensions
+      const timeoutId = setTimeout(() => {
+        if (popupRef.current) {
+          const popup = popupRef.current;
+          const popupRect = popup.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const windowWidth = window.innerWidth;
+          
+          let x = position.x;
+          let y = position.y;
+          
+          // Adjust horizontal position to keep popup within window bounds
+          if (x + popupRect.width > windowWidth) {
+            x = windowWidth - popupRect.width - 20; // 20px margin from right edge
+          }
+          if (x < 20) {
+            x = 20; // 20px margin from left edge
+          }
+          
+          // Adjust vertical position to keep popup fully visible
+          const popupHeight = popupRect.height;
+          const spaceAbove = position.y;
+          const spaceBelow = windowHeight - position.y;
+          
+          if (spaceBelow >= popupHeight) {
+            // Enough space below, position below the button
+            y = position.y + 10; // 10px gap below button
+          } else if (spaceAbove >= popupHeight) {
+            // Enough space above, position above the button
+            y = position.y - popupHeight - 10; // 10px gap above button
+          } else {
+            // Not enough space in either direction, center vertically
+            y = Math.max(20, (windowHeight - popupHeight) / 2);
+          }
+          
+          setCalculatedPosition({ x, y });
+        }
+      }, 0);
       
-      let x = position.x;
-      let y = position.y;
-      
-      // Adjust horizontal position to keep popup within window bounds
-      if (x + popupRect.width > windowWidth) {
-        x = windowWidth - popupRect.width - 20; // 20px margin from right edge
-      }
-      if (x < 20) {
-        x = 20; // 20px margin from left edge
-      }
-      
-      // Adjust vertical position to keep popup fully visible
-      const popupHeight = popupRect.height;
-      const spaceAbove = position.y;
-      const spaceBelow = windowHeight - position.y;
-      
-      if (spaceBelow >= popupHeight) {
-        // Enough space below, position below the button
-        y = position.y + 10; // 10px gap below button
-      } else if (spaceAbove >= popupHeight) {
-        // Enough space above, position above the button
-        y = position.y - popupHeight - 10; // 10px gap above button
-      } else {
-        // Not enough space in either direction, center vertically
-        y = Math.max(20, (windowHeight - popupHeight) / 2);
-      }
-      
-      setCalculatedPosition({ x, y });
+      return () => clearTimeout(timeoutId);
     }
-  }, [isOpen, position]);
+  }, [isOpen, position, versions.length]);
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -100,7 +107,7 @@ export function HistoryPopup({ object, versions, isOpen, onClose, onSelectVersio
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-96 h-80"
+      className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-96 h-80 flex flex-col"
       style={{
         left: calculatedPosition.x,
         top: calculatedPosition.y,
@@ -124,7 +131,7 @@ export function HistoryPopup({ object, versions, isOpen, onClose, onSelectVersio
       </div>
 
       {/* Versions List */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 pr-1 history-popup-scroll">
         {versions.length === 0 ? (
           <div className="px-4 py-6 text-center text-gray-500 text-sm">
             No saved versions found
