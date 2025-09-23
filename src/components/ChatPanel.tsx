@@ -111,7 +111,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
         // Fallback: treat as user message
         messageToAdd = {
           id: Date.now().toString(),
-          text: `📤 Sent from OOP Panel: ${messageFromOOP}`,
+          text: `📤 Sent from OOPrompt: ${messageFromOOP}`,
           isUser: true,
           timestamp: new Date(),
         };
@@ -220,12 +220,12 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
 
     return (
     <div className="relative flex flex-col bg-transparent h-full chat-container">
-      {/* OOP Panel Notification */}
+      {/* OOPrompt Notification */}
       {showOOPNotification && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 lg:left-[60%] lg:transform-none z-50">
           <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
             <span className="text-blue-200">📝</span>
-            <span className="text-sm font-medium">New message from OOP Panel</span>
+            <span className="text-sm font-medium">New message from OOPrompt</span>
           </div>
         </div>
       )}
@@ -240,7 +240,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
           >
             {message.isUser ? (
               <div className={`max-w-[280px] sm:max-w-xs lg:max-w-md px-3 sm:px-4 lg:px-5 py-3 sm:py-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow ${
-                message.text.includes('📝 OOP Panel:')
+                message.text.includes('📝 OOPrompt:')
                   ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white' // Special styling for OOP messages
                   : 'bg-gradient-to-br from-blue-600 to-blue-700 text-white' // Regular user messages
               }`}>
@@ -249,10 +249,10 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                 <div className="text-xs mt-3 text-white/70 opacity-80 flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
                   {message.timestamp.toLocaleTimeString()}
-                  {message.text.includes('📝 OOP Panel:') && (
+                  {message.text.includes('📝 OOPrompt:') && (
                     <>
                       <span>•</span>
-                      <span>OOP Panel</span>
+                      <span>OOPrompt</span>
                     </>
                   )}
                 </div>
@@ -302,7 +302,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                   e.preventDefault();
                   handleSend();
                 } else if (e.key === "Enter" && !e.ctrlKey) {
-                  // Enter: Extract properties and open OOP Panel
+                  // Enter: Extract properties and open OOPrompt
                   e.preventDefault();
                   handleExtractProperties();
                 }
@@ -323,7 +323,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
                   className={`btn-primary hover:shadow-md transition-all duration-200 px-3 sm:px-4 lg:px-6 ${isOptimizing ? 'opacity-75 cursor-not-allowed' : ''}`}
                   onClick={handleExtractProperties}
                   disabled={isOptimizing}
-                  title="Open OOP Panel (Enter)"
+                  title="Open OOPrompt (Enter)"
                 >
                   {isOptimizing ? (
                     <div className="flex items-center gap-2">

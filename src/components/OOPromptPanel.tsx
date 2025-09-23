@@ -911,12 +911,12 @@ export function OOPromptPanel({
                   // Send a summary of what was sent with meaningful information
                   let promptSummary;
                   if (oop.main_task && oop.main_task.trim()) {
-                    promptSummary = `📝 OOP Panel: ${oop.main_task}`;
+                    promptSummary = `📝 OOPrompt: ${oop.main_task}`;
                   } else if (oop.properties.length > 0) {
                     const propertyCount = oop.properties.length;
-                    promptSummary = `📝 OOP Panel: ${oop.name || 'Task'} with ${propertyCount} property${propertyCount !== 1 ? 's' : ''}`;
+                    promptSummary = `📝 OOPrompt: ${oop.name || 'Task'} with ${propertyCount} property${propertyCount !== 1 ? 's' : ''}`;
                   } else {
-                    promptSummary = `📝 OOP Panel: ${oop.name || 'New Task'}`;
+                    promptSummary = `📝 OOPrompt: ${oop.name || 'New Task'}`;
                   }
                   onSendMessage(promptSummary);
                   // Send the LLM response (AI side)
