@@ -91,7 +91,7 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       let messageToAdd: Message;
       
       // Check if this is a prompt summary or AI response
-      if (messageFromOOP.startsWith('📝 OOP Panel:')) {
+      if (messageFromOOP.startsWith('📝 OOPrompt:')) {
         // Prompt summary goes to user side
         messageToAdd = {
           id: Date.now().toString(),
