@@ -1,16 +1,16 @@
 {
   "mainTask": "",
   "requirements": {
-    "text_type": {
-      "property_name": "text_type",
-      "value": ""
-    },
     "length": {
       "property_name": "length",
       "value": ""
     },
     "style": {
-      "property_name": "style",
+      "property_name": "tone",
+      "value": ""
+    },
+    "genre": {
+      "property_name": "genre",
       "value": ""
     }
   },

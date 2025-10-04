@@ -3165,7 +3165,9 @@
                                 if (!isTopLevel || context !== 'features') {
                                     row.appendChild(label);
                                 }
-                                row.appendChild(renderValue(val, parentKey || key, false, context));
+                                // For properties within requirements, treat them as top-level so they get delete buttons
+                                const shouldBeTopLevel = (context === 'properties' && parentKey === 'requirements') ? true : false;
+                                row.appendChild(renderValue(val, parentKey || key, shouldBeTopLevel, context));
                             } else if (key === 'value' && context === 'properties') {
                                 // Make property values editable
                                 const valueInput = document.createElement('input');
@@ -3347,8 +3349,8 @@
                 console.log('Delete button clicked for:', key);
                 console.log('Current lastParsedProperties:', lastParsedProperties);
                 
-                if (lastParsedProperties && lastParsedProperties[key]) {
-                    delete lastParsedProperties[key];
+                if (lastParsedProperties) {
+                    deletePropertyFromStructure(lastParsedProperties, key);
                     console.log('Property deleted. Updated properties:', lastParsedProperties);
                     
                     // Re-render the properties
@@ -3502,17 +3504,34 @@
             
             console.log('Updating properties order');
             const propertyItems = document.querySelectorAll('.feature-item');
-            const newOrder = {};
             
-            propertyItems.forEach(item => {
-                const key = item.dataset.propertyKey;
-                if (key && lastParsedProperties[key]) {
-                    newOrder[key] = lastParsedProperties[key];
-                }
-            });
-            
-            lastParsedProperties = newOrder;
-            console.log('Updated property order:', lastParsedProperties);
+            // Handle new structure with requirements
+            if (lastParsedProperties.requirements) {
+                const newRequirementsOrder = {};
+                
+                propertyItems.forEach(item => {
+                    const key = item.dataset.propertyKey;
+                    if (key && lastParsedProperties.requirements[key]) {
+                        newRequirementsOrder[key] = lastParsedProperties.requirements[key];
+                    }
+                });
+                
+                lastParsedProperties.requirements = newRequirementsOrder;
+                console.log('Updated property order in requirements:', lastParsedProperties.requirements);
+            } else {
+                // Handle legacy structure
+                const newOrder = {};
+                
+                propertyItems.forEach(item => {
+                    const key = item.dataset.propertyKey;
+                    if (key && lastParsedProperties[key]) {
+                        newOrder[key] = lastParsedProperties[key];
+                    }
+                });
+                
+                lastParsedProperties = newOrder;
+                console.log('Updated property order (legacy):', lastParsedProperties);
+            }
         }
 
         function createAddPropertyForm() {
