@@ -13,6 +13,7 @@ const requiredEnvVars = [
     'OPENAI_API_KEY',
     'PROPERTY_GENERATOR',
     'PROMPT_OPTIMIZER',
+    'PROMPT_OPTIMIZER_NL',
     'CANDIDATE_GENERATOR',
     'GENERAL_GPT',
     'TASK_IDENTIFIER'
@@ -210,10 +211,11 @@ app.post('/api/general-gpt', async (req, res) => {
 // API endpoint for prompt optimizer
 app.post('/api/prompt-optimizer', async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, mode = 'hybrid' } = req.body;
         
         // Print the JSON object to terminal when "Send to Chat" is clicked
         console.log('🚀 === SEND TO CHAT - JSON OBJECT ===');
+        console.log(`Mode: ${mode}`);
         try {
             const parsedPrompt = JSON.parse(prompt);
             console.log(JSON.stringify(parsedPrompt, null, 2));
@@ -222,15 +224,35 @@ app.post('/api/prompt-optimizer', async (req, res) => {
         }
         console.log('=== END OF JSON OBJECT ===');
         
-        if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER) {
-            return res.status(500).json({ 
-                error: 'Missing environment variables. Please check your .env file.',
-                details: 'OPENAI_API_KEY and PROMPT_OPTIMIZER are required.'
-            });
+        let response;
+        
+        if (mode === 'raw') {
+            // Mode 1: Raw JSON - just return the JSON string as-is
+            console.log('📋 Using RAW JSON mode');
+            response = prompt;
+        } else if (mode === 'nl') {
+            // Mode 2: Natural Language - send to PROMPT_OPTIMIZER_NL
+            console.log('📝 Using NATURAL LANGUAGE mode');
+            if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER_NL) {
+                return res.status(500).json({ 
+                    error: 'Missing environment variables. Please check your .env file.',
+                    details: 'OPENAI_API_KEY and PROMPT_OPTIMIZER_NL are required.'
+                });
+            }
+            response = await sendToPromptOptimizerNL(prompt);
+        } else {
+            // Mode 3: Hybrid (default) - send with instructions to PROMPT_OPTIMIZER
+            console.log('🔀 Using HYBRID mode');
+            if (!process.env.OPENAI_API_KEY || !process.env.PROMPT_OPTIMIZER) {
+                return res.status(500).json({ 
+                    error: 'Missing environment variables. Please check your .env file.',
+                    details: 'OPENAI_API_KEY and PROMPT_OPTIMIZER are required.'
+                });
+            }
+            response = await sendToPromptOptimizer(prompt);
         }
         
-        const response = await sendToPromptOptimizer(prompt);
-        res.json({ type: 'optimized-prompt', text: response });
+        res.json({ type: 'optimized-prompt', text: response, mode: mode });
         
     } catch (error) {
         console.error('Error in prompt-optimizer endpoint:', error);
@@ -948,6 +970,102 @@ async function sendToPromptOptimizer(prompt) {
         return assistantReply || 'No response from assistant.';
     } catch (error) {
         console.error('Error in sendToPromptOptimizer:', error);
+        return `Error: ${error.message}`;
+    }
+}
+
+async function sendToPromptOptimizerNL(prompt) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const promptOptimizerNL = process.env.PROMPT_OPTIMIZER_NL;
+
+    if (!apiKey || !promptOptimizerNL) {
+        return 'Missing API key or Prompt Optimizer NL Assistant ID';
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2'
+    };
+
+    try {
+        const threadData = await simpleFetch('https://api.openai.com/v1/threads', {
+            method: 'POST',
+            headers
+        });
+        const threadId = threadData.id;
+
+        // Create a message asking the assistant to convert JSON to natural language prompt
+        const messageContent = `Convert the following JSON prompt structure into a natural language prompt. Generate a complete, well-structured prompt in natural language format:
+
+${prompt}`;
+
+        console.log('=== SENDING TO PROMPT_OPTIMIZER_NL ===');
+        console.log('JSON Input:', prompt);
+        console.log('=== END OF INPUT ===');
+
+        await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ role: 'user', content: messageContent })
+        });
+
+        const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ assistant_id: promptOptimizerNL })
+        });
+        const runId = runData.id;
+
+        // Wait for run completion with simple polling
+        console.log('⏳ Waiting for NL generation completion...');
+        let runStatus = 'in_progress';
+        let attempts = 0;
+        const maxAttempts = 60;
+        
+        while (runStatus === 'in_progress' && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            
+            const runData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+                method: 'GET',
+                headers,
+            });
+            
+            runStatus = runData.status;
+            console.log(`⏳ Attempt ${attempts}/${maxAttempts}, status: ${runStatus}`);
+            
+            if (runStatus === 'completed') {
+                console.log('✅ NL generation completed');
+                break;
+            } else if (runStatus === 'failed' || runStatus === 'cancelled') {
+                throw new Error(`Run ${runStatus}: ${runData.last_error?.message || 'Unknown error'}`);
+            }
+        }
+        
+        if (runStatus !== 'completed') {
+            throw new Error('Run timeout - exceeded maximum attempts');
+        }
+        
+        // Retrieve messages from the thread
+        console.log('📥 Retrieving NL messages...');
+        const messagesData = await simpleFetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers,
+        });
+        console.log('✅ NL messages retrieved');
+        
+        const messages = messagesData.data;
+        const assistantReply = messages.find((msg) => msg.role === 'assistant')?.content?.[0]?.text?.value;
+
+        console.log('=== RESPONSE FROM PROMPT_OPTIMIZER_NL ===');
+        console.log('Natural Language Prompt:');
+        console.log(assistantReply);
+        console.log('=== END OF RESPONSE ===');
+
+        return assistantReply || 'No response from assistant.';
+    } catch (error) {
+        console.error('Error in sendToPromptOptimizerNL:', error);
         return `Error: ${error.message}`;
     }
 }

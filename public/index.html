@@ -1288,6 +1288,17 @@
                 <div id="response"><em>Waiting for response...</em></div>
 
                 <div style="margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <label for="promptModeSelector" style="font-weight: bold; margin-right: 10px;">Prompt Mode:</label>
+                            <select id="promptModeSelector" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                                <option value="hybrid">Hybrid (Instructions + JSON)</option>
+                                <option value="raw">Raw JSON</option>
+                                <option value="nl">Natural Language</option>
+                            </select>
+                            <span style="margin-left: 10px; color: #666; font-size: 12px;" id="modeDescription">
+                                Sends JSON with generation instructions to PROMPT_OPTIMIZER
+                            </span>
+                        </div>
                         <button id="sendToChatBtn" onclick="sendOptimizedPromptToChat()">Send to Chat</button>
                         <button id="saveBaseClassBtn" onclick="saveBaseClass()" style="margin-left: 10px; background-color: #28a745;">Save as Base Class</button>
                         <button id="oopLoadBaseClassBtn" onclick="loadBaseClass()" style="margin-left: 10px; background-color: #17a2b8;">Load Base Class</button>
@@ -2346,6 +2357,8 @@
 
             const sendToChatBtn = document.getElementById('sendToChatBtn');
             const sendToChatProgress = document.getElementById('sendToChatProgress');
+            const modeSelector = document.getElementById('promptModeSelector');
+            const selectedMode = modeSelector.value;
             
             // Show progress indicator
             sendToChatBtn.classList.add('button-loading');
@@ -2380,13 +2393,17 @@
                 }
 
                 console.log('Sending prompt data:', promptData);
+                console.log('Selected mode:', selectedMode);
 
                 const response = await fetch('/api/prompt-optimizer', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ prompt: JSON.stringify(promptData) })
+                    body: JSON.stringify({ 
+                        prompt: JSON.stringify(promptData),
+                        mode: selectedMode
+                    })
                 });
 
                 const data = await response.json();
@@ -2402,7 +2419,12 @@
                     // Automatically send the message
                     sendChatMessage();
                     
-                    showNotification('Optimized prompt sent to chat!', 'success');
+                    const modeNames = {
+                        'hybrid': 'Hybrid',
+                        'raw': 'Raw JSON',
+                        'nl': 'Natural Language'
+                    };
+                    showNotification(`${modeNames[selectedMode]} prompt sent to chat!`, 'success');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -3938,6 +3960,30 @@
             }
         }
 
+        // Update mode description when dropdown changes
+        function updateModeDescription() {
+            const modeSelector = document.getElementById('promptModeSelector');
+            const modeDescription = document.getElementById('modeDescription');
+            
+            if (!modeSelector || !modeDescription) return;
+            
+            const descriptions = {
+                'hybrid': 'Sends JSON with generation instructions to PROMPT_OPTIMIZER',
+                'raw': 'Sends the raw JSON object as-is (no processing)',
+                'nl': 'Converts JSON to natural language using PROMPT_OPTIMIZER_NL'
+            };
+            
+            modeDescription.textContent = descriptions[modeSelector.value] || '';
+        }
+
+        // Initialize mode selector event listener
+        setTimeout(() => {
+            const modeSelector = document.getElementById('promptModeSelector');
+            if (modeSelector) {
+                modeSelector.addEventListener('change', updateModeDescription);
+                updateModeDescription(); // Set initial description
+            }
+        }, 100);
 
     </script>
 </body>
