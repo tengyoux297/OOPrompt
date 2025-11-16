@@ -54,6 +54,9 @@ class LLMService {
   private promptBuilderId: string;
   private exampleGeneratorId: string;
   private responderId: string;
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cacheTTL = 5 * 60 * 1000;
+  private pendingRequests = new Map<string, Promise<any>>();
 
   constructor() {
     // Try VITE_ prefixed keys first, then fallback to non-prefixed
@@ -82,6 +85,88 @@ class LLMService {
     console.log('PROMPT_BUILDER:', !!this.promptBuilderId);
     console.log('EXAMPLE_GENERATOR:', !!this.exampleGeneratorId);
     console.log('RESPONDER:', !!this.responderId);
+  }
+
+  private getCacheKey(method: string, ...args: any[]): string {
+    return `${method}:${JSON.stringify(args)}`;
+  }
+
+  private async withRequestDedup<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const existing = this.pendingRequests.get(key) as Promise<T> | undefined;
+    if (existing) return existing;
+    const promise = fn().finally(() => this.pendingRequests.delete(key));
+    this.pendingRequests.set(key, promise);
+    return promise;
+  }
+
+  // Optimized polling with exponential backoff
+  private async pollRunStatus(
+    threadId: string,
+    runId: string,
+    options: { initialDelay?: number; maxDelay?: number; backoffMultiplier?: number; maxAttempts?: number } = {}
+  ): Promise<'completed' | 'failed' | 'cancelled' | 'expired'> {
+    const {
+      initialDelay = 250,
+      maxDelay = 2000,
+      backoffMultiplier = 1.5,
+      maxAttempts = 120
+    } = options;
+
+    let delay = initialDelay;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      if (attempts > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay = Math.min(delay * backoffMultiplier, maxDelay);
+      }
+
+      const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'OpenAI-Beta': 'assistants=v2'
+        }
+      });
+
+      if (statusResponse.ok) {
+        const runData = await statusResponse.json();
+        const status = runData.status;
+
+        if (status === 'completed') return 'completed';
+        if (status === 'failed') return 'failed';
+        if (status === 'cancelled') return 'cancelled';
+        if (status === 'expired') return 'expired';
+        if (status === 'queued' || status === 'in_progress') {
+          attempts++;
+          continue;
+        }
+      }
+
+      attempts++;
+    }
+
+    throw new Error('Polling timeout: Run did not complete within maximum attempts');
+  }
+
+  // Parallel execution helper with simple concurrency control
+  private async executeInParallel<T>(
+    tasks: Array<() => Promise<T>>,
+    maxConcurrency: number = 3
+  ): Promise<T[]> {
+    const results: T[] = [];
+    let index = 0;
+
+    async function worker() {
+      while (index < tasks.length) {
+        const current = index++;
+        const result = await tasks[current]();
+        results[current] = result;
+      }
+    }
+
+    const workers = Array.from({ length: Math.min(maxConcurrency, tasks.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
   }
 
   // OpenAI Chat Completion - Always use Assistants API
@@ -120,21 +205,18 @@ class LLMService {
       const thread = await threadResponse.json();
       const threadId = thread.id;
 
-      // Upload files to OpenAI
+      // Upload files to OpenAI (parallelized)
       const fileIds: string[] = [];
       console.log(`Uploading ${fileAttachments.length} files to OpenAI...`);
-      
-      for (const file of fileAttachments) {
-        if (file.data && typeof file.data === 'string') {
-          console.log(`Uploading file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB)`);
-          
-          try {
+
+      if (fileAttachments.length > 0) {
+        const uploadPromises = fileAttachments.map(async (file) => {
+          if (file.data && typeof file.data === 'string') {
+            console.log(`Uploading file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB)`);
             // Convert data URL to blob
             const response = await fetch(file.data);
             const blob = await response.blob();
-            
             console.log(`Converted to blob: ${blob.size} bytes, type: ${blob.type}`);
-            
             // Create FormData for file upload
             const formData = new FormData();
             formData.append('file', blob, file.fileName);
@@ -148,19 +230,22 @@ class LLMService {
               body: formData
             });
 
-            if (uploadResponse.ok) {
-              const uploadedFile = await uploadResponse.json();
-              console.log(`File uploaded successfully: ${file.fileName} -> ${uploadedFile.id}`);
-              fileIds.push(uploadedFile.id);
-            } else {
+            if (!uploadResponse.ok) {
               const errorText = await uploadResponse.text();
               console.error(`File upload failed for ${file.fileName}:`, uploadResponse.status, errorText);
               throw new Error(`File upload failed: ${uploadResponse.status} - ${errorText}`);
             }
-          } catch (error) {
-            console.error(`Error uploading file ${file.fileName}:`, error);
-            throw error;
+
+            const uploadedFile = await uploadResponse.json();
+            console.log(`File uploaded successfully: ${file.fileName} -> ${uploadedFile.id}`);
+            return uploadedFile.id as string;
           }
+          return undefined;
+        });
+
+        const uploadedIds = await Promise.all(uploadPromises);
+        for (const id of uploadedIds) {
+          if (id) fileIds.push(id);
         }
       }
       
@@ -229,25 +314,10 @@ class LLMService {
       const run = await runResponse.json();
       const runId = run.id;
 
-      // Wait for the run to complete
-      let runStatus = 'queued';
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
-          headers: {
-            'Authorization': `Bearer ${this.openaiApiKey}`,
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        });
+      // Wait for the run to complete with optimized polling
+      const runStatus = await this.pollRunStatus(threadId, runId, { initialDelay: 250, maxDelay: 2000 });
 
-        if (statusResponse.ok) {
-          const runData = await statusResponse.json();
-          runStatus = runData.status;
-        }
-      }
-
-      if (runStatus === 'failed') {
+      if (runStatus !== 'completed') {
         throw new Error('Assistant run failed');
       }
 
@@ -531,7 +601,24 @@ class LLMService {
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
-    
+
+    // Simple cache
+    const cacheKey = this.getCacheKey('extractPropertiesWithAssistant', prompt);
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+
+    // Deduplicate concurrent identical requests
+    return this.withRequestDedup(cacheKey, async () => {
+      const result = await this.extractPropertiesWithAssistantInternal(prompt);
+      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
+    });
+  }
+
+  // Internal implementation kept separate for caching/dedup
+  private async extractPropertiesWithAssistantInternal(prompt: string): Promise<OOPObjectData> {
     if (!this.propertyExtractorId) {
       throw new Error('PROPERTY_EXTRACTOR assistant ID not configured. Please set VITE_PROPERTY_EXTRACTOR in your .env file');
     }
@@ -595,23 +682,8 @@ class LLMService {
 
       const run = await runResponse.json();
 
-      // Poll for completion
-      let runStatus = run.status;
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
-          headers: {
-            'Authorization': `Bearer ${this.openaiApiKey}`,
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        });
-        
-        if (statusResponse.ok) {
-          const runData = await statusResponse.json();
-          runStatus = runData.status;
-        }
-      }
+      // Poll for completion (optimized)
+      const runStatus = await this.pollRunStatus(thread.id, run.id, { initialDelay: 250, maxDelay: 2000 });
 
       if (runStatus === 'completed') {
         // Get the messages
@@ -812,23 +884,8 @@ class LLMService {
       
       const run = await runResponse.json();
 
-      // Poll for completion
-      let runStatus = run.status;
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${this.openaiApiKey}`, 
-            'OpenAI-Beta': 'assistants=v2' 
-          }
-        });
-        
-        if (statusResponse.ok) { 
-          const runData = await statusResponse.json(); 
-          runStatus = runData.status; 
-        }
-      }
+      // Poll for completion (optimized)
+      const runStatus = await this.pollRunStatus(thread.id, run.id, { initialDelay: 250, maxDelay: 2000 });
 
       if (runStatus === 'completed') {
         // Get the messages
@@ -935,24 +992,8 @@ Please return ONLY the updated JSON object, maintaining the same structure but w
       const run = await runResponse.json();
       console.log('Run created:', run.id);
 
-      // Poll for completion
-      let runStatus = run.status;
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${this.openaiApiKey}`, 
-            'OpenAI-Beta': 'assistants=v2' 
-          }
-        });
-        
-        if (statusResponse.ok) { 
-          const runData = await statusResponse.json(); 
-          runStatus = runData.status; 
-          console.log('Run status:', runStatus);
-        }
-      }
+      // Poll for completion (optimized)
+      const runStatus = await this.pollRunStatus(thread.id, run.id, { initialDelay: 250, maxDelay: 2000 });
 
       if (runStatus === 'completed') {
         // Get the messages
@@ -1074,24 +1115,8 @@ Remember to:
       const run = await runResponse.json();
       console.log('Run created:', run.id);
 
-      // Poll for completion
-      let runStatus = run.status;
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${this.openaiApiKey}`, 
-            'OpenAI-Beta': 'assistants=v2' 
-          }
-        });
-        
-        if (statusResponse.ok) { 
-          const runData = await statusResponse.json(); 
-          runStatus = runData.status; 
-          console.log('Run status:', runStatus);
-        }
-      }
+      // Poll for completion (optimized)
+      const runStatus = await this.pollRunStatus(thread.id, run.id, { initialDelay: 250, maxDelay: 2000 });
 
       if (runStatus === 'completed') {
         // Get the messages
@@ -1133,6 +1158,25 @@ Remember to:
       console.error('Example generation failed:', error); 
       throw error; 
     }
+  }
+
+  // Batch: Generate examples for multiple properties in parallel
+  async generateExamplesBatch(
+    propertyNames: string[],
+    oopromptObject: OOPObjectData,
+    maxConcurrency: number = 3
+  ): Promise<{ examplesByProperty: Record<string, string[]> }> {
+    const tasks = propertyNames.map((name) => async () => {
+      const res = await this.generateExamples(name, oopromptObject);
+      return { name, examples: res.examples };
+    });
+
+    const results = await this.executeInParallel(tasks, maxConcurrency);
+    const examplesByProperty: Record<string, string[]> = {};
+    for (const r of results) {
+      examplesByProperty[r.name] = r.examples;
+    }
+    return { examplesByProperty };
   }
 
   // Object Modifier assistant for AI suggestions and analysis
@@ -1237,24 +1281,8 @@ Ensure the response is valid JSON that can be parsed directly.`
       const run = await runResponse.json();
       console.log('Run created:', run.id);
 
-      // Poll for completion
-      let runStatus = run.status;
-      while (runStatus === 'queued' || runStatus === 'in_progress') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs/${run.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${this.openaiApiKey}`, 
-            'OpenAI-Beta': 'assistants=v2' 
-          }
-        });
-        
-        if (statusResponse.ok) { 
-          const runData = await statusResponse.json(); 
-          runStatus = runData.status; 
-          console.log('Run status:', runStatus);
-        }
-      }
+      // Poll for completion (optimized)
+      const runStatus = await this.pollRunStatus(thread.id, run.id, { initialDelay: 250, maxDelay: 2000 });
 
       if (runStatus === 'completed') {
         // Get the messages
@@ -1298,6 +1326,26 @@ Ensure the response is valid JSON that can be parsed directly.`
       console.error('OBJECT_MODIFIER analysis failed:', error); 
       throw error; 
     }
+  }
+
+  // Batch: Run multiple Object Modifier analyses in parallel
+  async analyzeObjectModifierBatch(
+    oopromptObject: OOPromptObject,
+    requestTypes: Array<"conflict_check" | "more_possible_properties" | "modify_language">,
+    cursor?: string,
+    maxConcurrency: number = 2
+  ): Promise<Record<string, ObjectModifierEnvelope>> {
+    const tasks = requestTypes.map((type) => async () => {
+      const res = await this.analyzeObjectModifier(oopromptObject, type, cursor);
+      return { type, res };
+    });
+
+    const results = await this.executeInParallel(tasks, maxConcurrency);
+    const byType: Record<string, ObjectModifierEnvelope> = {};
+    for (const r of results) {
+      byType[r.type] = r.res;
+    }
+    return byType;
   }
 }
 

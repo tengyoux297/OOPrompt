@@ -62,3 +62,19 @@ export async function generateExamples(
     return { examples: [] };
   }
 }
+
+export async function generateExamplesMultiple(
+  properties: Array<{ name: string; value: string }>,
+  oopromptObject: any,
+  maxConcurrency: number = 3
+): Promise<Record<string, string[]>> {
+  console.log('API: generateExamplesMultiple', { count: properties.length });
+  try {
+    const names = properties.map(p => p.name);
+    const result = await llmService.generateExamplesBatch(names, oopromptObject, maxConcurrency);
+    return result.examplesByProperty;
+  } catch (error) {
+    console.error('Failed to generate multiple examples:', error);
+    return {};
+  }
+}

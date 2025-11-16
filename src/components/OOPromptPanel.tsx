@@ -337,6 +337,7 @@ export function OOPromptPanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "action" | "name" | "time">("none");
   const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
   
   // Local state for main task and audience inputs to make them controlled
   const [mainTask, setMainTask] = useState(oop.main_task || "");
@@ -762,7 +763,11 @@ export function OOPromptPanel({
           {isSending && (
             <div className="flex items-center justify-center gap-2 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
               <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
-              <span>Building prompt and sending to {selectedLLM.toUpperCase()}...</span>
+              {sendStatus === 'building' ? (
+                <span>Building prompt…</span>
+              ) : (
+                <span>Sending to {selectedLLM.toUpperCase()}…</span>
+              )}
             </div>
           )}
           
@@ -789,6 +794,7 @@ export function OOPromptPanel({
               console.log('═══════════════════════════════════════════════════════════════════════════════════════');
               
               setIsSending(true);
+              setSendStatus('building');
               
               try {
                 // Step 1: Function to recursively resolve embedded objects and file references
@@ -871,6 +877,7 @@ export function OOPromptPanel({
                 
                 // Step 3: Send the built prompt to LLM API
                 console.log('Sending built prompt to LLM API...');
+                setSendStatus('sending');
                 
                 // Console output: Final Prompt
                 console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
@@ -973,6 +980,7 @@ export function OOPromptPanel({
                 }
               } finally {
                 setIsSending(false);
+                setSendStatus('idle');
               }
             }}
             disabled={isSending}
