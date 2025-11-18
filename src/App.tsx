@@ -29,7 +29,7 @@ export default function App() {
   const { state, dispatch } = useOOPrompt(seed);
   const [messageFromOOP, setMessageFromOOP] = useState<string | null>(null);
   const [messageQueue, setMessageQueue] = useState<string[]>([]);
-  const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
+  const [selectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
   const [showWelcome, setShowWelcome] = useState(false);
   const [tutorialPage, setTutorialPage] = useState(1);
   const [showNewPromptModal, setShowNewPromptModal] = useState(false);
@@ -135,7 +135,6 @@ export default function App() {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-to-br from-gray-50 to-white overflow-hidden">
     <div className="h-full w-full flex flex-col bg-gradient-to-br from-gray-50 to-white overflow-hidden">
       {/* Multi-Page Interactive Tutorial */}
       {showWelcome && (
@@ -528,10 +527,6 @@ export default function App() {
       )}
 
       {/* Top bar - Fixed at top */}
-      <header className="fixed top-0 left-0 right-0 z-30 h-14 panel-chrome flex items-center justify-between px-4 lg:px-6 shadow-sm border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-base">O</span>
       <header className="fixed top-0 left-0 right-0 z-30 h-14 panel-chrome flex items-center justify-between px-4 lg:px-6 shadow-sm border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">

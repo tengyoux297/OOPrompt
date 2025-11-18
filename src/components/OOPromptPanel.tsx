@@ -338,7 +338,6 @@ export function OOPromptPanel({
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
   const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
-  const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
   
   // Local state for main task and audience inputs to make them controlled
   const [mainTask, setMainTask] = useState(oop.main_task || "");
@@ -557,56 +556,8 @@ export function OOPromptPanel({
   
   return (
     <div className="h-full w-full flex flex-col bg-white">
-    <div className="h-full w-full flex flex-col bg-white">
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
-        {/* Header Section */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-base text-gray-900">Edit Prompt</h2>
-            <button
-              onClick={() => {
-                dispatch({ type: "TOGGLE_PANEL", open: false });
-                dispatch({ type: "SELECT_PROPERTY", id: undefined });
-              }}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
-              aria-label="Back to library"
-              title="Back to library"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Main Task</label>
-              <input
-                className="input text-sm"
-                placeholder="What do you want to accomplish?"
-                value={mainTask}
-                onChange={(e) => setMainTask(e.target.value)}
-                onBlur={(e) => {
-                  const next: OOPromptObject = { ...oop, main_task: e.target.value };
-                  dispatch({ type: "SET_OOP", payload: next });
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Audience</label>
-              <input
-                className="input text-sm"
-                placeholder="Who is this for?"
-                value={audience}
-                onChange={(e) => setAudience(e.target.value)}
-                onBlur={(e) => {
-                  const next: OOPromptObject = { ...oop, audience: e.target.value };
-                  dispatch({ type: "SET_OOP", payload: next });
-                }}
-              />
-            </div>
-          </div>
-        </div>
         {/* Header Section */}
         <div className="panel-chrome p-4 flex-shrink-0 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -671,24 +622,11 @@ export function OOPromptPanel({
           <button 
             className="btn-primary px-4 py-2 text-sm font-medium flex items-center gap-2"
             onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
-        {/* Toolbar */}
-        <div className="panel-chrome px-4 py-3 flex gap-2 items-center flex-shrink-0 border-b border-gray-200 bg-gray-50/50">
-          <button 
-            className="btn-primary px-4 py-2 text-sm font-medium flex items-center gap-2"
-            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
             title="Add Property"
           >
             <span className="text-lg leading-none">+</span>
             <span>Add Property</span>
-            <span className="text-lg leading-none">+</span>
-            <span>Add Property</span>
           </button>
-          <div className="flex gap-1 ml-auto">
-            <button 
-              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
-              onClick={cycleSort}
-              title={`Sort: ${sortBy === "none" ? "None" : sortBy === "action" ? "Action" : sortBy === "name" ? "Name" : "Time"}`}
-            >
           <div className="flex gap-1 ml-auto">
             <button 
               className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
@@ -715,27 +653,8 @@ export function OOPromptPanel({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-            </button>
-            <button 
-              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
-              onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
-              title="AI Analysis"
-            >
-              💡
-            </button>
-          </div>
-          <input 
-            className="input flex-1 max-w-xs h-9 text-sm" 
-            placeholder="Search properties…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
 
         {/* Properties area with scrollbar */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/30">
-          <div className="p-4">
-            <div className="space-y-3">
         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/30">
           <div className="p-4">
             <div className="space-y-3">
@@ -778,24 +697,13 @@ export function OOPromptPanel({
                   <p className="text-sm">No properties yet. Click "Add Property" to get started.</p>
                 </div>
               )}
-              {sorted.length === 0 && (
-                <div className="text-center py-12 text-gray-400">
-                  <div className="text-4xl mb-3">📝</div>
-                  <p className="text-sm">No properties yet. Click "Add Property" to get started.</p>
-                </div>
-              )}
             </div>
           </div>
-        </div>
         </div>
 
         {/* Action buttons area */}
         <div className="panel-chrome p-4 flex-shrink-0 border-t border-gray-200 bg-white space-y-3">
-        {/* Action buttons area */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-t border-gray-200 bg-white space-y-3">
           {/* Save button */}
-          <button 
-            className="w-full py-2.5 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm"
           <button 
             className="w-full py-2.5 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm"
             onClick={() => {
@@ -835,9 +743,6 @@ export function OOPromptPanel({
           
           {/* Status notifications */}
           {isSending && (
-            <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm font-medium">
-              <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
-              <span>Building prompt…</span>
             <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm font-medium">
               <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
               <span>Building prompt…</span>
@@ -953,9 +858,6 @@ export function OOPromptPanel({
           {/* Build Prompt button */}
           <button 
             className={`btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
-          {/* Build Prompt button */}
-          <button 
-            className={`btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
               if (isSending) return; // Prevent multiple clicks
               
@@ -1046,28 +948,20 @@ export function OOPromptPanel({
                 console.log('Sending to PROMPT_BUILDER with resolved embedded objects:', promptData);
                 
                 // Step 2: Build the prompt (no API call)
-                // Step 2: Build the prompt (no API call)
                 console.log('Building prompt with PROMPT_BUILDER assistant...');
                 const prompt = await llmService.buildPromptWithAssistant(promptData);
                 console.log('Built prompt:', prompt);
-                const prompt = await llmService.buildPromptWithAssistant(promptData);
-                console.log('Built prompt:', prompt);
                 
-                // Store the built prompt
-                setBuiltPrompt(prompt);
                 // Store the built prompt
                 setBuiltPrompt(prompt);
                 
                 // Console output: Final Prompt
                 console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
                 console.log('║                                  FINAL PROMPT BUILT                               ║');
-                console.log('║                                  FINAL PROMPT BUILT                               ║');
                 console.log('╚════════════════════════════════════════════════════════════════════════════════════╝');
-                console.log(prompt);
                 console.log(prompt);
                 console.log('═══════════════════════════════════════════════════════════════════════════════════════');
                 
-                // Auto-save the current OOP object
                 // Auto-save the current OOP object
                 const objectToSave = {
                   ...oop,
@@ -1078,7 +972,6 @@ export function OOPromptPanel({
                 };
                 console.log('Auto-saving object with ID:', objectToSave.id);
                 dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
-                console.log('=== OOP Object Auto-Saved ===');
                 console.log('=== OOP Object Auto-Saved ===');
                 
               } catch (error) {
@@ -1119,10 +1012,8 @@ export function OOPromptPanel({
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span>Building...</span>
-                <span>Building...</span>
               </div>
             ) : (
-              'Build Prompt'
               'Build Prompt'
             )}
         </button>
@@ -1236,8 +1127,6 @@ export function OOPromptPanel({
           }
         }}
         onError={onError}
-      />
-    </div>
       />
     </div>
   );
