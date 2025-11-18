@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useOOPrompt } from "./state/useOOPrompt";
 import type { OOPromptObject } from "./types";
-import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
 import { ObjectPanel } from "./components/ObjectPanel";
 import { SaveConfirmationModal } from "./components/SaveConfirmationModal";
 import { ErrorPopup } from "./components/ErrorPopup";
+import { NewPromptModal } from "./components/NewPromptModal";
 
 
 import "./index.css";
@@ -30,6 +30,7 @@ export default function App() {
   const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
   const [showWelcome, setShowWelcome] = useState(false);
   const [tutorialPage, setTutorialPage] = useState(1);
+  const [showNewPromptModal, setShowNewPromptModal] = useState(false);
   
   // Show welcome tutorial when website first loads
   useEffect(() => {
@@ -513,82 +514,41 @@ export default function App() {
       )}
 
       {/* Top bar - Fixed at top */}
-        {/* Top bar - Fixed at top */}
-        <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-sm sm:text-lg">O</span>
+      <header className="fixed top-0 left-0 right-0 z-30 h-14 panel-chrome flex items-center justify-between px-4 lg:px-6 shadow-sm border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-base">O</span>
           </div>
-          <div className="font-bold text-lg sm:text-xl text-gray-900">OOPrompt</div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI Model:</div>
-          <select 
-            value={selectedLLM === 'openai' ? 'GPT-4.1' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === 'GPT-4.1') setSelectedLLM('openai');
-              else if (value === 'Gemini') setSelectedLLM('gemini');
-              else if (value === 'Claude') setSelectedLLM('claude');
-            }}
-            className="border border-gray-200 rounded-xl px-2 sm:px-3 lg:px-4 py-2 bg-white text-gray-900 text-xs sm:text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
-          >
-            <option>GPT-4.1</option>
-            <option>Gemini</option>
-            <option>Claude</option>
-          </select>
+          <div className="font-semibold text-base text-gray-900">OOPrompt</div>
         </div>
       </header>
 
-      {/* Main content: chat panel with left sidebar */}
-      <div className="flex-1 relative h-full pt-16 flex flex-col lg:flex-row">
-        {/* Object Panel - Responsive left sidebar */}
-        <ObjectPanel
-          objects={state.promptObjects}
-          selectedObjectId={state.currentObjectId}
-          onSelectObject={(objectId) => {
-            console.log('Loading prompt object:', objectId);
-            const obj = state.promptObjects.find(obj => obj.id === objectId);
-            if (obj) {
-              handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
-            }
-          }}
-          onDeleteObject={(objectId) => {
-            console.log('Deleting prompt object:', objectId);
-            dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
-          }}
-          onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
-        />
-
-        {/* Chat Panel - Takes remaining width */}
-        <div className="flex-1 min-w-0">
-          <ChatPanel 
-            onSend={(msg) => console.log('Chat message:', msg)}
-            onExtractProperties={(oopObject) => {
-              dispatch({ type: "SET_OOP", payload: oopObject });
-              dispatch({ type: "TOGGLE_PANEL", open: true });
-            }}
-            messageFromOOP={messageFromOOP}
-            selectedLLM={selectedLLM}
-            onMessageProcessed={() => setMessageFromOOP(null)}
-          />
-        </div>
-        
-
-
-
-
-        {/* Floating OOP panel overlay */}
-        {state.openPanel && (
+      {/* Main content area */}
+      <div className="flex-1 relative h-full pt-14 flex flex-col lg:flex-row overflow-hidden">
+        {state.openPanel ? (
           <>
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
-            />
+            {/* Object Panel - Sidebar when editing (25% width) */}
+            <div className="hidden lg:block lg:w-1/4 lg:border-r lg:border-gray-200 lg:bg-white lg:overflow-y-auto">
+              <ObjectPanel
+                objects={state.promptObjects}
+                selectedObjectId={state.currentObjectId}
+                onSelectObject={(objectId) => {
+                  console.log('Loading prompt object:', objectId);
+                  const obj = state.promptObjects.find(obj => obj.id === objectId);
+                  if (obj) {
+                    handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
+                  }
+                }}
+                onDeleteObject={(objectId) => {
+                  console.log('Deleting prompt object:', objectId);
+                  dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+                }}
+                onOpenOOPPanel={() => setShowNewPromptModal(true)}
+              />
+            </div>
             
-            {/* Panel - responsive positioning */}
-            <div className="fixed top-0 right-0 bottom-0 z-50 h-screen w-full lg:w-auto lg:max-w-4xl">
+            {/* OOP Panel - Main content area when editing (75% width) */}
+            <div className="flex-1 min-w-0 bg-white overflow-hidden">
               <OOPromptPanel 
                 state={state} 
                 dispatch={dispatch} 
@@ -641,6 +601,27 @@ export default function App() {
               />
             </div>
           </>
+        ) : (
+          /* Object Panel - Main view when no object is open (full width) */
+          <div className="flex-1 w-full overflow-y-auto">
+            <ObjectPanel
+              objects={state.promptObjects}
+              selectedObjectId={state.currentObjectId}
+              onSelectObject={(objectId) => {
+                console.log('Loading prompt object:', objectId);
+                const obj = state.promptObjects.find(obj => obj.id === objectId);
+                if (obj) {
+                  handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
+                  dispatch({ type: "TOGGLE_PANEL", open: true });
+                }
+              }}
+              onDeleteObject={(objectId) => {
+                console.log('Deleting prompt object:', objectId);
+                dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+              }}
+              onOpenOOPPanel={() => setShowNewPromptModal(true)}
+            />
+          </div>
         )}
 
         {/* Edge handle to open panel when closed */}
@@ -676,6 +657,26 @@ export default function App() {
           message={errorPopup.message}
           onClose={() => setErrorPopup({ isOpen: false, title: "", message: "" })}
           autoCloseMs={5000}
+        />
+
+        {/* New Prompt Modal */}
+        <NewPromptModal
+          isOpen={showNewPromptModal}
+          onClose={() => setShowNewPromptModal(false)}
+          onExtract={(oopObject) => {
+            console.log('=== Setting extracted OOP object ===');
+            console.log('Extracted object:', oopObject);
+            
+            // Set the extracted object as the current OOP object
+            dispatch({ type: "SET_OOP", payload: oopObject });
+            
+            // Open the OOP panel to show the extracted properties
+            dispatch({ type: "TOGGLE_PANEL", open: true });
+            
+            // Close the modal
+            setShowNewPromptModal(false);
+          }}
+          onError={showError}
         />
       </div>
     </div>

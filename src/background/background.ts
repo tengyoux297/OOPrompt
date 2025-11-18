@@ -13,9 +13,22 @@ chrome.runtime.onInstalled.addListener((details) => {
     // Extension updated
     console.log('Extension updated to version', chrome.runtime.getManifest().version);
   }
+  
+  // Context menu integration
+  if (chrome.contextMenus) {
+    try {
+      chrome.contextMenus.create({
+        id: 'ooprompt-extract',
+        title: 'Extract properties with OOPrompt',
+        contexts: ['selection']
+      });
+    } catch (error) {
+      console.error('Failed to create context menu:', error);
+    }
+  }
 });
 
-// Optional: Handle messages from content scripts or popup
+// Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
   
@@ -30,19 +43,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-// Optional: Context menu integration
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'ooprompt-extract',
-    title: 'Extract properties with OOPrompt',
-    contexts: ['selection']
+// Context menu click handler
+if (chrome.contextMenus && chrome.contextMenus.onClicked) {
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'ooprompt-extract') {
+      // Open extension popup with selected text
+      chrome.action.openPopup();
+    }
   });
-});
-
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'ooprompt-extract') {
-    // Open extension popup with selected text
-    chrome.action.openPopup();
-  }
-});
+}
 
