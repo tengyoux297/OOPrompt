@@ -337,34 +337,161 @@ export function useOOPrompt(initial: OOPromptObject) {
     }
   );
 
-  // persist
+  // persist to chrome.storage (for extension) or localStorage (for web)
+  // Save all important state including history, UI state, etc.
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify({
-      oop: state.oop,
-      promptObjects: state.promptObjects,
-      currentObjectId: state.currentObjectId
-    }));
-  }, [state.oop, state.promptObjects, state.currentObjectId]);
+    // Debounce saves to avoid too frequent writes
+    const timeoutId = setTimeout(() => {
+      const dataToSave = {
+        oop: state.oop,
+        promptObjects: state.promptObjects,
+        currentObjectId: state.currentObjectId,
+        openPanel: state.openPanel,
+        past: state.past, // Undo history
+        future: state.future, // Redo history
+        openTabs: state.openTabs,
+        activeTabId: state.activeTabId,
+        hasUnsavedChanges: state.hasUnsavedChanges,
+        lastSavedState: state.lastSavedState
+      };
 
-  // hydrate
-  useEffect(() => {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      try { 
-        const saved = JSON.parse(raw);
-        if (saved.oop) {
-          dispatch({ type: "LOAD", payload: saved.oop });
+      // Use chrome.storage if available (extension), otherwise fallback to localStorage
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        try {
+          chrome.storage.local.set({ [KEY]: dataToSave }, () => {
+            if (chrome.runtime.lastError) {
+              console.error('Failed to save to chrome.storage:', chrome.runtime.lastError);
+              // Fallback to localStorage
+              try {
+                localStorage.setItem(KEY, JSON.stringify(dataToSave));
+                console.log('Saved to localStorage as fallback');
+              } catch (localError) {
+                console.error('Failed to save to localStorage:', localError);
+              }
+            } else {
+              console.log('State saved successfully to chrome.storage');
+            }
+          });
+        } catch (error) {
+          console.error('Error saving to chrome.storage:', error);
+          // Fallback to localStorage
+          try {
+            localStorage.setItem(KEY, JSON.stringify(dataToSave));
+            console.log('Saved to localStorage as fallback');
+          } catch (localError) {
+            console.error('Failed to save to localStorage:', localError);
+          }
         }
-        if (saved.promptObjects) {
+      } else {
+        // Fallback to localStorage for web version
+        try {
+          localStorage.setItem(KEY, JSON.stringify(dataToSave));
+          console.log('State saved successfully to localStorage');
+        } catch (error) {
+          console.error('Failed to save to localStorage:', error);
+        }
+      }
+    }, 500); // Debounce by 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [state.oop, state.promptObjects, state.currentObjectId, state.openPanel, state.past, state.future, state.openTabs, state.activeTabId, state.hasUnsavedChanges, state.lastSavedState]);
+
+  // hydrate from chrome.storage (for extension) or localStorage (for web)
+  useEffect(() => {
+    let hasLoaded = false;
+    
+    const loadData = (saved: any) => {
+      if (hasLoaded) {
+        console.log('Already loaded, skipping duplicate load');
+        return;
+      }
+      
+      if (!saved) {
+        console.log('No saved data found');
+        return;
+      }
+      
+      hasLoaded = true;
+      
+      try {
+        console.log('Loading saved data:', {
+          promptObjectsCount: saved.promptObjects?.length || 0,
+          currentObjectId: saved.currentObjectId,
+          hasOop: !!saved.oop,
+          openPanel: saved.openPanel
+        });
+
+        // Load prompt objects first (needed for loading current object)
+        if (saved.promptObjects && Array.isArray(saved.promptObjects) && saved.promptObjects.length > 0) {
+          console.log(`Loading ${saved.promptObjects.length} prompt objects`);
+          // Load all prompt objects (including all versions/history)
           saved.promptObjects.forEach((obj: OOPromptObject) => {
             dispatch({ type: "SAVE_PROMPT_OBJECT", payload: obj });
           });
         }
-        if (saved.currentObjectId) {
-          dispatch({ type: "LOAD_PROMPT_OBJECT", payload: saved.promptObjects?.find((obj: OOPromptObject) => obj.id === saved.currentObjectId) || initial });
+        
+        // Load current object
+        if (saved.currentObjectId && saved.promptObjects && saved.promptObjects.length > 0) {
+          const objectToLoad = saved.promptObjects.find((obj: OOPromptObject) => obj.id === saved.currentObjectId);
+          if (objectToLoad) {
+            console.log('Loading current object:', objectToLoad.id, objectToLoad.main_task);
+            dispatch({ type: "LOAD_PROMPT_OBJECT", payload: objectToLoad });
+          } else if (saved.oop) {
+            console.log('Current object not found in promptObjects, loading saved oop');
+            dispatch({ type: "LOAD", payload: saved.oop });
+          }
+        } else if (saved.oop && saved.oop.id !== initial.id) {
+          // Fallback to saved oop if no currentObjectId and it's not the initial empty object
+          console.log('Loading saved oop object');
+          dispatch({ type: "LOAD", payload: saved.oop });
         }
+        
+        // Restore UI state
+        if (saved.openPanel !== undefined) {
+          dispatch({ type: "TOGGLE_PANEL", open: saved.openPanel });
+        }
+        
+        console.log('Data loaded successfully');
       } catch (error) {
         console.error('Failed to load saved state:', error);
+        hasLoaded = false; // Allow retry on error
+      }
+    };
+
+    // Use chrome.storage if available (extension), otherwise fallback to localStorage
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      console.log('Loading from chrome.storage...');
+      chrome.storage.local.get([KEY], (result) => {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to load from chrome.storage:', chrome.runtime.lastError);
+          // Try localStorage as fallback
+          try {
+            const raw = localStorage.getItem(KEY);
+            if (raw) {
+              const saved = JSON.parse(raw);
+              loadData(saved);
+            }
+          } catch (error) {
+            console.error('Failed to load from localStorage fallback:', error);
+          }
+          return;
+        }
+        console.log('Loaded from chrome.storage:', result);
+        loadData(result[KEY]);
+      });
+    } else {
+      // Fallback to localStorage for web version
+      console.log('Using localStorage (chrome.storage not available)');
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          loadData(saved);
+        } else {
+          console.log('No data in localStorage');
+        }
+      } catch (error) {
+        console.error('Failed to load from localStorage:', error);
       }
     }
   }, [initial]);

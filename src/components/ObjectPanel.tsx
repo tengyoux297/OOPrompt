@@ -7,10 +7,11 @@ type Props = {
   selectedObjectId: string | undefined;
   onSelectObject: (objectId: string) => void;
   onDeleteObject: (objectId: string) => void;
-  onOpenOOPPanel?: () => void; // New prop to open OOP panel
+  onOpenOOPPanel?: () => void; // Callback to open new prompt modal (for "New" button)
+  onOpenPanel?: () => void; // Callback to just open the panel (for existing objects)
 };
 
-export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDeleteObject, onOpenOOPPanel }: Props) {
+export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDeleteObject, onOpenOOPPanel, onOpenPanel }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [historyPopup, setHistoryPopup] = useState<{
     isOpen: boolean;
@@ -75,15 +76,15 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
   const handleObjectClick = (objectId: string) => {
     console.log('ObjectPanel: handleObjectClick called with:', objectId);
     onSelectObject(objectId);
-    // Keep the panel open so user can see other objects
-    onOpenOOPPanel?.(); // Automatically open OOP panel when an object is selected
+    // Open the OOP panel to show the selected object (not the new prompt modal)
+    onOpenPanel?.();
   };
 
   const handleDeleteObject = (event: React.MouseEvent, objectId: string) => {
     event.stopPropagation(); // Prevent object selection when clicking delete
     if (confirm(`Are you sure you want to delete "${objects.find(obj => obj.id === objectId)?.name || 'this object'}"?`)) {
       onDeleteObject(objectId);
-      onOpenOOPPanel?.(); // Automatically open OOP panel after deletion
+      // Don't open panel after deletion - let user stay in library view
     }
   };
 
@@ -105,7 +106,7 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
     console.log('ObjectPanel: handleSelectVersion called with version:', version.id, version.main_task);
     onSelectObject(version.id);
     closeHistoryPopup();
-    onOpenOOPPanel?.(); // Automatically open OOP panel when a version is selected
+    onOpenPanel?.(); // Open the OOP panel to show the selected version
   };
 
   // Get all versions of the current object for history
@@ -129,14 +130,13 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
 
   return (
     <>
-             {/* Object Panel - Always visible on left side */}
-       <aside className="lg:fixed lg:top-16 lg:left-0 lg:bottom-0 lg:z-40 lg:h-[calc(100vh-4rem)] lg:w-[20%] w-full h-auto bg-white border-r border-gray-300 shadow-lg lg:shadow-lg order-first lg:order-none">
-          
+             {/* Object Panel */}
+       <aside className="w-full h-full bg-white flex flex-col">
           <div className="flex flex-col h-full">
                          {/* Header */}
-             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
+             <div className="p-3 border-b border-gray-200 bg-white flex-shrink-0">
                {/* Mobile Toggle Button */}
-               <div className="lg:hidden mb-3">
+               <div className="lg:hidden mb-2">
                  <button
                    onClick={() => setIsCollapsed(!isCollapsed)}
                    className="w-full p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-between text-sm font-medium text-gray-700 transition-colors"
@@ -153,16 +153,16 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                  </button>
                </div>
                
-               {/* Blue Title Bar with Button */}
-               <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg px-4 py-2 flex items-center justify-between">
-                 <h3 className="text-white font-semibold text-sm">History Prompts</h3>
+               {/* Title Bar with Button */}
+               <div className="flex items-center justify-between">
+                 <h3 className="text-gray-900 font-semibold text-sm">History</h3>
                  <button
                    onClick={onOpenOOPPanel}
-                   className="p-1.5 text-white hover:text-blue-100 hover:bg-blue-500 rounded-lg transition-all duration-200"
+                   className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                    aria-label="New prompt"
                    title="New prompt"
                  >
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                    </svg>
                  </button>
@@ -170,7 +170,7 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
              </div>
 
                          {/* Objects List */}
-             <div className={`flex-1 overflow-y-auto min-h-0 p-3 space-y-2 transition-all duration-300 ${
+             <div className={`flex-1 overflow-y-auto min-h-0 p-3 space-y-2.5 transition-all duration-300 ${
                isCollapsed ? 'lg:block hidden' : 'block'
              }`}>
                {displayObjects.map((obj) => {

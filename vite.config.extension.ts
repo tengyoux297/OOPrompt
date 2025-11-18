@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { crx } from '@crxjs/vite-plugin'
-import manifest from './public/manifest.json'
+import { crx, defineManifest } from '@crxjs/vite-plugin'
+import manifestJson from './public/manifest.json'
+
+// Convert manifest to the format expected by crx plugin
+const manifest = defineManifest(manifestJson)
 
 // https://vitejs.dev/config/
 export default defineConfig({

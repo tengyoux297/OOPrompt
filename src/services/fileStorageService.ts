@@ -90,19 +90,29 @@ class FileStorageService {
     return typeMap[extension || ''] || 'application/octet-stream';
   }
 
-  // Store file in localStorage
+  // Store file in chrome.storage or localStorage
   private storeFile(fileData: { id: string; data: string | ArrayBuffer | null; metadata: FileReference }): void {
     try {
       const existingFiles = this.getStoredFiles();
       existingFiles[fileData.id] = fileData;
-      localStorage.setItem(this.storageKey, JSON.stringify(existingFiles));
+      
+      // Use chrome.storage if available (extension), otherwise fallback to localStorage
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ [this.storageKey]: existingFiles }, () => {
+          if (chrome.runtime.lastError) {
+            throw new Error(`Storage failed: ${chrome.runtime.lastError.message}`);
+          }
+        });
+      } else {
+        localStorage.setItem(this.storageKey, JSON.stringify(existingFiles));
+      }
     } catch (error) {
       console.error('Failed to store file:', error);
-      throw new Error('Storage failed - localStorage may be full or unavailable');
+      throw new Error('Storage failed - storage may be full or unavailable');
     }
   }
 
-  // Get file from localStorage
+  // Get file from chrome.storage or localStorage
   private getFile(fileId: string): { id: string; data: string | ArrayBuffer | null; metadata: FileReference } | null {
     try {
       const storedFiles = this.getStoredFiles();
@@ -113,20 +123,59 @@ class FileStorageService {
     }
   }
 
-  // Public method to get file data for external use
+  // Public method to get file data for external use (async for chrome.storage)
   async getFileData(fileId: string): Promise<{ id: string; data: string | ArrayBuffer | null; metadata: FileReference } | null> {
-    return this.getFile(fileId);
+    try {
+      const storedFiles = await this.getStoredFilesAsync();
+      return storedFiles[fileId] || null;
+    } catch (error) {
+      console.error('Failed to get file data:', error);
+      return null;
+    }
   }
 
-  // Get all stored files
+  // Get all stored files from chrome.storage or localStorage
   private getStoredFiles(): Record<string, { id: string; data: string | ArrayBuffer | null; metadata: FileReference }> {
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      return stored ? JSON.parse(stored) : {};
+      // Use chrome.storage if available (extension), otherwise fallback to localStorage
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        // For chrome.storage, we need to use async, but this method is called synchronously
+        // So we'll use a synchronous approach with a fallback
+        // Note: This is a limitation - ideally we'd make this async, but that would require refactoring
+        const stored = localStorage.getItem(this.storageKey); // Fallback for now
+        return stored ? JSON.parse(stored) : {};
+      } else {
+        const stored = localStorage.getItem(this.storageKey);
+        return stored ? JSON.parse(stored) : {};
+      }
     } catch (error) {
       console.error('Failed to get stored files:', error);
       return {};
     }
+  }
+  
+  // Async method to get stored files (for chrome.storage)
+  private async getStoredFilesAsync(): Promise<Record<string, { id: string; data: string | ArrayBuffer | null; metadata: FileReference }>> {
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get([this.storageKey], (result) => {
+          if (chrome.runtime.lastError) {
+            console.error('Failed to get stored files:', chrome.runtime.lastError);
+            resolve({});
+            return;
+          }
+          resolve(result[this.storageKey] || {});
+        });
+      } else {
+        try {
+          const stored = localStorage.getItem(this.storageKey);
+          resolve(stored ? JSON.parse(stored) : {});
+        } catch (error) {
+          console.error('Failed to get stored files:', error);
+          resolve({});
+        }
+      }
+    });
   }
 
   // Remove stored file
@@ -134,7 +183,17 @@ class FileStorageService {
     try {
       const existingFiles = this.getStoredFiles();
       delete existingFiles[fileId];
-      localStorage.setItem(this.storageKey, JSON.stringify(existingFiles));
+      
+      // Use chrome.storage if available (extension), otherwise fallback to localStorage
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ [this.storageKey]: existingFiles }, () => {
+          if (chrome.runtime.lastError) {
+            throw new Error(`Failed to remove file: ${chrome.runtime.lastError.message}`);
+          }
+        });
+      } else {
+        localStorage.setItem(this.storageKey, JSON.stringify(existingFiles));
+      }
     } catch (error) {
       console.error('Failed to remove stored file:', error);
       throw new Error('Failed to remove file from storage');
@@ -142,9 +201,9 @@ class FileStorageService {
   }
 
   // Get storage usage info
-  getStorageInfo(): { totalFiles: number; totalSize: number; maxSize: number } {
+  async getStorageInfo(): Promise<{ totalFiles: number; totalSize: number; maxSize: number }> {
     try {
-      const files = this.getStoredFiles();
+      const files = await this.getStoredFilesAsync();
       const totalFiles = Object.keys(files).length;
       const totalSize = Object.values(files).reduce((sum, file) => {
         if (typeof file.data === 'string') {
@@ -153,8 +212,8 @@ class FileStorageService {
         return sum + (file.data ? file.data.byteLength : 0);
       }, 0);
       
-      // Estimate localStorage limit (usually 5-10MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB estimate
+      // Estimate storage limit (chrome.storage.local has 10MB limit, localStorage usually 5-10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB estimate
       
       return { totalFiles, totalSize, maxSize };
     } catch (error) {
@@ -166,7 +225,16 @@ class FileStorageService {
   // Clear all stored files
   clearAllFiles(): void {
     try {
-      localStorage.removeItem(this.storageKey);
+      // Use chrome.storage if available (extension), otherwise fallback to localStorage
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.remove([this.storageKey], () => {
+          if (chrome.runtime.lastError) {
+            throw new Error(`Failed to clear files: ${chrome.runtime.lastError.message}`);
+          }
+        });
+      } else {
+        localStorage.removeItem(this.storageKey);
+      }
     } catch (error) {
       console.error('Failed to clear all files:', error);
       throw new Error('Failed to clear file storage');

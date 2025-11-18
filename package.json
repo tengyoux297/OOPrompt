@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:extension": "vite build --config vite.config.extension.ts",
+    "dev:extension": "vite --config vite.config.extension.ts",
     "lint": "eslint",
     "preview": "vite preview",
     "start": "node server.js",
-    "heroku-postbuild": "npm run build"
+    "heroku-postbuild": "npm run build",
+    "package": "npm run build:extension && powershell Compress-Archive -Path dist/* -DestinationPath ooprompt-extension.zip -Force",
+    "generate-icons": "node scripts/generate-placeholder-icons.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
@@ -22,12 +26,15 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.1",
     "@eslint/js": "^9.33.0",
     "@tailwindcss/line-clamp": "^0.4.4",
+    "@types/chrome": "^0.1.29",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "canvas": "^3.2.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

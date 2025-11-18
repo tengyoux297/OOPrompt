@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useOOPrompt } from "./state/useOOPrompt";
 import type { OOPromptObject } from "./types";
-import { ChatPanel } from "./components/ChatPanel";
 import { OOPromptPanel } from "./components/OOPromptPanel";
 import { BookmarkHandle } from "./components/BookmarkHandle";
 import { ObjectPanel } from "./components/ObjectPanel";
 import { SaveConfirmationModal } from "./components/SaveConfirmationModal";
 import { ErrorPopup } from "./components/ErrorPopup";
+import { NewPromptModal } from "./components/NewPromptModal";
+import { SettingsModal } from "./components/SettingsModal";
+import { llmService } from "./services/llmService";
 
 
 import "./index.css";
@@ -30,17 +32,29 @@ export default function App() {
   const [selectedLLM, setSelectedLLM] = useState<'openai' | 'gemini' | 'claude'>('openai');
   const [showWelcome, setShowWelcome] = useState(false);
   const [tutorialPage, setTutorialPage] = useState(1);
+  const [showNewPromptModal, setShowNewPromptModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [currentApiKey, setCurrentApiKey] = useState<string>("");
   
-  // Show welcome tutorial when website first loads
+  // Check if tutorial has been shown before (but don't auto-show)
   useEffect(() => {
-    console.log('=== Website Loaded - Showing Welcome Tutorial ===');
-    // Small delay to ensure everything is rendered
-    const timer = setTimeout(() => {
-      setShowWelcome(true);
-      console.log('Welcome tutorial activated');
-    }, 500);
-    
-    return () => clearTimeout(timer);
+    const checkTutorialShown = () => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['tutorial_shown'], (result) => {
+          // Don't auto-show tutorial - user can click the button to see it
+          if (!result.tutorial_shown) {
+            // Mark as available (but don't show it automatically)
+            chrome.storage.local.set({ tutorial_shown: false });
+          }
+        });
+      } else {
+        const shown = localStorage.getItem('tutorial_shown');
+        if (!shown) {
+          localStorage.setItem('tutorial_shown', 'false');
+        }
+      }
+    };
+    checkTutorialShown();
   }, []);
 
   // Keyboard support for closing tutorial
@@ -121,7 +135,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
+    <div className="h-full w-full flex flex-col bg-gradient-to-br from-gray-50 to-white overflow-hidden">
       {/* Multi-Page Interactive Tutorial */}
       {showWelcome && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-2 sm:p-4">
@@ -513,82 +527,80 @@ export default function App() {
       )}
 
       {/* Top bar - Fixed at top */}
-        {/* Top bar - Fixed at top */}
-        <header className="fixed top-0 left-0 right-0 z-30 h-16 panel-chrome flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-sm sm:text-lg">O</span>
+      <header className="fixed top-0 left-0 right-0 z-30 h-14 panel-chrome flex items-center justify-between px-4 lg:px-6 shadow-sm border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-base">O</span>
           </div>
-          <div className="font-bold text-lg sm:text-xl text-gray-900">OOPrompt</div>
+          <div className="font-semibold text-base text-gray-900">OOPrompt</div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI Model:</div>
-          <select 
-            value={selectedLLM === 'openai' ? 'GPT-4.1' : selectedLLM === 'gemini' ? 'Gemini' : 'Claude'}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === 'GPT-4.1') setSelectedLLM('openai');
-              else if (value === 'Gemini') setSelectedLLM('gemini');
-              else if (value === 'Claude') setSelectedLLM('claude');
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setShowSettingsModal(true);
+              // Load current API key when opening settings
+              const key = llmService.getCurrentApiKey();
+              // Only show the key if it's a custom one (not the default)
+              if (llmService.hasCustomApiKey()) {
+                setCurrentApiKey(key);
+              } else {
+                setCurrentApiKey("");
+              }
             }}
-            className="border border-gray-200 rounded-xl px-2 sm:px-3 lg:px-4 py-2 bg-white text-gray-900 text-xs sm:text-sm shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
+            className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+            title="Settings"
+            aria-label="Settings"
           >
-            <option>GPT-4.1</option>
-            <option>Gemini</option>
-            <option>Claude</option>
-          </select>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
+              setShowWelcome(true);
+              setTutorialPage(1);
+            }}
+            className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+            title="Show tutorial"
+            aria-label="Show tutorial"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
         </div>
       </header>
 
-      {/* Main content: chat panel with left sidebar */}
-      <div className="flex-1 relative h-full pt-16 flex flex-col lg:flex-row">
-        {/* Object Panel - Responsive left sidebar */}
-        <ObjectPanel
-          objects={state.promptObjects}
-          selectedObjectId={state.currentObjectId}
-          onSelectObject={(objectId) => {
-            console.log('Loading prompt object:', objectId);
-            const obj = state.promptObjects.find(obj => obj.id === objectId);
-            if (obj) {
-              handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
-            }
-          }}
-          onDeleteObject={(objectId) => {
-            console.log('Deleting prompt object:', objectId);
-            dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
-          }}
-          onOpenOOPPanel={() => dispatch({ type: "TOGGLE_PANEL", open: true })}
-        />
-
-        {/* Chat Panel - Takes remaining width */}
-        <div className="flex-1 min-w-0">
-          <ChatPanel 
-            onSend={(msg) => console.log('Chat message:', msg)}
-            onExtractProperties={(oopObject) => {
-              dispatch({ type: "SET_OOP", payload: oopObject });
-              dispatch({ type: "TOGGLE_PANEL", open: true });
-            }}
-            messageFromOOP={messageFromOOP}
-            selectedLLM={selectedLLM}
-            onMessageProcessed={() => setMessageFromOOP(null)}
-          />
-        </div>
-        
-
-
-
-
-        {/* Floating OOP panel overlay */}
-        {state.openPanel && (
+      {/* Main content area */}
+      <div className="flex-1 relative h-full pt-14 flex flex-col lg:flex-row overflow-hidden">
+        {state.openPanel ? (
           <>
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
-            />
+            {/* Object Panel - Sidebar when editing (25% width) */}
+            <div className="hidden lg:block lg:w-1/4 lg:border-r lg:border-gray-200 lg:bg-white lg:overflow-y-auto">
+              <ObjectPanel
+                objects={state.promptObjects}
+                selectedObjectId={state.currentObjectId}
+                onSelectObject={(objectId) => {
+                  console.log('Loading prompt object:', objectId);
+                  const obj = state.promptObjects.find(obj => obj.id === objectId);
+                  if (obj) {
+                    handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
+                  }
+                }}
+                onDeleteObject={(objectId) => {
+                  console.log('Deleting prompt object:', objectId);
+                  dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+                }}
+                onOpenOOPPanel={() => setShowNewPromptModal(true)}
+                onOpenPanel={() => {
+                  // Panel is already open when editing, so this is a no-op
+                }}
+              />
+            </div>
             
-            {/* Panel - responsive positioning */}
-            <div className="fixed top-0 right-0 bottom-0 z-50 h-screen w-full lg:w-auto lg:max-w-4xl">
+            {/* OOP Panel - Main content area when editing (75% width) */}
+            <div className="flex-1 min-w-0 bg-white overflow-hidden">
               <OOPromptPanel 
                 state={state} 
                 dispatch={dispatch} 
@@ -641,6 +653,30 @@ export default function App() {
               />
             </div>
           </>
+        ) : (
+          /* Object Panel - Main view when no object is open (full width) */
+          <div className="flex-1 w-full overflow-y-auto">
+            <ObjectPanel
+              objects={state.promptObjects}
+              selectedObjectId={state.currentObjectId}
+              onSelectObject={(objectId) => {
+                console.log('Loading prompt object:', objectId);
+                const obj = state.promptObjects.find(obj => obj.id === objectId);
+                if (obj) {
+                  handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
+                }
+              }}
+              onDeleteObject={(objectId) => {
+                console.log('Deleting prompt object:', objectId);
+                dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+              }}
+              onOpenOOPPanel={() => setShowNewPromptModal(true)}
+              onOpenPanel={() => {
+                // Open the OOP panel to show the selected object
+                dispatch({ type: "TOGGLE_PANEL", open: true });
+              }}
+            />
+          </div>
         )}
 
         {/* Edge handle to open panel when closed */}
@@ -676,6 +712,42 @@ export default function App() {
           message={errorPopup.message}
           onClose={() => setErrorPopup({ isOpen: false, title: "", message: "" })}
           autoCloseMs={5000}
+        />
+
+        {/* New Prompt Modal */}
+        <NewPromptModal
+          isOpen={showNewPromptModal}
+          onClose={() => setShowNewPromptModal(false)}
+          onExtract={(oopObject) => {
+            console.log('=== Setting extracted OOP object ===');
+            console.log('Extracted object:', oopObject);
+            
+            // Set the extracted object as the current OOP object
+            dispatch({ type: "SET_OOP", payload: oopObject });
+            
+            // Open the OOP panel to show the extracted properties
+            dispatch({ type: "TOGGLE_PANEL", open: true });
+            
+            // Close the modal
+            setShowNewPromptModal(false);
+          }}
+          onError={showError}
+        />
+
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          onSave={async (apiKey) => {
+            await llmService.setCustomApiKey(apiKey);
+            // Update current API key state
+            if (llmService.hasCustomApiKey()) {
+              setCurrentApiKey(llmService.getCurrentApiKey());
+            } else {
+              setCurrentApiKey("");
+            }
+          }}
+          currentApiKey={currentApiKey}
         />
       </div>
     </div>

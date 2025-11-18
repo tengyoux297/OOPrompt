@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
 import type { Action as PropertyAction, OOPromptObject, Property, Suggestion, Conflict } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
@@ -6,7 +6,6 @@ import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
 import { ObjectModifierModal } from "./ObjectModifierModal";
 import { SuggestionsBanner } from "./SuggestionsBanner";
-import { BookmarkHandle } from "./BookmarkHandle";
 // import { suggest } from "../api"; // Deprecated - now using ObjectModifierModal
 import { llmService } from "../services/llmService";
 import type { FileAttachment } from "../services/llmService";
@@ -338,6 +337,7 @@ export function OOPromptPanel({
   const [sortBy, setSortBy] = useState<"none" | "action" | "name" | "time">("none");
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
+  const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
   
   // Local state for main task and audience inputs to make them controlled
   const [mainTask, setMainTask] = useState(oop.main_task || "");
@@ -362,52 +362,45 @@ export function OOPromptPanel({
   });
 
   // Sort properties based on user selection
-  const sorted = [...filtered].sort((a: Property, b: Property) => {
-    console.log(`Sorting: ${sortBy}, comparing properties:`, { a: a.name, b: b.name, aAction: a.action, bAction: b.action });
-    
+  // Use useMemo to avoid minification issues and improve performance
+  const sorted = useMemo(() => {
     if (sortBy === "none") {
-      console.log('No sorting applied');
-      return 0; // No sorting, maintain original order
+      return filtered;
     }
     
     try {
+      const sortedArray = [...filtered];
+      
       if (sortBy === "action") {
-        const actionOrderA = getActionOrder(a.action);
-        const actionOrderB = getActionOrder(b.action);
-        const actionOrder = actionOrderA - actionOrderB;
-        console.log(`Action sorting: ${a.action}(${actionOrderA}) vs ${b.action}(${actionOrderB}) = ${actionOrder}`);
-        
-        if (actionOrder !== 0) return actionOrder;
-        
-        // Fallback to time if action order is the same
-        const timeA = a.updatedAt ?? a.createdAt ?? 0;
-        const timeB = b.updatedAt ?? b.createdAt ?? 0;
-        const timeOrder = timeB - timeA;
-        console.log(`Time fallback: ${timeA} vs ${timeB} = ${timeOrder}`);
-        return timeOrder;
+        sortedArray.sort((propA: Property, propB: Property) => {
+          const orderA = getActionOrder(propA.action);
+          const orderB = getActionOrder(propB.action);
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          // Fallback to time if action order is the same
+          const timeA = propA.updatedAt ?? propA.createdAt ?? 0;
+          const timeB = propB.updatedAt ?? propB.createdAt ?? 0;
+          return timeB - timeA;
+        });
+      } else if (sortBy === "name") {
+        sortedArray.sort((propA: Property, propB: Property) => {
+          return propA.name.localeCompare(propB.name);
+        });
+      } else if (sortBy === "time") {
+        sortedArray.sort((propA: Property, propB: Property) => {
+          const timeA = propA.createdAt ?? propA.updatedAt ?? 0;
+          const timeB = propB.createdAt ?? propB.updatedAt ?? 0;
+          return timeB - timeA;
+        });
       }
       
-      if (sortBy === "name") {
-        const nameOrder = a.name.localeCompare(b.name);
-        console.log(`Name sorting: "${a.name}" vs "${b.name}" = ${nameOrder}`);
-        return nameOrder;
-      }
-      
-      if (sortBy === "time") {
-        const timeA = a.createdAt ?? a.updatedAt ?? 0;
-        const timeB = b.createdAt ?? b.updatedAt ?? 0;
-        const timeOrder = timeB - timeA;
-        console.log(`Time sorting: ${timeA} vs ${timeB} = ${timeOrder}`);
-        return timeOrder;
-      }
+      return sortedArray;
     } catch (error) {
-      console.error('Error during sorting:', error, { a, b, sortBy });
-      return 0; // Fallback to no sorting on error
+      console.error('Error during sorting:', error);
+      return filtered; // Fallback to unsorted on error
     }
-    
-    console.log('No sorting condition matched, returning 0');
-    return 0;
-  });
+  }, [filtered, sortBy]);
 
   // Debug: Log current state whenever it changes
   useEffect(() => {
@@ -562,60 +555,56 @@ export function OOPromptPanel({
   }
   
   return (
-    <>
-      <aside className="panel-shell panel-float max-w-[50vw] w-full h-full z-50" style={{ width: "var(--panel-w)" }}>
-        {/* Bookmark handle for closing panel */}
-        <BookmarkHandle
-          isOpen={true}
-          position="right"
-          onToggle={() => dispatch({ type: "TOGGLE_PANEL", open: false })}
-        />
-      
+    <div className="h-full w-full flex flex-col bg-white">
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
-      {/* Header with Brief (main_task / audience) */}
-        <div className="panel-chrome p-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold text-text-onLight">OOPrompt</div>
-
+        {/* Header Section */}
+        <div className="panel-chrome p-4 flex-shrink-0 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-base text-gray-900">Edit Prompt</h2>
+            <button
+              onClick={() => {
+                dispatch({ type: "TOGGLE_PANEL", open: false });
+                dispatch({ type: "SELECT_PROPERTY", id: undefined });
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+              aria-label="Back to library"
+              title="Back to library"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Main Task</label>
+              <input
+                className="input text-sm"
+                placeholder="What do you want to accomplish?"
+                value={mainTask}
+                onChange={(e) => setMainTask(e.target.value)}
+                onBlur={(e) => {
+                  const next: OOPromptObject = { ...oop, main_task: e.target.value };
+                  dispatch({ type: "SET_OOP", payload: next });
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Audience</label>
+              <input
+                className="input text-sm"
+                placeholder="Who is this for?"
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
+                onBlur={(e) => {
+                  const next: OOPromptObject = { ...oop, audience: e.target.value };
+                  dispatch({ type: "SET_OOP", payload: next });
+                }}
+              />
+            </div>
+          </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <input
-              className="input"
-            placeholder="Main task"
-              value={mainTask}
-              onChange={(e) => setMainTask(e.target.value)}
-            onBlur={(e) => {
-              const next: OOPromptObject = { ...oop, main_task: e.target.value };
-              dispatch({ type: "SET_OOP", payload: next });
-                
-                // Debug: Log current state after updating main task
-                setTimeout(() => {
-                  console.log('=== Current JSON Object After Updating Main Task ===');
-                  console.log(JSON.stringify(next, null, 2));
-                  console.log('==================================================');
-                }, 100);
-            }}
-          />
-          <input
-              className="input"
-            placeholder="Audience"
-              value={audience}
-              onChange={(e) => setAudience(e.target.value)}
-            onBlur={(e) => {
-              const next: OOPromptObject = { ...oop, audience: e.target.value };
-              dispatch({ type: "SET_OOP", payload: next });
-                
-                // Debug: Log current state after updating audience
-                setTimeout(() => {
-                  console.log('=== Current JSON Object After Updating Audience ===');
-                  console.log(JSON.stringify(next, null, 2));
-                  console.log('==================================================');
-                }, 100);
-            }}
-          />
-        </div>
-      </div>
 
       {/* Suggestions Banner */}
       <SuggestionsBanner
@@ -628,59 +617,47 @@ export function OOPromptPanel({
         onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
       />
 
-      {/* Toolbar */}
-        <div className="panel-chrome p-3 flex gap-2 items-center flex-shrink-0">
-        <button 
-            className="btn-primary w-10 h-10 flex items-center justify-center"
-          onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
+        {/* Toolbar */}
+        <div className="panel-chrome px-4 py-3 flex gap-2 items-center flex-shrink-0 border-b border-gray-200 bg-gray-50/50">
+          <button 
+            className="btn-primary px-4 py-2 text-sm font-medium flex items-center gap-2"
+            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
             title="Add Property"
           >
-            <span className="text-lg font-bold">+</span>
+            <span className="text-lg leading-none">+</span>
+            <span>Add Property</span>
           </button>
-          <button 
-            className="btn-ghost w-10 h-10 flex items-center justify-center"
-            onClick={cycleSort}
-            title={`Current: ${sortBy === "none" ? "No Sorting" : sortBy === "action" ? "Sorting by Action" : sortBy === "name" ? "Sorting by Name" : "Sorting by Time"} | Click to cycle through options`}
-          >
-            <span className="text-sm">
+          <div className="flex gap-1 ml-auto">
+            <button 
+              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
+              onClick={cycleSort}
+              title={`Sort: ${sortBy === "none" ? "None" : sortBy === "action" ? "Action" : sortBy === "name" ? "Name" : "Time"}`}
+            >
               {sortBy === "none" && "🔀"}
               {sortBy === "action" && "‼️"}
               {sortBy === "name" && "🆎"}
               {sortBy === "time" && "⌛"}
-            </span>
-          </button>
-          <button 
-            className="btn-tonal w-10 h-10 flex items-center justify-center"
-            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
-            title="AI Object Analysis"
-          >
-            <span className="text-sm">💡</span>
-          </button>
-          <button 
-            className="btn-tonal w-10 h-10 flex items-center justify-center"
-            onClick={() => {
-              console.log('=== Saving Current OOP Object ===');
-              console.log('Current OOP object:', oop);
-              dispatch({ type: "SAVE_PROMPT_OBJECT", payload: oop });
-              console.log('=== OOP Object Saved ===');
-            }}
-            title="Save Object"
-          >
-            <span className="text-sm">💾</span>
-        </button>
-        <input 
-            className="input flex-1 h-10" 
-          placeholder="Search properties…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+            </button>
+            <button 
+              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
+              onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
+              title="AI Analysis"
+            >
+              💡
+            </button>
+          </div>
+          <input 
+            className="input flex-1 max-w-xs h-9 text-sm" 
+            placeholder="Search properties…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
         {/* Properties area with scrollbar */}
-        <div className="flex-1 min-h-0">
-          <div className="h-full overflow-y-auto">
-            <div className="p-4">
-              <div className="grid gap-4 grid-cols-1">
+        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/30">
+          <div className="p-4">
+            <div className="space-y-3">
                 {sorted.map((p: Property) => {
                   try {
                     if (!p || !p.id || !p.name) {
@@ -714,16 +691,21 @@ export function OOPromptPanel({
                     return null;
                   }
                 })}
-            </div>
+              {sorted.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="text-4xl mb-3">📝</div>
+                  <p className="text-sm">No properties yet. Click "Add Property" to get started.</p>
+                </div>
+              )}
             </div>
           </div>
-      </div>
+        </div>
 
-        {/* Save and Send buttons area - separate block */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-t border-divider space-y-3">
+        {/* Action buttons area */}
+        <div className="panel-chrome p-4 flex-shrink-0 border-t border-gray-200 bg-white space-y-3">
           {/* Save button */}
-        <button 
-            className="w-full py-2 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-colors text-sm font-medium"
+          <button 
+            className="w-full py-2.5 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm"
             onClick={() => {
               console.log('=== Save Button Clicked ===');
               console.log('Saving current OOP object:', oop);
@@ -761,26 +743,121 @@ export function OOPromptPanel({
           
           {/* Status notifications */}
           {isSending && (
-            <div className="flex items-center justify-center gap-2 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
-              <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
-              {sendStatus === 'building' ? (
-                <span>Building prompt…</span>
-              ) : (
-                <span>Sending to {selectedLLM.toUpperCase()}…</span>
+            <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm font-medium">
+              <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
+              <span>Building prompt…</span>
+            </div>
+          )}
+          
+          {/* Built prompt display */}
+          {builtPrompt && !isSending && (
+            <div className="space-y-3">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                  <span className="text-green-800 font-semibold text-sm">Prompt Built Successfully</span>
+                </div>
+                <div className="bg-white rounded-lg border border-green-200 p-3 max-h-40 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
+                  {builtPrompt}
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    // Get the current active tab
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (!tab.id) {
+                      throw new Error('No active tab found');
+                    }
+                    
+                    // Check if content script is injected, if not, inject it first
+                    let scriptInjected = false;
+                    try {
+                      const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
+                      if (pingResponse && pingResponse.loaded) {
+                        scriptInjected = true;
+                      }
+                    } catch (pingError) {
+                      // Content script not injected, try to inject it
+                      console.log('Content script not found, attempting to inject...');
+                      try {
+                        // Get the actual content script file name from manifest
+                        const manifest = chrome.runtime.getManifest();
+                        const contentScripts = manifest.content_scripts?.[0]?.js;
+                        if (contentScripts && contentScripts.length > 0) {
+                          // The content script should already be injected via manifest
+                          // But if not, we'll use clipboard fallback
+                          console.log('Content script should be auto-injected via manifest');
+                        }
+                      } catch (injectError) {
+                        console.log('Script injection check failed:', injectError);
+                      }
+                    }
+                    
+                    // Wait a bit for script to initialize if we just injected
+                    if (!scriptInjected) {
+                      await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    
+                    // Send the prompt to the content script
+                    try {
+                      await chrome.tabs.sendMessage(tab.id, {
+                        type: 'INJECT_PROMPT',
+                        prompt: builtPrompt
+                      });
+                      
+                      // Show success
+                      setShowSuccess(true);
+                      setTimeout(() => {
+                        setShowSuccess(false);
+                        setBuiltPrompt(null);
+                      }, 2000);
+                    } catch (sendError) {
+                      // If sending fails, fallback to clipboard
+                      navigator.clipboard.writeText(builtPrompt).then(() => {
+                        if (onError) {
+                          onError('Copied to Clipboard', 'Prompt copied to clipboard. Please paste it into the input field manually.');
+                        }
+                      }).catch(() => {
+                        if (onError) {
+                          onError('Output Failed', 'Could not output prompt. Please copy it manually from the preview above.');
+                        }
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Failed to output prompt:', error);
+                    // Fallback to clipboard
+                    try {
+                      await navigator.clipboard.writeText(builtPrompt);
+                      if (onError) {
+                        onError('Copied to Clipboard', 'Prompt copied to clipboard. Please paste it into the input field manually.');
+                      }
+                    } catch (clipboardError) {
+                      if (onError) {
+                        onError('Output Failed', 'Could not output prompt. Please copy it manually from the preview above.');
+                      }
+                    }
+                  }
+                }}
+                className="btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
+              >
+                <span className="mr-2">📤</span>
+                Output to Current Web Page
+              </button>
+              {showSuccess && (
+                <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-green-50 border border-green-300 rounded-lg text-green-700 text-sm font-medium">
+                  <span className="text-green-600">✓</span>
+                  <span>Prompt outputted to web page!</span>
+                </div>
               )}
             </div>
           )}
           
-          {showSuccess && (
-            <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              <span className="text-green-600">✓</span>
-              <span>Prompt sent successfully! Closing panel...</span>
-            </div>
-          )}
-          
-          {/* Send button */}
-        <button 
-            className={`btn-primary w-full py-3 text-base font-medium ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
+          {/* Build Prompt button */}
+          <button 
+            className={`btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
               if (isSending) return; // Prevent multiple clicks
               
@@ -870,69 +947,22 @@ export function OOPromptPanel({
                 };
                 console.log('Sending to PROMPT_BUILDER with resolved embedded objects:', promptData);
                 
-                // Step 2: Send to PROMPT_BUILDER assistant
+                // Step 2: Build the prompt (no API call)
                 console.log('Building prompt with PROMPT_BUILDER assistant...');
-                const builtPrompt = await llmService.buildPromptWithAssistant(promptData);
-                console.log('Built prompt:', builtPrompt);
+                const prompt = await llmService.buildPromptWithAssistant(promptData);
+                console.log('Built prompt:', prompt);
                 
-                // Step 3: Send the built prompt to LLM API
-                console.log('Sending built prompt to LLM API...');
-                setSendStatus('sending');
+                // Store the built prompt
+                setBuiltPrompt(prompt);
                 
                 // Console output: Final Prompt
                 console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
-                console.log('║                                  FINAL PROMPT SENT TO LLM                         ║');
+                console.log('║                                  FINAL PROMPT BUILT                               ║');
                 console.log('╚════════════════════════════════════════════════════════════════════════════════════╝');
-                console.log(builtPrompt);
+                console.log(prompt);
                 console.log('═══════════════════════════════════════════════════════════════════════════════════════');
                 
-                // Extract file attachments from properties with property context
-                const fileAttachments: FileAttachment[] = [];
-                propertiesWithFiles.forEach(prop => {
-                  if (prop.fileData) {
-                    fileAttachments.push({
-                      fileName: prop.fileData.fileName,
-                      fileType: prop.fileData.fileType,
-                      fileSize: prop.fileData.fileSize,
-                      data: prop.fileData.data,
-                      propertyName: prop.name,  // Include property name for association
-                      propertyId: prop.id       // Include property ID for precise tracking
-                    });
-                  }
-                });
-
-                console.log('=== File Attachments Found ===');
-                console.log('Total files:', fileAttachments.length);
-                fileAttachments.forEach((file, index) => {
-                  console.log(`File ${index + 1}: "${file.fileName}" (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)} KB) → Property: "${file.propertyName}" (ID: ${file.propertyId})`);
-                });
-                console.log('=============================');
-
-                const llmResponse = await llmService.chat([
-                  { role: 'user', content: builtPrompt }
-                ], selectedLLM, fileAttachments);
-                console.log('LLM response:', llmResponse);
-                
-                // Step 4: Send the prompt summary and LLM response to chat panel
-                if (onSendMessage) {
-                  // Send a summary of what was sent with meaningful information
-                  let promptSummary;
-                  if (oop.main_task && oop.main_task.trim()) {
-                    promptSummary = `📝 OOPrompt: ${oop.main_task}`;
-                  } else if (oop.properties.length > 0) {
-                    const propertyCount = oop.properties.length;
-                    promptSummary = `📝 OOPrompt: ${oop.name || 'Task'} with ${propertyCount} property${propertyCount !== 1 ? 's' : ''}`;
-                  } else {
-                    promptSummary = `📝 OOPrompt: ${oop.name || 'New Task'}`;
-                  }
-                  onSendMessage(promptSummary);
-                  // Send the LLM response (AI side)
-                  onSendMessage(`🤖 AI Response: ${llmResponse.content}`);
-                }
-                
-                console.log('=== Send Process Completed ===');
-                
-                // Step 5: Auto-save the current OOP object before hiding
+                // Auto-save the current OOP object
                 const objectToSave = {
                   ...oop,
                   id: oop.id === 'root' ? `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : oop.id,
@@ -942,14 +972,7 @@ export function OOPromptPanel({
                 };
                 console.log('Auto-saving object with ID:', objectToSave.id);
                 dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
-                console.log('=== OOP Object Auto-Saved After Send ===');
-                
-                // Step 6: Show success notification briefly before hiding
-                setShowSuccess(true);
-                setTimeout(() => {
-                  setShowSuccess(false);
-                  dispatch({ type: "TOGGLE_PANEL", open: false });
-                }, 1500);
+                console.log('=== OOP Object Auto-Saved ===');
                 
               } catch (error) {
                 console.error('Send process failed:', error);
@@ -988,10 +1011,10 @@ export function OOPromptPanel({
             {isSending ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Processing...</span>
+                <span>Building...</span>
               </div>
             ) : (
-              'Send'
+              'Build Prompt'
             )}
         </button>
         </div>
@@ -1104,9 +1127,8 @@ export function OOPromptPanel({
           }
         }}
         onError={onError}
-              />
-      </aside>
-    </>
+      />
+    </div>
   );
 }
 

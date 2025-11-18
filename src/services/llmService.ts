@@ -59,8 +59,8 @@ class LLMService {
   private pendingRequests = new Map<string, Promise<any>>();
 
   constructor() {
-    // Try VITE_ prefixed keys first, then fallback to non-prefixed
-    this.openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
+    // Get default API keys from environment
+    const defaultOpenaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
     this.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || '';
     this.claudeApiKey = import.meta.env.VITE_CLAUDE_API_KEY || import.meta.env.CLAUDE_API_KEY || '';
     
@@ -75,6 +75,12 @@ class LLMService {
     // Get the RESPONDER assistant ID
     this.responderId = import.meta.env.VITE_RESPONDER || import.meta.env.RESPONDER || '';
     
+    // Initialize with default key, will be updated from storage if available
+    this.openaiApiKey = defaultOpenaiApiKey;
+    
+    // Load custom API key from storage
+    this.loadCustomApiKey();
+    
     // Debug logging for API keys
     console.log('LLM Service initialized with API keys:');
     console.log('OpenAI:', !!this.openaiApiKey);
@@ -85,6 +91,97 @@ class LLMService {
     console.log('PROMPT_BUILDER:', !!this.promptBuilderId);
     console.log('EXAMPLE_GENERATOR:', !!this.exampleGeneratorId);
     console.log('RESPONDER:', !!this.responderId);
+  }
+
+  private async loadCustomApiKey(): Promise<void> {
+    try {
+      // Try chrome.storage first (for extension)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const result = await chrome.storage.local.get('customOpenaiApiKey');
+        if (result.customOpenaiApiKey) {
+          this.openaiApiKey = result.customOpenaiApiKey;
+          console.log('Loaded custom OpenAI API key from chrome.storage');
+          return;
+        }
+      }
+      
+      // Fallback to localStorage (for web) - synchronous
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem('customOpenaiApiKey');
+        if (stored) {
+          this.openaiApiKey = stored;
+          console.log('Loaded custom OpenAI API key from localStorage');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load custom API key:', error);
+    }
+  }
+
+  // Ensure API key is loaded before making requests
+  private async ensureApiKeyLoaded(): Promise<void> {
+    // If we're using chrome.storage, make sure it's loaded
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      // Check if we've already loaded (by checking if key differs from default)
+      const defaultKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
+      if (this.openaiApiKey === defaultKey) {
+        // Might not be loaded yet, try loading
+        await this.loadCustomApiKey();
+      }
+    }
+  }
+
+  async setCustomApiKey(apiKey: string): Promise<void> {
+    const defaultKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
+    
+    // If empty, use default and remove custom key
+    if (!apiKey.trim()) {
+      this.openaiApiKey = defaultKey;
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          await chrome.storage.local.remove('customOpenaiApiKey');
+        } else if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem('customOpenaiApiKey');
+        }
+        console.log('Reset to default OpenAI API key');
+      } catch (error) {
+        console.error('Failed to remove custom API key:', error);
+      }
+      return;
+    }
+
+    // Validate API key format
+    if (!apiKey.trim().startsWith('sk-') || apiKey.trim().length < 20) {
+      throw new Error('Invalid API key format. OpenAI API keys should start with "sk-" and be at least 20 characters long.');
+    }
+
+    // Save custom key
+    this.openaiApiKey = apiKey.trim();
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ customOpenaiApiKey: apiKey.trim() });
+        console.log('Saved custom OpenAI API key to chrome.storage');
+      } else if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('customOpenaiApiKey', apiKey.trim());
+        console.log('Saved custom OpenAI API key to localStorage');
+      }
+    } catch (error) {
+      console.error('Failed to save custom API key:', error);
+      throw new Error('Failed to save API key');
+    }
+  }
+
+  getCurrentApiKey(): string {
+    return this.openaiApiKey;
+  }
+
+  getDefaultApiKey(): string {
+    return import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
+  }
+
+  hasCustomApiKey(): boolean {
+    const defaultKey = this.getDefaultApiKey();
+    return this.openaiApiKey !== defaultKey && this.openaiApiKey !== '';
   }
 
   private getCacheKey(method: string, ...args: any[]): string {
@@ -598,6 +695,7 @@ class LLMService {
 
   // Property extraction using OpenAI Assistant
   async extractPropertiesWithAssistant(prompt: string): Promise<OOPObjectData> {
+    await this.ensureApiKeyLoaded();
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -777,6 +875,7 @@ class LLMService {
 
   // Build prompt using PROMPT_BUILDER assistant
   async buildPromptWithAssistant(oopObject: OOPObjectData): Promise<string> {
+    await this.ensureApiKeyLoaded();
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -1185,6 +1284,7 @@ Remember to:
     requestType: "conflict_check" | "more_possible_properties" | "modify_language",
     cursor?: string
   ): Promise<ObjectModifierEnvelope> {
+    await this.ensureApiKeyLoaded();
     if (!this.openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
