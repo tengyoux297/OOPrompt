@@ -218,7 +218,7 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                    </div>
                  );
                })}
-                          </div>
+             </div>
            </div>
          </aside>
 

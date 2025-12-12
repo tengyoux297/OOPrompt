@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Property, Action, OOPromptObject } from "../types";
+import type { Property, Emphasis, OOPromptObject } from "../types";
 import { llmService } from "../services/llmService";
 
 type Props = {
@@ -14,7 +14,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
   const [mode, setMode] = useState<"structured" | "unstructured">("structured");
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
-  const [action, setAction] = useState<Action>("normal");
+  const [action, setAction] = useState<Emphasis>("normal");
   const [unstructuredText, setUnstructuredText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -158,21 +158,34 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Action</label>
-              <div className="flex border border-gray-200 rounded-xl overflow-hidden">
-                {(["highlight", "normal", "avoid"] as const).map((imp) => (
-                  <button
-                    key={imp}
-                    onClick={() => setAction(imp)}
-                    className={`flex-1 px-3 py-3 text-sm capitalize transition-colors ${
-                      action === imp
-                        ? "modal-selected"
-                        : "modal-unselected"
-                    }`}
-                  >
-                    {imp}
-                  </button>
-                ))}
+              <label className="block text-sm font-medium mb-2 text-gray-700">Emphasis</label>
+              <div className="space-y-2">
+                {(["normal", "highlight", "avoid"] as const).map((option) => {
+                  const displayLabel = option === "highlight" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
+                  const isSelected = action === option;
+                  return (
+                    <label
+                      key={option}
+                      className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
+                        isSelected
+                          ? "bg-blue-50 border-blue-300"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="emphasis-new"
+                        value={option}
+                        checked={isSelected}
+                        onChange={() => setAction(option)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className={`text-sm ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>
+                        {displayLabel}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">

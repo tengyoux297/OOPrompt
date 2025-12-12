@@ -544,43 +544,43 @@ export default function App() {
           
           {/* OOPrompt Title - Centered */}
           <div className="flex-1 flex justify-center">
-            <div className="font-semibold text-base text-gray-900">OOPrompt</div>
-          </div>
+          <div className="font-semibold text-base text-gray-900">OOPrompt</div>
+        </div>
           
           {/* Settings and Help buttons */}
           <div className="flex items-center gap-2 ml-2">
-            <button
-              onClick={() => {
-                setShowSettingsModal(true);
-                const key = llmService.getCurrentApiKey();
-                if (llmService.hasCustomApiKey()) {
-                  setCurrentApiKey(key);
-                } else {
-                  setCurrentApiKey("");
-                }
-              }}
-              className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
-              title="Settings"
-              aria-label="Settings"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => {
-                setShowWelcome(true);
-                setTutorialPage(1);
-              }}
-              className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
-              title="Show tutorial"
-              aria-label="Show tutorial"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
+          <button
+            onClick={() => {
+              setShowSettingsModal(true);
+              const key = llmService.getCurrentApiKey();
+              if (llmService.hasCustomApiKey()) {
+                setCurrentApiKey(key);
+              } else {
+                setCurrentApiKey("");
+              }
+            }}
+            className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+            title="Settings"
+            aria-label="Settings"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
+              setShowWelcome(true);
+              setTutorialPage(1);
+            }}
+            className="text-gray-500 hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+            title="Show tutorial"
+            aria-label="Show tutorial"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           </div>
         </div>
       </header>
@@ -589,83 +589,6 @@ export default function App() {
       <div className="flex-1 relative h-full pt-14 flex flex-row overflow-hidden">
         {/* History Panel - Left Sidebar (foldable) */}
         <HistoryPanel
-          objects={state.promptObjects}
-          selectedObjectId={state.currentObjectId}
-          onSelectObject={(objectId) => {
-            console.log('Loading prompt object:', objectId);
-            const obj = state.promptObjects.find(obj => obj.id === objectId);
-            if (obj) {
-              handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
-              // Open the OOP panel when selecting an object
-              dispatch({ type: "TOGGLE_PANEL", open: true });
-            }
-          }}
-          onDeleteObject={(objectId) => {
-            console.log('Deleting prompt object:', objectId);
-            dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
-          }}
-          isOpen={state.objectPanelOpen}
-          onToggle={() => dispatch({ type: "TOGGLE_OBJECT_PANEL", open: !state.objectPanelOpen })}
-        />
-
-        {/* Main Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          {state.openPanel && state.oop.main_task && state.oop.main_task.trim() ? (
-            /* OOP Panel - Main content area when editing */
-            <OOPromptPanel 
-              state={state} 
-              dispatch={dispatch} 
-              selectedLLM={selectedLLM}
-              onError={showError}
-              onSendMessage={(message) => {
-                console.log('Message from OOP panel:', message);
-                setMessageQueue(prev => {
-                  const newQueue = [...prev, message];
-                  console.log('Updated message queue:', newQueue);
-                  return newQueue;
-                });
-              }}
-              onCreateEmbeddedObject={(propertyId, parentObjectId) => {
-                if (state.hasUnsavedChanges) {
-                  setSaveConfirmation({
-                    isOpen: true,
-                    actionDescription: "creating an embedded object",
-                    onConfirm: () => {
-                      dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
-                      dispatch({ type: "CLOSE_MODAL" });
-                      dispatch({ type: "TOGGLE_PANEL", open: true });
-                      setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
-                    }
-                  });
-                } else {
-                  dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
-                  dispatch({ type: "CLOSE_MODAL" });
-                  dispatch({ type: "TOGGLE_PANEL", open: true });
-                }
-              }}
-              onEmbedExistingObject={(propertyId, objectId, objectName) => {
-                if (state.hasUnsavedChanges) {
-                  setSaveConfirmation({
-                    isOpen: true,
-                    actionDescription: `embedding "${objectName}"`,
-                    onConfirm: () => {
-                      dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
-                      dispatch({ type: "CLOSE_MODAL" });
-                      dispatch({ type: "TOGGLE_PANEL", open: true });
-                      setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
-                    }
-                  });
-                } else {
-                  dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
-                  dispatch({ type: "CLOSE_MODAL" });
-                  dispatch({ type: "TOGGLE_PANEL", open: true });
-                }
-              }}
-            />
-          ) : (
-            /* Object Panel - Main view when no object is open */
-            <div className="flex-1 w-full overflow-y-auto">
-              <ObjectPanel
                 objects={state.promptObjects}
                 selectedObjectId={state.currentObjectId}
                 onSelectObject={(objectId) => {
@@ -673,22 +596,99 @@ export default function App() {
                   const obj = state.promptObjects.find(obj => obj.id === objectId);
                   if (obj) {
                     handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
-                    // Open the OOP panel to show the selected object
-                    dispatch({ type: "TOGGLE_PANEL", open: true });
+              // Open the OOP panel when selecting an object
+              dispatch({ type: "TOGGLE_PANEL", open: true });
                   }
                 }}
                 onDeleteObject={(objectId) => {
                   console.log('Deleting prompt object:', objectId);
                   dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
                 }}
-                onOpenOOPPanel={() => setShowNewPromptModal(true)}
-                onOpenPanel={() => {
-                  // Open the OOP panel to show the selected object
-                  dispatch({ type: "TOGGLE_PANEL", open: true });
+          isOpen={state.objectPanelOpen}
+          onToggle={() => dispatch({ type: "TOGGLE_OBJECT_PANEL", open: !state.objectPanelOpen })}
+              />
+            
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {state.openPanel && state.oop.main_task && state.oop.main_task.trim() ? (
+            /* OOP Panel - Main content area when editing */
+              <OOPromptPanel 
+                state={state} 
+                dispatch={dispatch} 
+                selectedLLM={selectedLLM}
+                onError={showError}
+                onSendMessage={(message) => {
+                  console.log('Message from OOP panel:', message);
+                  setMessageQueue(prev => {
+                    const newQueue = [...prev, message];
+                    console.log('Updated message queue:', newQueue);
+                    return newQueue;
+                  });
+                }}
+                onCreateEmbeddedObject={(propertyId, parentObjectId) => {
+                  if (state.hasUnsavedChanges) {
+                    setSaveConfirmation({
+                      isOpen: true,
+                      actionDescription: "creating an embedded object",
+                      onConfirm: () => {
+                        dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
+                        dispatch({ type: "CLOSE_MODAL" });
+                        dispatch({ type: "TOGGLE_PANEL", open: true });
+                        setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+                      }
+                    });
+                  } else {
+                    dispatch({ type: "CREATE_EMBEDDED_OBJECT", payload: { propertyId, parentObjectId } });
+                    dispatch({ type: "CLOSE_MODAL" });
+                    dispatch({ type: "TOGGLE_PANEL", open: true });
+                  }
+                }}
+                onEmbedExistingObject={(propertyId, objectId, objectName) => {
+                  if (state.hasUnsavedChanges) {
+                    setSaveConfirmation({
+                      isOpen: true,
+                      actionDescription: `embedding "${objectName}"`,
+                      onConfirm: () => {
+                        dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
+                        dispatch({ type: "CLOSE_MODAL" });
+                        dispatch({ type: "TOGGLE_PANEL", open: true });
+                        setSaveConfirmation({ isOpen: false, actionDescription: "", onConfirm: () => {} });
+                      }
+                    });
+                  } else {
+                    dispatch({ type: "EMBED_EXISTING_OBJECT", payload: { propertyId, objectId, objectName } });
+                    dispatch({ type: "CLOSE_MODAL" });
+                    dispatch({ type: "TOGGLE_PANEL", open: true });
+                  }
                 }}
               />
-            </div>
-          )}
+        ) : (
+            /* Object Panel - Main view when no object is open */
+          <div className="flex-1 w-full overflow-y-auto">
+            <ObjectPanel
+              objects={state.promptObjects}
+              selectedObjectId={state.currentObjectId}
+              onSelectObject={(objectId) => {
+                console.log('Loading prompt object:', objectId);
+                const obj = state.promptObjects.find(obj => obj.id === objectId);
+                if (obj) {
+                  handleObjectSwitch(obj, `switching to "${obj.name || obj.main_task || 'another object'}"`);
+                    // Open the OOP panel to show the selected object
+                    dispatch({ type: "TOGGLE_PANEL", open: true });
+                }
+              }}
+              onDeleteObject={(objectId) => {
+                console.log('Deleting prompt object:', objectId);
+                dispatch({ type: "DELETE_PROMPT_OBJECT", id: objectId });
+              }}
+              onOpenOOPPanel={() => setShowNewPromptModal(true)}
+              onOpenPanel={() => {
+                // Open the OOP panel to show the selected object
+                dispatch({ type: "TOGGLE_PANEL", open: true });
+              }}
+            />
+          </div>
+        )}
         </div>
 
         {/* Save Confirmation Modal */}

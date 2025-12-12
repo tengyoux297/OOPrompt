@@ -1,4 +1,4 @@
-export type Action = "avoid" | "normal" | "highlight";
+export type Emphasis = "avoid" | "normal" | "highlight";
 export type ValueRef = { refObjectId: string; refObjectName: string };
 
 export type FileReference = {
@@ -14,7 +14,7 @@ export type Property = {
   id: string;
   name: string;
   value: string | ValueRef;
-  action: Action;            // single-select via segmented control
+  action: Emphasis;            // single-select via segmented control
   examples?: string[];
   source?: "user" | "ai-suggested";
   fileReference?: FileReference;     // optional file attachment

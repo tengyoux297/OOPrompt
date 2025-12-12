@@ -4,7 +4,7 @@ import type {
   ConflictItem, 
   JsonPatchOp,
   Property,
-  Action
+  Emphasis
 } from "../types";
 import type { OOPromptObject } from "../types";
 
@@ -312,7 +312,7 @@ export function ObjectModifierModal({
                 id: `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 name: property.name,
                 value: property.valueTemplate?.placeholder || property.valueTemplate?.example || "Value to be filled",
-                action: "normal" as Action,
+                action: "normal" as Emphasis,
                 source: "ai-suggested",
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -465,7 +465,7 @@ export function ObjectModifierModal({
       <div className="space-y-4">
                       {grouped.errors.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-red-700 mb-2">🚨 Errors ({grouped.errors.length})</h4>
+                  <h4 className="text-xs font-semibold text-red-700 mb-1.5">🚨 Errors ({grouped.errors.length})</h4>
                   <div className="space-y-2">
                     {grouped.errors.map(conflict => (
                       <ConflictCard 
@@ -484,7 +484,7 @@ export function ObjectModifierModal({
         
         {grouped.warnings.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-yellow-700 mb-2">⚠️ Warnings ({grouped.warnings.length})</h4>
+            <h4 className="text-xs font-semibold text-yellow-700 mb-1.5">⚠️ Warnings ({grouped.warnings.length})</h4>
             <div className="space-y-2">
               {grouped.warnings.map(conflict => (
                 <ConflictCard 
@@ -503,7 +503,7 @@ export function ObjectModifierModal({
         
         {grouped.infos.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-blue-700 mb-2">ℹ️ Info ({grouped.infos.length})</h4>
+            <h4 className="text-xs font-semibold text-blue-700 mb-1.5">ℹ️ Info ({grouped.infos.length})</h4>
             <div className="space-y-2">
               {grouped.infos.map(conflict => (
                 <ConflictCard 
@@ -531,34 +531,30 @@ export function ObjectModifierModal({
         {envelope.suggestedProperties.map(property => (
                      <div 
              key={property.suggestionId}
-             className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+             className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
                selectedItems.has(property.suggestionId)
-                 ? "border-blue-500 bg-blue-50 shadow-md"
-                 : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                 ? "border-blue-500 bg-blue-50"
+                 : "border-gray-200 hover:border-gray-300"
              }`}
              onClick={() => handleItemToggle(property.suggestionId)}
            >
-             <div className="flex items-start gap-4">
+             <div className="flex items-start gap-3">
                <div className="flex-1 min-w-0">
-                 <div className="flex items-start gap-2 mb-2">
+                 <div className="flex items-start gap-2 mb-1.5">
                    <div className="flex-1 min-w-0">
-                     <div className="font-semibold text-gray-900 break-words leading-tight" style={{
-                       fontSize: property.name.length > 20 ? '0.875rem' : 
-                                property.name.length > 15 ? '1rem' : 
-                                property.name.length > 10 ? '1.125rem' : '1.25rem'
-                     }}>
+                     <div className="text-xs font-semibold text-gray-900 break-words leading-tight">
                        {formatPropertyName(property.name)}
                      </div>
                    </div>
-                   <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
+                   <div className="px-1.5 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
                      AI Suggested
                    </div>
                  </div>
-                 <div className="text-sm text-gray-700 mb-2 leading-relaxed break-words">{property.rationale}</div>
+                 <div className="text-xs text-gray-700 mb-1.5 leading-relaxed break-words">{property.rationale}</div>
                  {property.valueTemplate && (
-                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                     <div className="text-xs font-medium text-blue-800 mb-1">💡 Suggested Value Format:</div>
-                     <div className="text-xs text-blue-700 space-y-1">
+                   <div className="mt-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                     <div className="text-xs font-medium text-blue-800 mb-0.5">💡 Suggested Value Format:</div>
+                     <div className="text-xs text-blue-700 space-y-0.5">
                        {property.valueTemplate.type === "string" && (
                          <div>• <strong>Text input</strong> - Enter any words or sentences</div>
                        )}
@@ -585,11 +581,11 @@ export function ObjectModifierModal({
                    </div>
                  )}
                </div>
-               <div className="flex flex-col items-end gap-3 flex-shrink-0">
+               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                  <div className="text-center">
-                   <div className="text-xs text-gray-500 mb-1">AI Confidence</div>
+                   <div className="text-xs text-gray-500 mb-0.5">AI Confidence</div>
                    <div className="flex items-center gap-1">
-                     <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                     <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                        <div 
                          className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
                          style={{ width: `${Math.round(property.confidence * 100)}%` }}
@@ -604,7 +600,7 @@ export function ObjectModifierModal({
                    type="checkbox"
                    checked={selectedItems.has(property.suggestionId)}
                    onChange={() => handleItemToggle(property.suggestionId)}
-                   className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  />
                </div>
              </div>
@@ -631,7 +627,7 @@ export function ObjectModifierModal({
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="font-medium text-sm">
+                <div className="font-medium text-xs">
                   {/* Show property name if changing name, otherwise show value change */}
                   {modification.current.name && modification.proposed.name && modification.current.name !== modification.proposed.name ? (
                     <span><span className="text-gray-600">Name:</span> "{modification.current.name}" → "{modification.proposed.name}"</span>
@@ -641,7 +637,7 @@ export function ObjectModifierModal({
                     <span>Property modification</span>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">{modification.rationale}</div>
+                <div className="text-xs text-gray-600 mt-1">{modification.rationale}</div>
               </div>
               <div className="flex items-center gap-2 ml-3">
                 <div className="text-xs text-gray-500">
@@ -672,28 +668,28 @@ export function ObjectModifierModal({
       />
       
              {/* Modal */}
-               <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+               <div className="relative bg-white rounded-lg border-2 border-gray-300 shadow-lg w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
          
          {/* Floating Apply Button removed to avoid overlap with fixed actions section */}
         {/* Header - Fixed height */}
-        <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">AI Object Analysis</h3>
+            <h3 className="text-sm font-semibold text-gray-900">AI Object Analysis</h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
             >
               ×
             </button>
           </div>
           
                      {/* Tab Navigation */}
-           <div className="flex gap-2 mt-4">
+           <div className="flex gap-2 mt-3">
              {(["conflict_check", "more_possible_properties", "modify_language"] as const).map((tab) => (
                <button
                  key={tab}
                  onClick={() => handleTabChange(tab)}
-                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors relative ${
                    activeTab === tab
                      ? "bg-blue-600 text-white"
                      : "bg-white text-gray-600 hover:bg-gray-100"
@@ -705,7 +701,7 @@ export function ObjectModifierModal({
                  
                  {/* Show indicator if current tab has unsaved changes */}
                  {activeTab === tab && (selectedItems.size > 0 || envelope !== null) && (
-                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></span>
+                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
                  )}
                </button>
              ))}
@@ -713,9 +709,9 @@ export function ObjectModifierModal({
            
            {/* Unsaved changes warning */}
            {(selectedItems.size > 0 || envelope !== null) && (
-             <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+             <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                <div className="flex items-center gap-2 text-orange-700">
-                 <span className="text-sm">⚠️</span>
+                 <span className="text-xs">⚠️</span>
                  <div className="text-xs">
                    <div>
                      {selectedItems.size > 0 
@@ -736,46 +732,46 @@ export function ObjectModifierModal({
         </div>
         
                 {/* Content - Scrollable with fixed height */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {!envelope ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">
+            <div className="text-center py-6">
+              <p className="text-xs text-gray-600 mb-3">
                 Click "Analyze" to get AI-powered analysis of your OOPrompt object.
               </p>
               <button
                 onClick={handleAnalyze}
                 disabled={isLoading}
-                className="btn-primary px-6 py-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
               >
                 {isLoading ? "Analyzing..." : "Analyze"}
               </button>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-5 gap-4 text-center">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="grid grid-cols-5 gap-2 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">{envelope.summary.total}</div>
-                    <div className="text-sm text-gray-600">Total</div>
+                    <div className="text-lg font-bold text-gray-900">{envelope.summary.total}</div>
+                    <div className="text-xs text-gray-600">Total</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-red-600">{envelope.summary.errors}</div>
-                    <div className="text-sm text-gray-600">Errors</div>
+                    <div className="text-lg font-bold text-red-600">{envelope.summary.errors}</div>
+                    <div className="text-xs text-gray-600">Errors</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-yellow-600">{envelope.summary.warnings}</div>
-                    <div className="text-sm text-gray-600">Warnings</div>
+                    <div className="text-lg font-bold text-yellow-600">{envelope.summary.warnings}</div>
+                    <div className="text-xs text-gray-600">Warnings</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-600">{envelope.summary.infos}</div>
-                    <div className="text-sm text-gray-600">Info</div>
+                    <div className="text-lg font-bold text-blue-600">{envelope.summary.infos}</div>
+                    <div className="text-xs text-gray-600">Info</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-lg font-bold text-gray-900">
                       {envelope.summary.hasMore ? "Yes" : "No"}
                     </div>
-                    <div className="text-sm text-gray-600">More Available</div>
+                    <div className="text-xs text-gray-600">More Available</div>
                   </div>
                 </div>
               </div>
@@ -784,21 +780,21 @@ export function ObjectModifierModal({
               <div className="pr-2">
                 {activeTab === "conflict_check" && (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">🔍 Conflict Analysis</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 mb-3">🔍 Conflict Analysis</h4>
                     {renderConflicts()}
                   </div>
                 )}
                                  {activeTab === "more_possible_properties" && (
                    <div>
-                     <h4 className="text-lg font-semibold text-gray-900 mb-4">➕ Property Suggestions</h4>
+                     <h4 className="text-xs font-semibold text-gray-900 mb-3">➕ Property Suggestions</h4>
                      
                      {/* Helpful Instructions */}
-                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                       <div className="flex items-start gap-3">
-                         <div className="text-blue-600 text-lg">💡</div>
-                         <div className="text-sm text-blue-800">
-                           <div className="font-medium mb-2">How to use AI Property Suggestions:</div>
-                           <ul className="space-y-1 text-blue-700">
+                     <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                       <div className="flex items-start gap-2">
+                         <div className="text-blue-600 text-sm">💡</div>
+                         <div className="text-xs text-blue-800">
+                           <div className="font-medium mb-1.5">How to use AI Property Suggestions:</div>
+                           <ul className="space-y-0.5 text-blue-700">
                              <li>• <strong>Review</strong> each suggested property and its explanation</li>
                              <li>• <strong>Check</strong> the suggested value format to understand what to enter</li>
                              <li>• <strong>Select</strong> properties you want to add by checking the boxes</li>
@@ -813,7 +809,7 @@ export function ObjectModifierModal({
                  )}
                 {activeTab === "modify_language" && (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">✏️ Language Improvements</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 mb-3">✏️ Language Improvements</h4>
                     {renderLanguageModifications()}
                   </div>
                 )}
@@ -825,7 +821,7 @@ export function ObjectModifierModal({
                   <button
                     onClick={handleLoadMore}
                     disabled={isLoading}
-                    className="btn-secondary px-6 py-2"
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-colors"
                   >
                     {isLoading ? "Loading..." : "Load More"}
                   </button>
@@ -837,23 +833,23 @@ export function ObjectModifierModal({
         
         {/* Actions - Always visible when there are results, with better positioning */}
         {envelope && (
-          <div className={`px-6 py-5 flex justify-between items-center border-t border-gray-200 flex-shrink-0 shadow-inner transition-colors duration-200 ${
+          <div className={`px-4 py-3 flex justify-between items-center border-t border-gray-200 flex-shrink-0 transition-colors duration-200 ${
             getSelectedItemsCount() > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
           }`}>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs text-gray-600">
               {getSelectedItemsCount() > 0 ? `${getSelectedItemsCount()} item(s) selected` : "No items selected"}
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button
                 onClick={onClose}
-                className="btn-ghost px-4 py-2"
+                className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 text-xs font-medium rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleApplyPatches}
                 disabled={getSelectedItemsCount() === 0}
-                className="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 ✅ Apply Selected ({getSelectedItemsCount()})
               </button>
@@ -1012,8 +1008,8 @@ function ConflictCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="font-medium text-sm">{conflict.title}</div>
-          <div className="text-sm text-gray-600 mt-1">{conflict.description}</div>
+          <div className="font-medium text-xs">{conflict.title}</div>
+          <div className="text-xs text-gray-600 mt-1">{conflict.description}</div>
           {/* Hide property IDs from user display - they're technical implementation details */}
           <div className="text-xs text-gray-500 mt-1">
             {conflict.rationale}
@@ -1021,9 +1017,9 @@ function ConflictCard({
           
           {/* Show conflicting properties as clickable buttons for duplicate name conflicts */}
           {conflict.category === "duplicate_name" && (
-            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="font-medium text-yellow-800 mb-2 text-sm">🔍 Select Property to Keep:</div>
-              <div className="text-yellow-700 text-xs mb-3">
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="font-medium text-yellow-800 mb-1.5 text-xs">🔍 Select Property to Keep:</div>
+              <div className="text-yellow-700 text-xs mb-2">
                 Click on the property you want to keep - others will be automatically removed
               </div>
               <div className="grid gap-2">
@@ -1050,21 +1046,21 @@ function ConflictCard({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{prop.name}</div>
+                          <div className="font-medium text-xs">{prop.name}</div>
                           {prop.value && typeof prop.value === 'string' && (
-                            <div className="text-xs text-gray-600 mt-1">"{prop.value}"</div>
+                            <div className="text-xs text-gray-600 mt-0.5">"{prop.value}"</div>
                           )}
                           {prop.action && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Action: {prop.action}
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              Emphasis: {prop.action}
                             </div>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           {isPropertySelected && (
-                            <span className="text-green-600 text-lg">✅</span>
+                            <span className="text-green-600 text-sm">✅</span>
                           )}
-                          <span className={`w-3 h-3 rounded-full ${
+                          <span className={`w-2.5 h-2.5 rounded-full ${
                             isPropertySelected ? 'bg-green-500' : 'bg-yellow-400'
                           }`}></span>
                         </div>

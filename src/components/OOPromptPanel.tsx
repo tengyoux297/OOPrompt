@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
-import type { Action as PropertyAction, OOPromptObject, Property, Suggestion, Conflict } from "../types";
+import type { Emphasis as PropertyEmphasis, OOPromptObject, Property, Suggestion, Conflict } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
 import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
@@ -15,8 +15,8 @@ import { PatchService } from "../services/patchService";
 
 function ActionSegmented({
   value, onChange
-}: { value: PropertyAction; onChange: (v: PropertyAction) => void }) {
-  const opts: PropertyAction[] = ["highlight", "normal", "avoid"];
+}: { value: PropertyEmphasis; onChange: (v: PropertyEmphasis) => void }) {
+  const opts: PropertyEmphasis[] = ["highlight", "normal", "avoid"];
   return (
     <div className="segmented">
       {opts.map(o => (
@@ -46,7 +46,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
   console.log(`Details Panel will render: ${isSelected ? 'YES' : 'NO'}`);
   
   const base = "bg-white border border-gray-200 rounded p-2.5 w-full transition-all duration-200 hover:shadow-sm";
-  const selectedStyle = isSelected ? "ring-1 ring-blue-500 ring-offset-1 shadow-md" : "";
+  const selectedStyle = isSelected ? "ring-1 ring-black ring-offset-1 shadow-md" : "";
 
   return (
     <div className="w-full">
@@ -62,14 +62,14 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
           <div className="text-left">
             <div className="text-[10px] text-gray-500 mb-0.5">Value</div>
             <div className="text-xs text-gray-700">
-              {typeof p.value === "string" 
-                ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
-                : (p.value?.refObjectName 
+          {typeof p.value === "string" 
+            ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
+            : (p.value?.refObjectName 
                     ? <span className="text-blue-600 font-medium">
                         <span className="text-blue-500 text-[10px] font-semibold">object: </span>{p.value.refObjectName}
-                      </span>
-                    : <span className="text-gray-400 italic">To be added...</span>)
-              }
+                  </span>
+                : <span className="text-gray-400 italic">To be added...</span>)
+          }
             </div>
           </div>
           
@@ -148,12 +148,12 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
       {/* Expandable Details Panel */}
       {isSelected && (
         <div className="mt-3 overflow-hidden" data-testid="details-panel">
-          <div className="card-base bg-white/95 p-4 border-l-4 border-l-blue-500">
+          <div className="bg-white rounded-lg border-2 border-gray-300 shadow-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900">Property Details</h3>
               <button 
                 onClick={onToggleDetails}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
                 aria-label="Close details"
               >
                 ×
@@ -163,9 +163,9 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
                   <input
-                    className="input text-sm"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     defaultValue={p.name}
                     onBlur={(e) => {
                       const updatedProperty = { ...p, name: e.target.value, updatedAt: Date.now() };
@@ -182,10 +182,10 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Value</label>
                   {typeof p.value === "object" && p.value?.refObjectName ? (
-                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                      <span className="text-blue-600 font-medium text-sm">
+                    <div className="flex items-center gap-2 p-1.5 bg-blue-50 border border-blue-200 rounded-md">
+                      <span className="text-blue-600 font-medium text-xs">
                         <span className="text-blue-500 text-xs font-semibold">object:</span> {p.value.refObjectName}
                       </span>
                       <button 
@@ -197,7 +197,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                     </div>
                   ) : (
                     <input
-                      className="input text-sm"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       defaultValue={typeof p.value === "string" ? (p.value || "") : ""}
                       onBlur={(e) => {
                         const nextVal = e.target.value;
@@ -217,23 +217,47 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-600">Action</span>
-                <ActionSegmented
-                  value={p.action}
-                  onChange={(v) => {
-                    const updatedProperty = { ...p, action: v, updatedAt: Date.now() };
-                    dispatch({
-                      type: "UPSERT_PROPERTY",
-                      payload: updatedProperty,
-                    });
-                    
-                    // Debug: Log updated property
-                    console.log('=== Property Action Updated ===');
-                    console.log('Updated Property:', updatedProperty);
-                    console.log('==================================');
-                  }}
-                />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-gray-700">Emphasis</label>
+                <div className="flex gap-2">
+                  {(["normal", "highlight", "avoid"] as const).map((option) => {
+                    const displayLabel = option === "highlight" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
+                    const isSelected = p.action === option;
+                    return (
+                      <label
+                        key={option}
+                        className={`flex items-center gap-1.5 cursor-pointer px-2 py-1.5 rounded-lg border transition-colors flex-1 ${
+                          isSelected
+                            ? "bg-blue-50 border-blue-300"
+                            : "bg-white border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`emphasis-${p.id}`}
+                          value={option}
+                          checked={isSelected}
+                          onChange={() => {
+                            const updatedProperty = { ...p, action: option, updatedAt: Date.now() };
+                            dispatch({
+                              type: "UPSERT_PROPERTY",
+                              payload: updatedProperty,
+                            });
+                            
+                            // Debug: Log updated property
+                            console.log('=== Property Emphasis Updated ===');
+                            console.log('Updated Property:', updatedProperty);
+                            console.log('==================================');
+                          }}
+                          className="w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-1"
+                        />
+                        <span className={`text-xs ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>
+                          {displayLabel}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* File reference management in details panel - only for OpenAI */}
@@ -278,11 +302,11 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                       </button>
                     </div>
                   </div>
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <span className="text-green-600">📎</span>
+                      <span className="text-green-600 text-xs">📎</span>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-green-800">{p.fileReference.fileName}</div>
+                        <div className="text-xs font-medium text-green-800">{p.fileReference.fileName}</div>
                         <div className="text-xs text-green-600">
                           {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
                         </div>
@@ -307,11 +331,11 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-gray-600">File Reference</span>
                   </div>
-                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <span className="text-amber-600">📎</span>
+                      <span className="text-amber-600 text-xs">📎</span>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-amber-800">{p.fileReference.fileName}</div>
+                        <div className="text-xs font-medium text-amber-800">{p.fileReference.fileName}</div>
                         <div className="text-xs text-amber-600">
                           {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
                         </div>
@@ -324,33 +348,33 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <div className="flex gap-2 pt-3 border-t border-gray-200">
                 <button 
-                  className="btn-primary text-xs px-3 py-1.5"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
                   onClick={() => {
-                    console.log('=== OK Button Clicked - Hiding Details Panel ===');
+                    console.log('=== SAVE Button Clicked - Hiding Details Panel ===');
                     onToggleDetails();
                   }}
                 >
-                  OK
+                  save
                 </button>
                 <button 
-                  className="btn-ghost text-xs px-3 py-1.5"
-                  onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p })}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 text-xs font-medium rounded-lg transition-colors"
+                  onClick={() => {
+                    console.log('=== CANCEL Button Clicked - Hiding Details Panel ===');
+                    onToggleDetails();
+                  }}
+                >
+                  cancel
+                </button>
+                <button 
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 text-xs font-medium rounded-lg transition-colors"
+                  onClick={() => {
+                    dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p });
+                  }}
                 >
                   More options…
                 </button>
-                <button 
-                  className="btn-danger text-xs px-3 py-1.5"
-                  onClick={() => {
-                    console.log('=== Deleting Property ===');
-                    console.log('Property to delete:', p);
-                    console.log('======================');
-                    dispatch({ type: "DELETE_PROPERTY", id: p.id });
-                  }}
-                >
-                  Delete
-    </button>
               </div>
             </div>
           </div>
@@ -721,9 +745,9 @@ export function OOPromptPanel({
                   <div className="flex items-center gap-1.5">
                     <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-[10px]">✓</span>
-                    </div>
-                    <span className="text-green-800 font-semibold text-xs">Prompt Built Successfully</span>
                   </div>
+                    <span className="text-green-800 font-semibold text-xs">Prompt Built Successfully</span>
+                </div>
                   <button
                     onClick={() => setIsPromptPanelExpanded(!isPromptPanelExpanded)}
                     className="text-green-700 hover:text-green-900 transition-colors p-0.5"
@@ -742,20 +766,20 @@ export function OOPromptPanel({
                 </div>
                 {isPromptPanelExpanded && (
                   <div className="bg-white rounded border border-green-200 p-2 max-h-32 overflow-y-auto text-xs text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
-                    {builtPrompt}
-                  </div>
+                  {builtPrompt}
+                </div>
                 )}
               </div>
               <button
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(builtPrompt);
-                    setShowSuccess(true);
-                    setTimeout(() => {
-                      setShowSuccess(false);
-                    }, 2000);
-                  } catch (clipboardError) {
-                    if (onError) {
+                      setShowSuccess(true);
+                      setTimeout(() => {
+                        setShowSuccess(false);
+                      }, 2000);
+                    } catch (clipboardError) {
+                      if (onError) {
                       onError('Copy Failed', 'Could not copy prompt to clipboard. Please copy it manually from the preview above.');
                     }
                   }
