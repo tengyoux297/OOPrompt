@@ -136,15 +136,14 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                          {/* Header */}
              <div className="p-3 border-b border-gray-200 bg-white flex-shrink-0">
                {/* Title Bar with Button */}
-               <div className="flex items-center justify-between">
-                 <h3 className="text-gray-900 font-semibold text-sm">History</h3>
+               <div className="flex items-center justify-end">
                  <button
                    onClick={onOpenOOPPanel}
-                   className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                   className="bg-blue-600 hover:bg-blue-700 text-white rounded p-1.5 transition-colors"
                    aria-label="New prompt"
                    title="New prompt"
                  >
-                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                    </svg>
                  </button>
@@ -220,20 +219,6 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                  );
                })}
                           </div>
- 
-             {/* Footer */}
-             <div className={`p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 transition-all duration-300 ${
-               isCollapsed ? 'lg:block hidden' : 'block'
-             }`}>
-               <div className="text-center">
-                 <div className="text-xs text-gray-500 mb-1">
-                   {displayObjects.length} prompt{displayObjects.length !== 1 ? 's' : ''} in history
-                 </div>
-                 <div className="text-xs text-gray-400">
-                   Click to load • Hover for actions
-                 </div>
-               </div>
-             </div>
            </div>
          </aside>
 

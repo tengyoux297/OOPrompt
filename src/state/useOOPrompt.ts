@@ -321,7 +321,7 @@ export function useOOPrompt(initial: OOPromptObject) {
     {
       oop: initial,
       openPanel: false,
-      objectPanelOpen: false,
+      objectPanelOpen: true, // History panel open by default
       selectedPropertyId: undefined,
       past: [],
       future: [],
