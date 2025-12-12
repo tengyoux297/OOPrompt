@@ -4,12 +4,12 @@ Object-Oriented Prompt Builder for AI - Structure and optimize your AI prompts w
 
 ## Features
 
-- **Structured Prompt Building**: Create prompts with properties, emphasis levels, and hierarchical organization
-- **AI Integration**: Send prompts directly to OpenAI's ChatGPT API
-- **Property Management**: Add, edit, and organize properties with emphasis levels (Important, Normal, Avoid)
-- **Prompt Library**: Save and manage multiple prompt objects
-- **File Attachments**: Attach files to properties for context
-- **Smart Suggestions**: AI-powered property suggestions and conflict detection
+- Structured Prompt Building: Create prompts with properties, emphasis levels, and hierarchical organization
+- AI Integration: Send prompts directly to OpenAI's ChatGPT API
+- Property Management: Add, edit, and organize properties with emphasis levels (Important, Normal, Avoid)
+- Prompt Library: Save and manage multiple prompt objects
+- File Attachments: Attach files to properties for context
+- Smart Suggestions: AI-powered property suggestions and conflict detection
 
 ## Installation (Unpacked Extension)
 
@@ -24,29 +24,30 @@ To load this extension in Chrome for development or testing:
 
 1. Open a terminal/command prompt in the project directory
 2. Install dependencies (if not already installed):
-   ```bash
+
+   ```
    npm install
    ```
-
 3. Build the extension:
-   ```bash
+
+   ```
    npm run build:extension
    ```
 
-   This creates a `dist/` folder with all the extension files.
+   This creates a dist/ folder with all the extension files.
 
 ### Step 2: Load Extension in Chrome
 
 1. Open Google Chrome
 2. Navigate to the extensions page:
-   - Type `chrome://extensions/` in the address bar, OR
-   - Go to Menu (⋮) → Extensions → Manage Extensions
+   - Type chrome://extensions/ in the address bar, OR
+   - Go to Menu (three dots) → Extensions → Manage Extensions
 3. Enable Developer Mode:
    - Toggle the "Developer mode" switch in the top-right corner
 4. Load the extension:
    - Click "Load unpacked" button
    - Navigate to your project folder
-   - Select the `dist/` folder (NOT the root project folder)
+   - Select the dist/ folder (NOT the root project folder)
    - Click "Select Folder"
 
 ### Step 3: Verify Installation
@@ -67,14 +68,21 @@ To load this extension in Chrome for development or testing:
 
 ### Build Commands
 
-```bash
-# Build extension for production
+Build extension for production:
+
+```
 npm run build:extension
+```
 
-# Development mode with hot reload
+Development mode with hot reload:
+
+```
 npm run dev:extension
+```
 
-# Create ZIP package for Chrome Web Store
+Create ZIP package for Chrome Web Store:
+
+```
 npm run package
 ```
 
@@ -98,74 +106,34 @@ ooprompt/
 
 ### Extension Not Loading
 
-- **Check Developer Mode**: Make sure "Developer mode" is enabled
-- **Select Correct Folder**: Make sure you selected the `dist/` folder, not the root folder
-- **Check for Errors**: Look at the extensions page for error messages
-- **Rebuild**: Try running `npm run build:extension` again
+- Check Developer Mode: Make sure "Developer mode" is enabled
+- Select Correct Folder: Make sure you selected the dist/ folder, not the root folder
+- Check for Errors: Look at the extensions page for error messages
+- Rebuild: Try running npm run build:extension again
 
 ### Extension Not Working
 
-- **Check Console**: Right-click extension icon → "Inspect popup" → Check Console tab for errors
-- **Check API Key**: Make sure your OpenAI API key is configured correctly
-- **Check Permissions**: The extension needs permission to access OpenAI API
+- Check Console: Right-click extension icon → "Inspect popup" → Check Console tab for errors
+- Check API Key: Make sure your OpenAI API key is configured correctly
+- Check Permissions: The extension needs permission to access OpenAI API
 
 ### Build Errors
 
-- **Clear node_modules**: Delete `node_modules` folder and run `npm install` again
-- **Check Node Version**: Make sure you're using Node.js 18.x or compatible version
-- **Check Dependencies**: Run `npm install` to ensure all dependencies are installed
+- Clear node_modules: Delete node_modules folder and run npm install again
+- Check Node Version: Make sure you're using Node.js 18.x or compatible version
+- Check Dependencies: Run npm install to ensure all dependencies are installed
 
 ## Updating the Extension
 
 After making changes to the code:
 
 1. Rebuild the extension:
-   ```bash
+
+   ```
    npm run build:extension
    ```
-
 2. Reload the extension in Chrome:
-   - Go to `chrome://extensions/`
+
+   - Go to chrome://extensions/
    - Find OOPrompt extension
-   - Click the refresh/reload icon (🔄)
-
-## Packaging for Chrome Web Store
-
-To create a ZIP file for Chrome Web Store submission:
-
-```bash
-npm run package
-```
-
-This creates `ooprompt-extension.zip` in the project root.
-
-## Permissions
-
-The extension requires the following permissions:
-
-- **storage**: To save your prompt objects and settings locally
-- **activeTab**: To interact with the current browser tab
-- **tabs**: For side panel functionality
-- **contextMenus**: For right-click context menu integration
-- **scripting**: To inject scripts when needed
-- **host_permissions**: `https://api.openai.com/*` - To send prompts to OpenAI API
-
-All data is stored locally on your device. API keys are never shared with third parties.
-
-## Privacy
-
-- All data is stored locally using Chrome's storage APIs
-- API keys are stored locally and never transmitted to our servers
-- Prompts are only sent to OpenAI when you explicitly use the chat feature
-- See `public/privacy-policy.html` for full privacy policy
-
-## Support
-
-For issues or questions:
-- Check the troubleshooting section above
-- Review Chrome extension console for error messages
-- Contact: tengyoux@ucla.edu
-
-## License
-
-This project is part of a UCLA HCI course project.
+   - Click the refresh/reload icon
