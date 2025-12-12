@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - OOPrompt Chrome Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #1e40af;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #3b82f6;
+            margin-top: 20px;
+        }
+        strong {
+            color: #1e40af;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .last-updated {
+            color: #666;
+            font-style: italic;
+        }
+        .summary {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy for OOPrompt Chrome Extension</h1>
+    
+    <p class="last-updated"><strong>Last Updated:</strong> 12/12/2025</p>
+    
+    <h2>Introduction</h2>
+    <p>OOPrompt ("we," "our," or "the extension") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your information when you use the OOPrompt Chrome extension.</p>
+    
+    <h2>Information We Collect</h2>
+    
+    <h3>User-Provided Data</h3>
+    <ul>
+        <li><strong>Prompt Objects</strong>: The extension stores prompt objects, properties, and structured data that you create within the extension.</li>
+        <li><strong>File Attachments</strong>: If you choose to attach files to properties, these files are stored locally on your device.</li>
+        <li><strong>API Keys</strong>: If you configure API keys for AI services (OpenAI, Google Gemini, Anthropic Claude), these are stored locally on your device.</li>
+        <li><strong>Application State</strong>: The extension stores your application state, including saved prompts, history, and preferences.</li>
+    </ul>
+    
+    <h3>Automatically Collected Data</h3>
+    <ul>
+        <li><strong>No Tracking</strong>: The extension does not collect, track, or transmit any personal information, browsing history, or usage analytics.</li>
+        <li><strong>No Analytics</strong>: We do not use analytics services or tracking technologies.</li>
+    </ul>
+    
+    <h2>How We Store Your Data</h2>
+    <p>All data collected by the extension is stored <strong>locally on your device</strong> using:</p>
+    <ul>
+        <li>Chrome's <code>chrome.storage.local</code> API (for Chrome extension)</li>
+        <li>Browser's <code>localStorage</code> (as fallback)</li>
+    </ul>
+    <p><strong>We do not transmit, upload, or sync your data to any external servers or third-party services</strong>, except when you explicitly choose to send prompts to AI services.</p>
+    
+    <h2>How We Use Your Data</h2>
+    <p>Your data is used solely for:</p>
+    <ol>
+        <li><strong>Local Functionality</strong>: Storing your prompt objects and application state to provide continuity across browser sessions.</li>
+        <li><strong>AI Service Integration</strong>: When you explicitly choose to send a prompt to an AI service (OpenAI, Gemini, or Claude), your prompt data is transmitted to that service's API. This transmission only occurs when you actively trigger it.</li>
+    </ol>
+    
+    <h2>Third-Party Services</h2>
+    
+    <h3>AI Service Providers</h3>
+    <p>When you use the extension to send prompts to AI services, your prompt data is transmitted to:</p>
+    <ul>
+        <li><strong>OpenAI</strong> (api.openai.com) - If you use ChatGPT</li>
+        <li><strong>Google</strong> (generativelanguage.googleapis.com) - If you use Gemini</li>
+        <li><strong>Anthropic</strong> (api.anthropic.com) - If you use Claude</li>
+    </ul>
+    <p>These transmissions are made directly from your browser to the selected AI service using your own API keys. We do not intercept, store, or have access to these communications.</p>
+    
+    <h3>CORS Proxy Services</h3>
+    <p>The extension may use CORS proxy services (api.allorigins.win, corsproxy.io) as fallback options when direct API calls encounter cross-origin restrictions. These services act as intermediaries and do not store your data.</p>
+    <p><strong>Important</strong>: Your API keys are stored locally and never shared with us or any third parties except the AI service provider you choose.</p>
+    
+    <h2>Data Sharing</h2>
+    <p><strong>We do not share, sell, or rent your data to any third parties.</strong> Your data remains on your device unless you explicitly choose to send prompts to AI services.</p>
+    
+    <h2>Data Security</h2>
+    <ul>
+        <li>All data is stored locally on your device using Chrome's secure storage APIs.</li>
+        <li>API keys are stored locally and never transmitted to our servers.</li>
+        <li>The extension uses Content Security Policy (CSP) to prevent unauthorized code execution.</li>
+        <li>All code is bundled locally - no remote code is executed.</li>
+    </ul>
+    
+    <h2>Your Rights</h2>
+    <p>You have full control over your data:</p>
+    <ul>
+        <li><strong>Access</strong>: All your data is stored locally and accessible through the extension interface.</li>
+        <li><strong>Delete</strong>: You can delete prompt objects, files, and clear all data through the extension's interface.</li>
+        <li><strong>Export</strong>: You can copy or export your prompt objects at any time.</li>
+        <li><strong>Uninstall</strong>: Uninstalling the extension removes all locally stored data (Chrome will clear chrome.storage.local data).</li>
+    </ul>
+    
+    <h2>Children's Privacy</h2>
+    <p>The extension is not intended for users under the age of 13. We do not knowingly collect information from children.</p>
+    
+    <h2>Changes to This Privacy Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy.</p>
+    
+    <h2>Contact Us</h2>
+    <p>If you have questions about this Privacy Policy, please contact us through the Chrome Web Store listing or <a href="mailto:tengyoux@ucla.edu">tengyoux@ucla.edu</a>.</p>
+    
+    <h2>Compliance</h2>
+    <p>This extension complies with:</p>
+    <ul>
+        <li>Chrome Web Store Developer Program Policies</li>
+        <li>General Data Protection Regulation (GDPR) principles (data stored locally, user control)</li>
+        <li>California Consumer Privacy Act (CCPA) principles (no data sharing, local storage)</li>
+    </ul>
+    
+    <div class="summary">
+        <p><strong>Summary</strong>: OOPrompt stores all data locally on your device. We do not collect, track, or share your personal information. Data is only transmitted to AI services when you explicitly choose to use them.</p>
+    </div>
+</body>
+</html>
+
