@@ -45,37 +45,78 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
   console.log(`PropertyCard render: ${p.id}, isSelected: ${isSelected}, selectedStyle: ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''}`);
   console.log(`Details Panel will render: ${isSelected ? 'YES' : 'NO'}`);
   
-  const base = "card-base text-left p-4 w-full transition-all duration-200";
-  const style =
-    p.action === "highlight" ? "card-highlight" :
-    p.action === "avoid"     ? "card-avoid"     :
-                                   "";
-  const selectedStyle = isSelected ? "ring-2 ring-blue-500 ring-offset-2 shadow-lg" : "";
+  const base = "bg-white border border-gray-200 rounded p-2.5 w-full transition-all duration-200 hover:shadow-sm";
+  const selectedStyle = isSelected ? "ring-1 ring-blue-500 ring-offset-1 shadow-md" : "";
 
   return (
     <div className="w-full">
-      <button onClick={onSelect} className={`${base} ${style} ${selectedStyle}`}>
-        <div className="text-xs opacity-60 truncate">Property</div>
-        <div className="font-semibold mt-0.5 truncate" title={p.name}>{p.name}</div>
-        <div className="mt-1.5 text-sm line-clamp-2 break-words">
-          {typeof p.value === "string" 
-            ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
-            : (p.value?.refObjectName 
-                ? <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-200">
-                    <span className="text-blue-500 text-xs font-semibold">object:</span> {p.value.refObjectName}
-                  </span>
-                : <span className="text-gray-400 italic">To be added...</span>)
-          }
+      <div onClick={onSelect} className={`${base} ${selectedStyle} cursor-pointer`}>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2.5 items-start">
+          {/* Name Column */}
+          <div className="text-left">
+            <div className="text-[10px] text-gray-500 mb-0.5">Name</div>
+            <div className="text-xs font-semibold text-gray-900">{p.name || <span className="text-gray-400 italic">No name</span>}</div>
+          </div>
+          
+          {/* Value Column */}
+          <div className="text-left">
+            <div className="text-[10px] text-gray-500 mb-0.5">Value</div>
+            <div className="text-xs text-gray-700">
+              {typeof p.value === "string" 
+                ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
+                : (p.value?.refObjectName 
+                    ? <span className="text-blue-600 font-medium">
+                        <span className="text-blue-500 text-[10px] font-semibold">object: </span>{p.value.refObjectName}
+                      </span>
+                    : <span className="text-gray-400 italic">To be added...</span>)
+              }
+            </div>
+          </div>
+          
+          {/* Action Icons Column */}
+          <div className="flex flex-col items-center gap-0.5">
+            {/* Edit Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              aria-label="Edit property"
+              title="Edit property"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+            
+            {/* Delete Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                  dispatch({ type: "DELETE_PROPERTY", id: p.id });
+                }
+              }}
+              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+              aria-label="Delete property"
+              title="Delete property"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
         
         {/* File reference display - only show for OpenAI */}
         {p.fileReference && selectedLLM === 'openai' && (
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded-md border border-green-200">
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="text-green-600 text-[10px] font-medium bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
               📎 {p.fileReference.fileName}
             </span>
             <button
-              className="text-green-600 hover:text-green-700 text-xs"
+              className="text-green-600 hover:text-green-700 text-[10px]"
               onClick={async (e) => {
                 e.stopPropagation();
                 try {
@@ -96,14 +137,13 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
         
         {/* Show file unavailable notice for Gemini/Claude */}
         {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-amber-600 text-xs font-medium bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="text-amber-600 text-[10px] font-medium bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
               📎 {p.fileReference.fileName} (Not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)})
             </span>
           </div>
         )}
-        <div className="mt-2 text-xs opacity-70 capitalize truncate">{p.action}</div>
-      </button>
+      </div>
       
       {/* Expandable Details Panel */}
       {isSelected && (
@@ -338,6 +378,7 @@ export function OOPromptPanel({
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
   const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
+  const [isPromptPanelExpanded, setIsPromptPanelExpanded] = useState(true);
   
   // Local state for main task and audience inputs to make them controlled
   const [mainTask, setMainTask] = useState(oop.main_task || "");
@@ -559,28 +600,12 @@ export function OOPromptPanel({
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
         {/* Header Section */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-base text-gray-900">Edit Prompt</h2>
-            <button
-              onClick={() => {
-                dispatch({ type: "TOGGLE_PANEL", open: false });
-                dispatch({ type: "SELECT_PROPERTY", id: undefined });
-              }}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
-              aria-label="Back to library"
-              title="Back to library"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="panel-chrome p-3 flex-shrink-0 border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Main Task</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-1">Main Task</label>
               <input
-                className="input text-sm"
+                className="input text-xs"
                 placeholder="What do you want to accomplish?"
                 value={mainTask}
                 onChange={(e) => setMainTask(e.target.value)}
@@ -591,9 +616,9 @@ export function OOPromptPanel({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Audience</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-1">Audience</label>
               <input
-                className="input text-sm"
+                className="input text-xs"
                 placeholder="Who is this for?"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
@@ -603,6 +628,31 @@ export function OOPromptPanel({
                 }}
               />
             </div>
+          </div>
+          <div className="flex items-center justify-end gap-1.5">
+            {/* ADD AI SUGGESTIONS Button */}
+            <button
+              onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
+              className="px-2 py-1 text-[10px] font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors flex items-center gap-1"
+              title="Add AI Suggestions"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 12l10 10 10-10L12 2z" />
+              </svg>
+              <span>ADD AI SUGGESTIONS</span>
+            </button>
+            
+            {/* + ADD PROPERTY Button */}
+            <button
+              onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
+              className="px-2 py-1 text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-1"
+              title="Add Property"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>ADD PROPERTY</span>
+            </button>
           </div>
         </div>
 
@@ -617,47 +667,11 @@ export function OOPromptPanel({
         onHide={() => dispatch({ type: "HIDE_SUGGESTIONS" })}
       />
 
-        {/* Toolbar */}
-        <div className="panel-chrome px-4 py-3 flex gap-2 items-center flex-shrink-0 border-b border-gray-200 bg-gray-50/50">
-          <button 
-            className="btn-primary px-4 py-2 text-sm font-medium flex items-center gap-2"
-            onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
-            title="Add Property"
-          >
-            <span className="text-lg leading-none">+</span>
-            <span>Add Property</span>
-          </button>
-          <div className="flex gap-1 ml-auto">
-            <button 
-              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
-              onClick={cycleSort}
-              title={`Sort: ${sortBy === "none" ? "None" : sortBy === "action" ? "Action" : sortBy === "name" ? "Name" : "Time"}`}
-            >
-              {sortBy === "none" && "🔀"}
-              {sortBy === "action" && "‼️"}
-              {sortBy === "name" && "🆎"}
-              {sortBy === "time" && "⌛"}
-            </button>
-            <button 
-              className="btn-ghost w-9 h-9 flex items-center justify-center text-xs"
-              onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
-              title="AI Analysis"
-            >
-              💡
-            </button>
-          </div>
-          <input 
-            className="input flex-1 max-w-xs h-9 text-sm" 
-            placeholder="Search properties…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
 
         {/* Properties area with scrollbar */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/30">
-          <div className="p-4">
-            <div className="space-y-3">
+          <div className="p-3">
+            <div className="space-y-2">
                 {sorted.map((p: Property) => {
                   try {
                     if (!p || !p.id || !p.name) {
@@ -691,165 +705,70 @@ export function OOPromptPanel({
                     return null;
                   }
                 })}
-              {sorted.length === 0 && (
-                <div className="text-center py-12 text-gray-400">
-                  <div className="text-4xl mb-3">📝</div>
-                  <p className="text-sm">No properties yet. Click "Add Property" to get started.</p>
-                </div>
-              )}
+              
             </div>
           </div>
         </div>
 
         {/* Action buttons area */}
-        <div className="panel-chrome p-4 flex-shrink-0 border-t border-gray-200 bg-white space-y-3">
-          {/* Save button */}
-          <button 
-            className="w-full py-2.5 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm"
-            onClick={() => {
-              console.log('=== Save Button Clicked ===');
-              console.log('Saving current OOP object:', oop);
-              console.log('Object ID:', oop.id);
-              console.log('Object name:', oop.name);
-              console.log('Main task:', oop.main_task);
-              console.log('Properties count:', oop.properties.length);
-              
-              // Create a new object with a unique ID for saving
-              const objectToSave = {
-                ...oop,
-                id: oop.id === 'root' ? `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : oop.id,
-                name: oop.name || `Prompt Object ${Date.now()}`,
-                createdAt: oop.id === 'root' ? Date.now() : oop.createdAt || Date.now(),
-                updatedAt: Date.now()
-              };
-              
-              console.log('Object to save with ID:', objectToSave.id);
-              console.log('Is this a new object?', oop.id === 'root');
-              
-              console.log('Object to save:', objectToSave);
-              
-              // Save the current OOP object to the prompt objects list
-              dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
-              
-              // Auto-open the Object Panel to show the newly saved object
-              dispatch({ type: "TOGGLE_OBJECT_PANEL", open: true });
-              
-              console.log('=== OOP Object Saved Successfully ===');
-              console.log('=== Object Panel Auto-Opened ===');
-            }}
-          >
-            💾 Save Prompt Object
-        </button>
-          
-          {/* Status notifications */}
-          {isSending && (
-            <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm font-medium">
-              <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
-              <span>Building prompt…</span>
-            </div>
-          )}
+        <div className="panel-chrome p-2.5 flex-shrink-0 border-t border-gray-200 bg-white space-y-2">
           
           {/* Built prompt display */}
           {builtPrompt && !isSending && (
-            <div className="space-y-3">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
+            <div className="space-y-2">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded p-2.5 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-[10px]">✓</span>
+                    </div>
+                    <span className="text-green-800 font-semibold text-xs">Prompt Built Successfully</span>
                   </div>
-                  <span className="text-green-800 font-semibold text-sm">Prompt Built Successfully</span>
+                  <button
+                    onClick={() => setIsPromptPanelExpanded(!isPromptPanelExpanded)}
+                    className="text-green-700 hover:text-green-900 transition-colors p-0.5"
+                    aria-label={isPromptPanelExpanded ? "Collapse" : "Expand"}
+                    title={isPromptPanelExpanded ? "Collapse" : "Expand"}
+                  >
+                    <svg 
+                      className={`w-3.5 h-3.5 transition-transform ${isPromptPanelExpanded ? '' : 'rotate-180'}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="bg-white rounded-lg border border-green-200 p-3 max-h-40 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
-                  {builtPrompt}
-                </div>
+                {isPromptPanelExpanded && (
+                  <div className="bg-white rounded border border-green-200 p-2 max-h-32 overflow-y-auto text-xs text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
+                    {builtPrompt}
+                  </div>
+                )}
               </div>
               <button
                 onClick={async () => {
                   try {
-                    // Get the current active tab
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (!tab.id) {
-                      throw new Error('No active tab found');
-                    }
-                    
-                    // Check if content script is injected, if not, inject it first
-                    let scriptInjected = false;
-                    try {
-                      const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
-                      if (pingResponse && pingResponse.loaded) {
-                        scriptInjected = true;
-                      }
-                    } catch (pingError) {
-                      // Content script not injected, try to inject it
-                      console.log('Content script not found, attempting to inject...');
-                      try {
-                        // Get the actual content script file name from manifest
-                        const manifest = chrome.runtime.getManifest();
-                        const contentScripts = manifest.content_scripts?.[0]?.js;
-                        if (contentScripts && contentScripts.length > 0) {
-                          // The content script should already be injected via manifest
-                          // But if not, we'll use clipboard fallback
-                          console.log('Content script should be auto-injected via manifest');
-                        }
-                      } catch (injectError) {
-                        console.log('Script injection check failed:', injectError);
-                      }
-                    }
-                    
-                    // Wait a bit for script to initialize if we just injected
-                    if (!scriptInjected) {
-                      await new Promise(resolve => setTimeout(resolve, 200));
-                    }
-                    
-                    // Send the prompt to the content script
-                    try {
-                      await chrome.tabs.sendMessage(tab.id, {
-                        type: 'INJECT_PROMPT',
-                        prompt: builtPrompt
-                      });
-                      
-                      // Show success
-                      setShowSuccess(true);
-                      setTimeout(() => {
-                        setShowSuccess(false);
-                        setBuiltPrompt(null);
-                      }, 2000);
-                    } catch (sendError) {
-                      // If sending fails, fallback to clipboard
-                      navigator.clipboard.writeText(builtPrompt).then(() => {
-                        if (onError) {
-                          onError('Copied to Clipboard', 'Prompt copied to clipboard. Please paste it into the input field manually.');
-                        }
-                      }).catch(() => {
-                        if (onError) {
-                          onError('Output Failed', 'Could not output prompt. Please copy it manually from the preview above.');
-                        }
-                      });
-                    }
-                  } catch (error) {
-                    console.error('Failed to output prompt:', error);
-                    // Fallback to clipboard
-                    try {
-                      await navigator.clipboard.writeText(builtPrompt);
-                      if (onError) {
-                        onError('Copied to Clipboard', 'Prompt copied to clipboard. Please paste it into the input field manually.');
-                      }
-                    } catch (clipboardError) {
-                      if (onError) {
-                        onError('Output Failed', 'Could not output prompt. Please copy it manually from the preview above.');
-                      }
+                    await navigator.clipboard.writeText(builtPrompt);
+                    setShowSuccess(true);
+                    setTimeout(() => {
+                      setShowSuccess(false);
+                    }, 2000);
+                  } catch (clipboardError) {
+                    if (onError) {
+                      onError('Copy Failed', 'Could not copy prompt to clipboard. Please copy it manually from the preview above.');
                     }
                   }
                 }}
-                className="btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
+                className="btn-primary w-full py-2 text-xs font-semibold shadow-md hover:shadow-lg transition-shadow"
               >
-                <span className="mr-2">📤</span>
-                Output to Current Web Page
+                <span className="mr-1.5">📋</span>
+                Copy to Clipboard
               </button>
               {showSuccess && (
-                <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-green-50 border border-green-300 rounded-lg text-green-700 text-sm font-medium">
+                <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 bg-green-50 border border-green-300 rounded text-green-700 text-xs font-medium">
                   <span className="text-green-600">✓</span>
-                  <span>Prompt outputted to web page!</span>
+                  <span>Copied to clipboard!</span>
                 </div>
               )}
             </div>
@@ -857,7 +776,7 @@ export function OOPromptPanel({
           
           {/* Build Prompt button */}
           <button 
-            className={`btn-primary w-full py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
+            className={`btn-primary w-full py-2 text-xs font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
               if (isSending) return; // Prevent multiple clicks
               
@@ -954,6 +873,7 @@ export function OOPromptPanel({
                 
                 // Store the built prompt
                 setBuiltPrompt(prompt);
+                setIsPromptPanelExpanded(true); // Reset to expanded when new prompt is built
                 
                 // Console output: Final Prompt
                 console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
@@ -1009,8 +929,8 @@ export function OOPromptPanel({
             disabled={isSending}
           >
             {isSending ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span>Building...</span>
               </div>
             ) : (

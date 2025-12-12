@@ -133,39 +133,23 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
                 return (
                   <div
                     key={obj.id}
-                    className={`group cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 hover:border-gray-300 px-4 py-4 rounded-xl bg-white ${
+                    className={`group cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 hover:border-gray-300 px-4 py-3 rounded-xl bg-white ${
                       isSelected ? 'ring-2 ring-blue-500 ring-offset-2 border-blue-300 shadow-lg bg-blue-50' : 'hover:bg-gray-50'
                     }`}
                     onClick={() => handleObjectClick(obj.id)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-3">
-                        <div className="font-semibold text-sm leading-tight text-gray-900 mb-2 break-words line-clamp-2" title={obj.main_task}>
-                          {obj.main_task || <span className="text-gray-400 italic">No main task</span>}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            {obj.properties.length} propert{obj.properties.length !== 1 ? 'ies' : 'y'}
-                          </span>
-                          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {obj.updatedAt ? new Date(obj.updatedAt).toLocaleDateString() : 'Just now'}
-                          </span>
-                        </div>
+                    <div className="flex flex-col">
+                      {/* Main Task - Single line with truncation */}
+                      <div className="font-semibold text-sm text-gray-900 truncate mb-2" title={obj.main_task}>
+                        {obj.main_task || <span className="text-gray-400 italic">No main task</span>}
                       </div>
                       
-                      {/* Action Buttons - Only visible on hover */}
-                      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Action Buttons - Below the text */}
+                      <div className="flex items-center gap-1">
                         {/* History Button */}
                         <button
                           onClick={(e) => handleHistoryClick(e, obj.id)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200"
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                           aria-label={`View history for ${obj.name}`}
                           title="View version history"
                         >
@@ -177,7 +161,7 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
                         {/* Delete Button */}
                         <button
                           onClick={(e) => handleDeleteObject(e, obj.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all duration-200"
                           aria-label={`Delete ${obj.name}`}
                           title="Delete object"
                         >
@@ -191,18 +175,6 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
                 );
               })
             )}
-          </div>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">
-                {displayObjects.length} prompt{displayObjects.length !== 1 ? 's' : ''} in history
-              </div>
-              <div className="text-xs text-gray-400">
-                Click to load • Hover for actions
-              </div>
-            </div>
           </div>
         </div>
       </aside>
