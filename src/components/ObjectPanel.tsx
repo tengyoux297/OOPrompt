@@ -135,24 +135,6 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
           <div className="flex flex-col h-full">
                          {/* Header */}
              <div className="p-3 border-b border-gray-200 bg-white flex-shrink-0">
-               {/* Mobile Toggle Button */}
-               <div className="lg:hidden mb-2">
-                 <button
-                   onClick={() => setIsCollapsed(!isCollapsed)}
-                   className="w-full p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-between text-sm font-medium text-gray-700 transition-colors"
-                 >
-                   <span>History Prompts</span>
-                   <svg 
-                     className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-                     fill="none" 
-                     stroke="currentColor" 
-                     viewBox="0 0 24 24"
-                   >
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                   </svg>
-                 </button>
-               </div>
-               
                {/* Title Bar with Button */}
                <div className="flex items-center justify-between">
                  <h3 className="text-gray-900 font-semibold text-sm">History</h3>
