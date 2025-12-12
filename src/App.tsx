@@ -530,8 +530,19 @@ export default function App() {
           <div className="font-semibold text-base text-gray-900">OOPrompt</div>
         </div>
           
-          {/* Settings and Help buttons */}
+          {/* New Prompt, Settings and Help buttons */}
           <div className="flex items-center gap-2 ml-2">
+          {/* New Prompt Button - Always visible */}
+          <button
+            onClick={() => setShowNewPromptModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded p-1.5 transition-colors"
+            title="New prompt"
+            aria-label="New prompt"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
           <button
             onClick={() => {
               setShowSettingsModal(true);

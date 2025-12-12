@@ -72,7 +72,11 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
 
   const handleDeleteObject = (event: React.MouseEvent, objectId: string) => {
     event.stopPropagation(); // Prevent object selection when clicking delete
-    if (confirm(`Are you sure you want to delete "${objects.find(obj => obj.id === objectId)?.name || 'this object'}"?`)) {
+    event.preventDefault(); // Prevent any default behavior
+    const obj = objects.find(obj => obj.id === objectId);
+    const objName = obj?.name || obj?.main_task || 'this object';
+    if (window.confirm(`Are you sure you want to delete "${objName}"?`)) {
+      console.log('HistoryPanel: Deleting object:', objectId);
       onDeleteObject(objectId);
     }
   };
@@ -148,9 +152,15 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
                       <div className="flex items-center gap-1">
                         {/* History Button */}
                         <button
-                          onClick={(e) => handleHistoryClick(e, obj.id)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                          aria-label={`View history for ${obj.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleHistoryClick(e, obj.id);
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation(); // Prevent card click on mousedown
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200 relative z-20"
+                          aria-label={`View history for ${obj.name || obj.main_task || 'object'}`}
                           title="View version history"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,9 +170,16 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
                         
                         {/* Delete Button */}
                         <button
-                          onClick={(e) => handleDeleteObject(e, obj.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all duration-200"
-                          aria-label={`Delete ${obj.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDeleteObject(e, obj.id);
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation(); // Prevent card click on mousedown
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all duration-200 relative z-20"
+                          aria-label={`Delete ${obj.name || obj.main_task || 'object'}`}
                           title="Delete object"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

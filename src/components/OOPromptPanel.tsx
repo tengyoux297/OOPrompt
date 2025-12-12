@@ -396,6 +396,7 @@ export function OOPromptPanel({
   onError?: (title: string, message: string) => void;
 }) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"none" | "action" | "name" | "time">("none");
@@ -654,6 +655,40 @@ export function OOPromptPanel({
             </div>
           </div>
           <div className="flex items-center justify-end gap-1.5">
+            {/* SAVE Button - Save prompt object to history */}
+            <button
+              onClick={() => {
+                const objectToSave: OOPromptObject = {
+                  ...oop,
+                  id: oop.id === 'root' ? `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : oop.id,
+                  name: oop.name || oop.main_task || `Prompt Object ${Date.now()}`,
+                  createdAt: oop.id === 'root' ? Date.now() : oop.createdAt || Date.now(),
+                  updatedAt: Date.now()
+                };
+                console.log('Saving prompt object to history:', objectToSave.id);
+                dispatch({ type: "SAVE_PROMPT_OBJECT", payload: objectToSave });
+                
+                // Show success feedback
+                setShowSaveSuccess(true);
+                setTimeout(() => {
+                  setShowSaveSuccess(false);
+                }, 2000);
+              }}
+              className="px-2 py-1 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1 relative"
+              title="Save prompt object to history"
+            >
+              {showSaveSuccess ? (
+                <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              )}
+              <span>{showSaveSuccess ? 'Saved!' : 'SAVE'}</span>
+            </button>
+            
             {/* ADD AI SUGGESTIONS Button */}
             <button
               onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}

@@ -133,23 +133,6 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
              {/* Object Panel */}
        <aside className="w-full h-full bg-white flex flex-col">
           <div className="flex flex-col h-full">
-                         {/* Header */}
-             <div className="p-3 border-b border-gray-200 bg-white flex-shrink-0">
-               {/* Title Bar with Button */}
-               <div className="flex items-center justify-end">
-                 <button
-                   onClick={onOpenOOPPanel}
-                   className="bg-blue-600 hover:bg-blue-700 text-white rounded p-1.5 transition-colors"
-                   aria-label="New prompt"
-                   title="New prompt"
-                 >
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                   </svg>
-                 </button>
-               </div>
-             </div>
-
                          {/* Objects List */}
              <div className={`flex-1 overflow-y-auto min-h-0 p-3 space-y-2.5 transition-all duration-300 ${
                isCollapsed ? 'lg:block hidden' : 'block'
