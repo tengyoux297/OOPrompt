@@ -544,73 +544,21 @@ class LLMService {
       
       console.log('Processed messages:', processedMessages);
       
-      // Try multiple CORS proxies to find one that works
-      const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://cors-anywhere.herokuapp.com/'
-      ];
-      
-      let response;
-      let lastError;
-      
-      for (const proxy of corsProxies) {
-        try {
-          console.log(`Trying CORS proxy: ${proxy}`);
-          
-          if (proxy === 'https://cors-anywhere.herokuapp.com/') {
-            // Special handling for cors-anywhere
-            response = await fetch(proxy + 'https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': this.claudeApiKey,
-                'anthropic-version': '2023-06-01',
-                'User-Agent': 'OOPrompt-App/1.0',
-                'Origin': 'http://localhost:5173',
-              },
-              body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 2000, // Increased for better responses
-                messages: processedMessages,
-              }),
-            });
-          } else {
-            // For other proxies, use different approach
-            const proxyUrl = proxy === 'https://api.allorigins.win/raw?url=' 
-              ? `${proxy}${encodeURIComponent('https://api.anthropic.com/v1/messages')}`
-              : `${proxy}https://api.anthropic.com/v1/messages`;
-             
-            response = await fetch(proxyUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': this.claudeApiKey,
-                'anthropic-version': '2023-06-01',
-                'User-Agent': 'OOPrompt-App/1.0',
-              },
-              body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 2000, // Increased for better responses
-                messages: processedMessages,
-              }),
-            });
-          }
-          
-          // If we get here, the proxy worked
-          console.log(`CORS proxy ${proxy} succeeded`);
-          break;
-          
-        } catch (error) {
-          console.log(`CORS proxy ${proxy} failed:`, error);
-          lastError = error;
-          continue;
-        }
-      }
-      
-      if (!response) {
-        throw new Error(`All CORS proxies failed. Last error: ${lastError}`);
-      }
+      // Direct API call - Chrome extensions can make direct API calls without CORS issues
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.claudeApiKey,
+          'anthropic-version': '2023-06-01',
+          'User-Agent': 'OOPrompt-Extension/1.0',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: processedMessages,
+        }),
+      });
       
       console.log('Claude API response status:', response.status);
       console.log('Claude API response headers:', response.headers);

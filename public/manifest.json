@@ -13,9 +13,7 @@
   "host_permissions": [
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://api.anthropic.com/*",
-    "https://api.allorigins.win/*",
-    "https://corsproxy.io/*"
+    "https://api.anthropic.com/*"
   ],
   "action": {
     "default_popup": "index.html",
@@ -32,7 +30,7 @@
     "128": "icons/icon-128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://api.anthropic.com https://api.allorigins.win https://corsproxy.io;"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://api.anthropic.com;"
   },
   "background": {
     "service_worker": "src/background/background.ts",
