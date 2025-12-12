@@ -1,69 +1,171 @@
-# React + TypeScript + Vite
+# OOPrompt Chrome Extension
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Object-Oriented Prompt Builder for AI - Structure and optimize your AI prompts with a powerful, structured approach.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Structured Prompt Building**: Create prompts with properties, emphasis levels, and hierarchical organization
+- **AI Integration**: Send prompts directly to OpenAI's ChatGPT API
+- **Property Management**: Add, edit, and organize properties with emphasis levels (Important, Normal, Avoid)
+- **Prompt Library**: Save and manage multiple prompt objects
+- **File Attachments**: Attach files to properties for context
+- **Smart Suggestions**: AI-powered property suggestions and conflict detection
 
-## Expanding the ESLint configuration
+## Installation (Unpacked Extension)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+To load this extension in Chrome for development or testing:
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+- Google Chrome browser
+- Node.js (for building the extension)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Step 1: Build the Extension
+
+1. Open a terminal/command prompt in the project directory
+2. Install dependencies (if not already installed):
+   ```bash
+   npm install
+   ```
+
+3. Build the extension:
+   ```bash
+   npm run build:extension
+   ```
+
+   This creates a `dist/` folder with all the extension files.
+
+### Step 2: Load Extension in Chrome
+
+1. Open Google Chrome
+2. Navigate to the extensions page:
+   - Type `chrome://extensions/` in the address bar, OR
+   - Go to Menu (⋮) → Extensions → Manage Extensions
+3. Enable Developer Mode:
+   - Toggle the "Developer mode" switch in the top-right corner
+4. Load the extension:
+   - Click "Load unpacked" button
+   - Navigate to your project folder
+   - Select the `dist/` folder (NOT the root project folder)
+   - Click "Select Folder"
+
+### Step 3: Verify Installation
+
+- You should see the OOPrompt extension in your extensions list
+- The extension icon should appear in your Chrome toolbar
+- Click the icon to open the extension popup
+
+### Step 4: Configure API Key (Required)
+
+1. Open the extension
+2. Click on "Settings" (if available) or look for API key configuration
+3. Enter your OpenAI API key
+   - Get your API key from: https://platform.openai.com/api-keys
+   - The key is stored locally on your device
+
+## Development
+
+### Build Commands
+
+```bash
+# Build extension for production
+npm run build:extension
+
+# Development mode with hot reload
+npm run dev:extension
+
+# Create ZIP package for Chrome Web Store
+npm run package
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+ooprompt/
+├── public/
+│   ├── manifest.json       # Extension manifest
+│   ├── icons/              # Extension icons
+│   └── privacy-policy.html # Privacy policy
+├── src/
+│   ├── components/         # React components
+│   ├── services/           # API services
+│   ├── state/              # State management
+│   └── types.ts            # TypeScript types
+└── dist/                   # Built extension (generated)
+```
+
+## Troubleshooting
+
+### Extension Not Loading
+
+- **Check Developer Mode**: Make sure "Developer mode" is enabled
+- **Select Correct Folder**: Make sure you selected the `dist/` folder, not the root folder
+- **Check for Errors**: Look at the extensions page for error messages
+- **Rebuild**: Try running `npm run build:extension` again
+
+### Extension Not Working
+
+- **Check Console**: Right-click extension icon → "Inspect popup" → Check Console tab for errors
+- **Check API Key**: Make sure your OpenAI API key is configured correctly
+- **Check Permissions**: The extension needs permission to access OpenAI API
+
+### Build Errors
+
+- **Clear node_modules**: Delete `node_modules` folder and run `npm install` again
+- **Check Node Version**: Make sure you're using Node.js 18.x or compatible version
+- **Check Dependencies**: Run `npm install` to ensure all dependencies are installed
+
+## Updating the Extension
+
+After making changes to the code:
+
+1. Rebuild the extension:
+   ```bash
+   npm run build:extension
+   ```
+
+2. Reload the extension in Chrome:
+   - Go to `chrome://extensions/`
+   - Find OOPrompt extension
+   - Click the refresh/reload icon (🔄)
+
+## Packaging for Chrome Web Store
+
+To create a ZIP file for Chrome Web Store submission:
+
+```bash
+npm run package
+```
+
+This creates `ooprompt-extension.zip` in the project root.
+
+## Permissions
+
+The extension requires the following permissions:
+
+- **storage**: To save your prompt objects and settings locally
+- **activeTab**: To interact with the current browser tab
+- **tabs**: For side panel functionality
+- **contextMenus**: For right-click context menu integration
+- **scripting**: To inject scripts when needed
+- **host_permissions**: `https://api.openai.com/*` - To send prompts to OpenAI API
+
+All data is stored locally on your device. API keys are never shared with third parties.
+
+## Privacy
+
+- All data is stored locally using Chrome's storage APIs
+- API keys are stored locally and never transmitted to our servers
+- Prompts are only sent to OpenAI when you explicitly use the chat feature
+- See `public/privacy-policy.html` for full privacy policy
+
+## Support
+
+For issues or questions:
+- Check the troubleshooting section above
+- Review Chrome extension console for error messages
+- Contact: tengyoux@ucla.edu
+
+## License
+
+This project is part of a UCLA HCI course project.
