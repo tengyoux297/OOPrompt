@@ -9,18 +9,21 @@ OOPrompt ("we," "our," or "the extension") is committed to protecting your priva
 ## Information We Collect
 
 ### User-Provided Data
+
 - **Prompt Objects**: The extension stores prompt objects, properties, and structured data that you create within the extension.
 - **File Attachments**: If you choose to attach files to properties, these files are stored locally on your device.
 - **API Keys**: If you configure API keys for AI services (OpenAI, Google Gemini, Anthropic Claude), these are stored locally on your device.
 - **Application State**: The extension stores your application state, including saved prompts, history, and preferences.
 
 ### Automatically Collected Data
+
 - **No Tracking**: The extension does not collect, track, or transmit any personal information, browsing history, or usage analytics.
 - **No Analytics**: We do not use analytics services or tracking technologies.
 
 ## How We Store Your Data
 
 All data collected by the extension is stored **locally on your device** using:
+
 - Chrome's `chrome.storage.local` API (for Chrome extension)
 - Browser's `localStorage` (as fallback)
 
@@ -29,13 +32,16 @@ All data collected by the extension is stored **locally on your device** using:
 ## How We Use Your Data
 
 Your data is used solely for:
+
 1. **Local Functionality**: Storing your prompt objects and application state to provide continuity across browser sessions.
 2. **AI Service Integration**: When you explicitly choose to send a prompt to an AI service (OpenAI, Gemini, or Claude), your prompt data is transmitted to that service's API. This transmission only occurs when you actively trigger it.
 
 ## Third-Party Services
 
 ### AI Service Providers
+
 When you use the extension to send prompts to AI services, your prompt data is transmitted to:
+
 - **OpenAI** (api.openai.com) - If you use ChatGPT
 - **Google** (generativelanguage.googleapis.com) - If you use Gemini
 - **Anthropic** (api.anthropic.com) - If you use Claude
@@ -43,6 +49,7 @@ When you use the extension to send prompts to AI services, your prompt data is t
 These transmissions are made directly from your browser to the selected AI service using your own API keys. We do not intercept, store, or have access to these communications.
 
 ### CORS Proxy Services
+
 The extension may use CORS proxy services (api.allorigins.win, corsproxy.io) as fallback options when direct API calls encounter cross-origin restrictions. These services act as intermediaries and do not store your data.
 
 **Important**: Your API keys are stored locally and never shared with us or any third parties except the AI service provider you choose.
@@ -61,6 +68,7 @@ The extension may use CORS proxy services (api.allorigins.win, corsproxy.io) as 
 ## Your Rights
 
 You have full control over your data:
+
 - **Access**: All your data is stored locally and accessible through the extension interface.
 - **Delete**: You can delete prompt objects, files, and clear all data through the extension's interface.
 - **Export**: You can copy or export your prompt objects at any time.
@@ -76,11 +84,12 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 ## Contact Us
 
-If you have questions about this Privacy Policy, please contact us through the Chrome Web Store listing or [your contact method].
+If you have questions about this Privacy Policy, please contact us through the Chrome Web Store listing or tengyoux@ucla.edu.
 
 ## Compliance
 
 This extension complies with:
+
 - Chrome Web Store Developer Program Policies
 - General Data Protection Regulation (GDPR) principles (data stored locally, user control)
 - California Consumer Privacy Act (CCPA) principles (no data sharing, local storage)
@@ -88,4 +97,3 @@ This extension complies with:
 ---
 
 **Summary**: OOPrompt stores all data locally on your device. We do not collect, track, or share your personal information. Data is only transmitted to AI services when you explicitly choose to use them.
-
