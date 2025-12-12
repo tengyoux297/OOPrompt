@@ -13,7 +13,9 @@ dist-ssr
 *.local
 
 # Environment variables
-.env
+# .env is committed (contains assistant IDs only, safe to share)
+# .env.local contains API keys and is gitignored (never commit this!)
+# The *.local pattern above already covers .env.local, but listing explicitly for clarity
 .env.local
 .env.*.local
 
