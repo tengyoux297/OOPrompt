@@ -93,7 +93,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         className="modal-content bg-white rounded-xl p-4 sm:p-6 w-full max-w-md mx-4 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-onLight">Add Property</h2>
+          <h2 className="text-base font-semibold text-text-onLight">Add Property</h2>
           <button
             onClick={onClose}
             className="text-text-onLight/60 hover:text-text-onLight/80 transition-colors"
@@ -107,7 +107,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         <div className="flex mb-4 border border-gray-200 rounded-xl overflow-hidden">
           <button
             onClick={() => setMode("structured")}
-            className={`flex-1 px-3 py-2 text-sm transition-colors ${
+            className={`flex-1 px-3 py-2 text-xs transition-colors ${
               mode === "structured"
                 ? "modal-selected"
                 : "modal-unselected"
@@ -117,7 +117,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
           </button>
           <button
             onClick={() => setMode("unstructured")}
-            className={`flex-1 px-3 py-2 text-sm transition-colors ${
+            className={`flex-1 px-3 py-2 text-xs transition-colors ${
               mode === "unstructured"
                 ? "modal-selected"
                 : "modal-unselected"
@@ -130,12 +130,12 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         {mode === "structured" ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Name</label>
+              <label className="block text-xs font-medium mb-2 text-gray-700">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500"
                 placeholder="Property name"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStructuredSubmit();
@@ -144,12 +144,12 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Value</label>
+              <label className="block text-xs font-medium mb-2 text-gray-700">Value</label>
               <input
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder:text-gray-500 placeholder:text-xs"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 placeholder:text-xs"
                 placeholder="Enter value or leave blank to explore options later"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleStructuredSubmit();
@@ -158,15 +158,15 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Emphasis</label>
-              <div className="space-y-2">
+              <label className="block text-xs font-medium mb-2 text-gray-700">Emphasis</label>
+              <div className="flex gap-2">
                 {(["normal", "highlight", "avoid"] as const).map((option) => {
                   const displayLabel = option === "highlight" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
                   const isSelected = action === option;
                   return (
                     <label
                       key={option}
-                      className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
+                      className={`flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
                         isSelected
                           ? "bg-blue-50 border-blue-300"
                           : "bg-white border-gray-200 hover:border-gray-300"
@@ -178,9 +178,9 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
                         value={option}
                         checked={isSelected}
                         onChange={() => setAction(option)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                        className="w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
                       />
-                      <span className={`text-sm ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>
+                      <span className={`text-xs ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>
                         {displayLabel}
                       </span>
                     </label>
@@ -191,14 +191,14 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
               <button
                 onClick={handleStructuredSubmit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-sm sm:text-base"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-xs"
                 disabled={!name.trim()}
               >
                 Add Property
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-sm sm:text-base"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-xs"
               >
                 Cancel
               </button>
@@ -207,13 +207,13 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
+              <label className="block text-xs font-medium mb-2 text-gray-700">
                 Describe new requirements or properties in natural language
               </label>
               <textarea
                 value={unstructuredText}
                 onChange={(e) => setUnstructuredText(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 h-24 resize-none text-gray-900 placeholder:text-gray-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 h-24 resize-none text-sm text-gray-900 placeholder:text-gray-500"
                 placeholder="e.g., The story should have a mysterious tone that builds suspense, or add a requirement for the protagonist to have a specific background..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && e.ctrlKey) handleUnstructuredSubmit();
@@ -224,14 +224,14 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
               <button
                 onClick={handleUnstructuredSubmit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-sm sm:text-base"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-2 transition-colors text-xs"
                 disabled={!unstructuredText.trim() || isGenerating}
               >
                 {isGenerating ? "Adding to prompt..." : "Add to prompt!"}
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-sm sm:text-base"
+                className="px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors text-xs"
               >
                 Cancel
               </button>

@@ -8,6 +8,7 @@ import { SaveConfirmationModal } from "./components/SaveConfirmationModal";
 import { ErrorPopup } from "./components/ErrorPopup";
 import { NewPromptModal } from "./components/NewPromptModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { ApiKeyRequiredModal } from "./components/ApiKeyRequiredModal";
 import { llmService } from "./services/llmService";
 
 
@@ -35,7 +36,24 @@ export default function App() {
   const [showNewPromptModal, setShowNewPromptModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentApiKey, setCurrentApiKey] = useState<string>("");
+  const [showApiKeyRequiredModal, setShowApiKeyRequiredModal] = useState(false);
   
+  // Check for API key on mount
+  useEffect(() => {
+    const checkApiKey = async () => {
+      // Wait a bit for the service to initialize and load from storage
+      // Use a longer delay to ensure chrome.storage is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const hasApiKey = await llmService.checkAndLoadApiKey();
+      console.log('App: API key check result:', hasApiKey);
+      if (!hasApiKey) {
+        console.log('App: Showing API key required modal');
+        setShowApiKeyRequiredModal(true);
+      }
+    };
+    checkApiKey();
+  }, []);
+
   // Check if tutorial has been shown before (but don't auto-show)
   useEffect(() => {
     const checkTutorialShown = () => {
@@ -745,6 +763,19 @@ export default function App() {
             }
           }}
           currentApiKey={currentApiKey}
+        />
+
+        {/* API Key Required Modal */}
+        <ApiKeyRequiredModal
+          isOpen={showApiKeyRequiredModal}
+          onSave={async (apiKey) => {
+            await llmService.setCustomApiKey(apiKey);
+            // Update current API key state
+            if (llmService.hasApiKey()) {
+              setCurrentApiKey(llmService.getCurrentApiKey());
+              setShowApiKeyRequiredModal(false);
+            }
+          }}
         />
       </div>
     </div>

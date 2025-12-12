@@ -98,8 +98,8 @@ class LLMService {
       // Try chrome.storage first (for extension)
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         const result = await chrome.storage.local.get('customOpenaiApiKey');
-        if (result.customOpenaiApiKey) {
-          this.openaiApiKey = result.customOpenaiApiKey;
+        if (result.customOpenaiApiKey && result.customOpenaiApiKey.trim()) {
+          this.openaiApiKey = result.customOpenaiApiKey.trim();
           console.log('Loaded custom OpenAI API key from chrome.storage');
           return;
         }
@@ -108,13 +108,25 @@ class LLMService {
       // Fallback to localStorage (for web) - synchronous
       if (typeof window !== 'undefined' && window.localStorage) {
         const stored = localStorage.getItem('customOpenaiApiKey');
-        if (stored) {
-          this.openaiApiKey = stored;
+        if (stored && stored.trim()) {
+          this.openaiApiKey = stored.trim();
           console.log('Loaded custom OpenAI API key from localStorage');
+          return;
         }
+      }
+      
+      // If no custom key found, use default from env
+      const defaultKey = this.getDefaultApiKey();
+      if (defaultKey && defaultKey.trim()) {
+        this.openaiApiKey = defaultKey.trim();
+      } else {
+        this.openaiApiKey = '';
       }
     } catch (error) {
       console.error('Failed to load custom API key:', error);
+      // On error, fall back to default
+      const defaultKey = this.getDefaultApiKey();
+      this.openaiApiKey = defaultKey ? defaultKey.trim() : '';
     }
   }
 
@@ -182,6 +194,38 @@ class LLMService {
   hasCustomApiKey(): boolean {
     const defaultKey = this.getDefaultApiKey();
     return this.openaiApiKey !== defaultKey && this.openaiApiKey !== '';
+  }
+
+  hasApiKey(): boolean {
+    // Check if there's any API key available (default or custom)
+    // Exclude placeholder values
+    const key = this.openaiApiKey.trim();
+    if (!key || key === '') {
+      return false;
+    }
+    // Check for common placeholder patterns
+    if (key.includes('your_') || key.includes('YOUR_') || key.includes('api_key_here')) {
+      return false;
+    }
+    // Must start with 'sk-' for OpenAI keys
+    if (key.startsWith('sk-') && key.length >= 20) {
+      return true;
+    }
+    // For other formats, just check it's not empty
+    return key.length > 0;
+  }
+
+  async checkAndLoadApiKey(): Promise<boolean> {
+    // Ensure API key is loaded from storage
+    await this.loadCustomApiKey();
+    const hasKey = this.hasApiKey();
+    console.log('API key check:', {
+      hasKey,
+      keyLength: this.openaiApiKey.length,
+      keyPreview: this.openaiApiKey.substring(0, 7) + '...',
+      hasDefaultKey: !!this.getDefaultApiKey()
+    });
+    return hasKey;
   }
 
   private getCacheKey(method: string, ...args: any[]): string {
