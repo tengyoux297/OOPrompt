@@ -1,27 +1,7 @@
 // API functions using LLM service
 import { llmService } from './services/llmService';
 
-export async function extractProperties(
-  prompt: string, 
-  main_task: string, 
-  audience: string
-): Promise<{ properties: Array<{ name: string; value: string }> }> {
-  console.log('API: extractProperties', { prompt, main_task, audience });
-  
-  try {
-    return await llmService.extractProperties(prompt, main_task, audience);
-  } catch (error) {
-    console.error('Property extraction failed:', error);
-    // Fallback to mock data if LLM fails
-    return {
-      properties: [
-        { name: "Tone", value: "mysterious, hopeful" },
-        { name: "Style", value: "descriptive, engaging" },
-        { name: "Length", value: "medium" }
-      ]
-    };
-  }
-}
+// Note: extractProperties() was removed - use extractPropertiesWithAssistant() directly from llmService instead
 
 export async function suggest(
   _properties: Array<{ name: string; value: string }>, 

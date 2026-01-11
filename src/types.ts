@@ -1,4 +1,4 @@
-export type Emphasis = "avoid" | "normal" | "highlight";
+export type Emphasis = "avoid" | "normal" | "important";
 export type ValueRef = { refObjectId: string; refObjectName: string };
 
 export type FileReference = {

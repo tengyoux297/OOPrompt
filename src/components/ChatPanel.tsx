@@ -155,6 +155,8 @@ export function ChatPanel({ onSend, onExtractProperties, messageFromOOP, selecte
       
       try {
         // Get AI response with selected LLM
+        // Add system prompt here if needed, e.g.:
+        // { role: 'system', content: 'You are a helpful assistant...' }
         const response = await llmService.chat([
           { role: 'user', content: text }
         ], selectedLLM);

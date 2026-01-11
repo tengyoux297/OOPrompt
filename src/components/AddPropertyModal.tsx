@@ -160,8 +160,8 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
             <div>
               <label className="block text-xs font-medium mb-2 text-gray-700">Emphasis</label>
               <div className="flex gap-2">
-                {(["normal", "highlight", "avoid"] as const).map((option) => {
-                  const displayLabel = option === "highlight" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
+                {(["normal", "important", "avoid"] as const).map((option) => {
+                  const displayLabel = option === "important" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
                   const isSelected = action === option;
                   return (
                     <label

@@ -16,7 +16,7 @@ import { PatchService } from "../services/patchService";
 function ActionSegmented({
   value, onChange
 }: { value: PropertyEmphasis; onChange: (v: PropertyEmphasis) => void }) {
-  const opts: PropertyEmphasis[] = ["highlight", "normal", "avoid"];
+  const opts: PropertyEmphasis[] = ["important", "normal", "avoid"];
   return (
     <div className="segmented">
       {opts.map(o => (
@@ -220,8 +220,8 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-gray-700">Emphasis</label>
                 <div className="flex gap-2">
-                  {(["normal", "highlight", "avoid"] as const).map((option) => {
-                    const displayLabel = option === "highlight" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
+                  {(["normal", "important", "avoid"] as const).map((option) => {
+                    const displayLabel = option === "important" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
                     const isSelected = p.action === option;
                     return (
                       <label
@@ -519,7 +519,7 @@ export function OOPromptPanel({
     }
   };
 
-  // Get action order for display (avoid, normal, highlight)
+  // Get action order for display (avoid, normal, important)
   const getActionOrder = (action: string) => {
     console.log(`getActionOrder called with: "${action}"`);
     switch (action) {
@@ -529,8 +529,8 @@ export function OOPromptPanel({
       case "normal": 
         console.log('Returning 1 for normal');
         return 1;
-      case "highlight": 
-        console.log('Returning 2 for highlight');
+      case "important": 
+        console.log('Returning 2 for important');
         return 2;
       default: 
         console.log(`Unknown action "${action}", returning 1`);

@@ -258,7 +258,7 @@ export default function App() {
                   </div>
                   
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> Use the action buttons to manage properties: 🟠 (highlight), ⚪ (normal), ⚫️ (avoid)
+                  ☛ <strong>Pro tip:</strong> Use the action buttons to manage properties: 🟠 (important), ⚪ (normal), ⚫️ (avoid)
                   </div>
                 </div>
               )}
@@ -288,7 +288,7 @@ export default function App() {
                             <span className="text-xs">📍</span>
                             <div>
                               <div className="font-medium text-xs text-gray-900">Change Emphasis</div>
-                              <div className="text-xs text-gray-700">Use highlight (🟠), normal (⚪), or avoid (⚫️)</div>
+                              <div className="text-xs text-gray-700">Use important (🟠), normal (⚪), or avoid (⚫️)</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
