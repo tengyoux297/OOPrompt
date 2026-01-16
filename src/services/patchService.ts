@@ -1,5 +1,55 @@
 import type { JsonPatchOp, OOPromptObject, Property, SuggestedPropertyItem } from "../types";
 
+/**
+ * Normalizes an OOPromptObject to ensure it has the correct structure
+ * This is critical for ensuring JSON serialization works correctly
+ */
+function normalizeOOPromptObject(obj: OOPromptObject): OOPromptObject {
+  const normalized: OOPromptObject = {
+    id: obj.id || 'root',
+    name: obj.name || '',
+    main_task: obj.main_task || '',
+    audience: obj.audience || '',
+    properties: (obj.properties || []).map(prop => normalizeProperty(prop)),
+    tabsOrder: Array.isArray(obj.tabsOrder) ? obj.tabsOrder : (obj.tabsOrder ? [obj.tabsOrder] : ['root']),
+    log: Array.isArray(obj.log) ? obj.log : [],
+    createdAt: typeof obj.createdAt === 'number' ? obj.createdAt : Date.now(),
+    updatedAt: typeof obj.updatedAt === 'number' ? obj.updatedAt : Date.now(),
+  };
+  
+  return normalized;
+}
+
+/**
+ * Normalizes a Property to ensure it has the correct structure
+ */
+function normalizeProperty(prop: Property): Property {
+  const normalized: Property = {
+    id: prop.id || `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: typeof prop.name === 'string' ? prop.name : '',
+    value: prop.value || '',
+    emphasis: prop.emphasis || 'normal',
+    createdAt: typeof prop.createdAt === 'number' ? prop.createdAt : Date.now(),
+    updatedAt: typeof prop.updatedAt === 'number' ? prop.updatedAt : Date.now(),
+  };
+  
+  // Add optional fields if they exist
+  if (prop.examples && Array.isArray(prop.examples)) {
+    normalized.examples = prop.examples;
+  }
+  if (prop.source) {
+    normalized.source = prop.source;
+  }
+  if (prop.fileReference) {
+    normalized.fileReference = prop.fileReference;
+  }
+  if (prop.fileData) {
+    normalized.fileData = prop.fileData;
+  }
+  
+  return normalized;
+}
+
 export class PatchService {
   /**
    * Applies JSON patches to an OOPrompt object
@@ -33,9 +83,12 @@ export class PatchService {
       }
     }
     
-    console.log("🔧 Final result:", JSON.stringify(result, null, 2));
+    // Normalize the result to ensure proper structure
+    const normalized = normalizeOOPromptObject(result);
+    
+    console.log("🔧 Final result:", JSON.stringify(normalized, null, 2));
     console.log("🔧 Patch application complete");
-    return result;
+    return normalized;
   }
 
   /**
@@ -225,7 +278,9 @@ export class PatchService {
     // Special case: /properties/- means add to properties array
     if (pathParts.length === 2 && pathParts[0] === 'properties' && pathParts[1] === '-') {
       console.log(`PatchService: Adding to properties array, current properties length: ${result.properties.length}`);
-      result.properties = [...result.properties, value];
+      // Normalize the property before adding
+      const normalizedProperty = normalizeProperty(value);
+      result.properties = [...result.properties, normalizedProperty];
       console.log(`PatchService: New properties length: ${result.properties.length}`);
       return result;
     }
@@ -256,9 +311,16 @@ export class PatchService {
       current.push(value);
       console.log(`PatchService: New array length: ${current.length}`);
     } else if (lastPart === 'properties' && Array.isArray(current.properties)) {
-      current.properties = [...current.properties, value];
+      // Normalize the property before adding
+      const normalizedProperty = normalizeProperty(value);
+      current.properties = [...current.properties, normalizedProperty];
     } else if (!isNaN(Number(lastPart)) && Array.isArray(current)) {
-      current[Number(lastPart)] = value;
+      // If adding to properties array by index, normalize the property
+      if (pathParts[0] === 'properties' && typeof value === 'object' && value !== null && 'id' in value) {
+        current[Number(lastPart)] = normalizeProperty(value);
+      } else {
+        current[Number(lastPart)] = value;
+      }
     } else {
       // If we can't determine how to add the value, throw a helpful error
       console.error(`PatchService: Cannot add value at path: ${path} (normalized: ${normalizedPath})`);
@@ -410,6 +472,9 @@ export class PatchService {
         result.properties[index] = { ...obj.properties[index] };
         (result.properties[index] as any)[propertyField] = value;
         
+        // Normalize the property after modification to ensure proper structure
+        result.properties[index] = normalizeProperty(result.properties[index]);
+        
         console.log(`📝 ReplaceValue: Modified property ${index}.${propertyField} =`, value);
         console.log(`📝 ReplaceValue: Updated property:`, result.properties[index]);
         
@@ -445,7 +510,18 @@ export class PatchService {
     
     const lastPart = pathParts[pathParts.length - 1];
     console.log(`📝 ReplaceValue: setting lastPart=${lastPart} to value=`, value);
-    current[lastPart] = value;
+    
+    // If we're replacing an entire property object, normalize it
+    if (pathParts.length === 2 && pathParts[0] === 'properties' && !isNaN(Number(pathParts[1])) && typeof value === 'object' && value !== null && 'id' in value) {
+      current[lastPart] = normalizeProperty(value);
+    } else {
+      current[lastPart] = value;
+    }
+    
+    // If we modified a property, normalize all properties in the array to ensure consistency
+    if (pathParts[0] === 'properties' && Array.isArray(result.properties)) {
+      result.properties = result.properties.map(p => normalizeProperty(p));
+    }
     
     console.log(`📝 ReplaceValue: final result=`, result);
     return result;

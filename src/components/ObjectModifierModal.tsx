@@ -223,10 +223,12 @@ export function ObjectModifierModal({
         console.log(`🔄 Processing selected item: ${itemId}`);
         
         // Skip duplicate-name conflict property selection items (format: conflictId:propertyId where conflictId already contains ':')
-        // But allow: conflict:..., mod:..., suggested:..., sugg:... (these are valid item IDs)
+        // But allow: conflict:..., mod:..., suggested:..., sugg:..., sp_suggested:... (these are valid item IDs)
+        // Note: sp_suggested: is a prefix used for suggested properties
         if (itemId.includes(':') && 
             !itemId.startsWith('suggested:') && 
             !itemId.startsWith('sugg:') && 
+            !itemId.startsWith('sp_suggested:') &&
             !itemId.startsWith('mod:') && 
             !itemId.startsWith('conflict:')) {
           console.log(`⏩ Skipping conflict property selection item: ${itemId}`);
@@ -272,12 +274,20 @@ export function ObjectModifierModal({
           console.log(`🔍 Looking for property with itemId: ${itemId}`);
           console.log(`🔍 Available suggestedProperties:`, envelope.suggestedProperties?.map(p => ({ suggestionId: p.suggestionId, name: p.name })));
           
-          // Try to find property by exact suggestionId match first
-          let property = envelope.suggestedProperties?.find(p => p.suggestionId === itemId);
+          // Normalize itemId by removing sp_ prefix if present
+          let normalizedItemId = itemId;
+          if (itemId.startsWith('sp_suggested:')) {
+            normalizedItemId = itemId.replace(/^sp_/, '');
+            console.log(`🔍 Normalized itemId from ${itemId} to ${normalizedItemId}`);
+          }
           
-          // If not found and itemId starts with 'suggested:' or 'sugg:', try to find by property name
-          if (!property && (itemId.startsWith('suggested:') || itemId.startsWith('sugg:'))) {
-            const propertyName = itemId.split(':').slice(1).join(':'); // Handle multiple colons
+          // Try to find property by exact suggestionId match first (with normalized ID)
+          let property = envelope.suggestedProperties?.find(p => p.suggestionId === normalizedItemId || p.suggestionId === itemId);
+          
+          // If not found and itemId starts with 'suggested:', 'sugg:', or 'sp_suggested:', try to find by property name
+          if (!property && (itemId.startsWith('suggested:') || itemId.startsWith('sugg:') || itemId.startsWith('sp_suggested:'))) {
+            // Extract property name from itemId (remove prefix)
+            const propertyName = normalizedItemId.split(':').slice(1).join(':'); // Handle multiple colons
             console.log(`🔍 Trying to find property by name: ${propertyName}`);
             property = envelope.suggestedProperties?.find(p => p.name.toLowerCase() === propertyName.toLowerCase());
           }
@@ -311,6 +321,9 @@ export function ObjectModifierModal({
               console.log(`📝 Generated add patch for property:`, addPatch);
               patches.push(addPatch);
             }
+          } else {
+            console.error(`❌ Property not found for itemId: ${itemId} (normalized: ${normalizedItemId})`);
+            console.error(`❌ Available suggestionIds:`, envelope.suggestedProperties?.map(p => p.suggestionId));
           }
           break;
         }
@@ -603,11 +616,15 @@ export function ObjectModifierModal({
                      <div 
              key={property.suggestionId}
              className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-               selectedItems.has(property.suggestionId)
+               selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`)
                  ? "border-blue-500 bg-blue-50"
                  : "border-gray-200 hover:border-gray-300"
              }`}
-             onClick={() => handleItemToggle(property.suggestionId)}
+             onClick={() => {
+               // Try both with and without sp_ prefix to handle any ID mismatches
+               const idToToggle = selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId;
+               handleItemToggle(idToToggle);
+             }}
            >
              <div className="flex items-start gap-3">
                <div className="flex-1 min-w-0">
@@ -669,8 +686,12 @@ export function ObjectModifierModal({
                  </div>
                  <input
                    type="checkbox"
-                   checked={selectedItems.has(property.suggestionId)}
-                   onChange={() => handleItemToggle(property.suggestionId)}
+                   checked={selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`)}
+                   onChange={() => {
+                     // Try both with and without sp_ prefix to handle any ID mismatches
+                     const idToToggle = selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId;
+                     handleItemToggle(idToToggle);
+                   }}
                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  />
                </div>

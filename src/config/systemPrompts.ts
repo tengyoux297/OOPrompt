@@ -558,7 +558,17 @@ Read the main_task, audience, and other properties in ooprompt for context.
 
 Identify the property specified by propertyName.
 
-Generate several example values (single words or short terms/phrases) that would make sense for this property in the given context.
+**IMPORTANT: Generate examples OF the property's VALUE, not examples FOR the property name.**
+
+The examples should clarify or illustrate what the property value means. For instance:
+- If property is {name: "interest", value: "food"}, generate examples like: ["burgers", "rice", "noodles", "pasta", "sushi"]
+- If property is {name: "topic", value: "machine learning"}, generate examples like: ["neural networks", "deep learning", "reinforcement learning", "computer vision"]
+
+**DO NOT generate alternative property values.** For example:
+- If property is {name: "interest", value: "food"}, DO NOT generate: ["reading", "sports", "movies"] (these are alternative interests, not examples of food)
+- Instead, generate examples that clarify what "food" means in this context
+
+Generate several specific examples (single words or short terms/phrases) that illustrate or clarify the property's VALUE in the given context.
 
 Do not explain — only provide examples.
 
@@ -743,13 +753,20 @@ Return only the JSON envelope above—no extra commentary.
 
 Return a single machine-parsable JSON object that strictly matches the schema. DO NOT output prose, markdown, or code fences. The output must begin with "{" and end with "}". Use strict JSON (no comments, no trailing commas, no NaN/Infinity). Use double quotes for all strings and escape control characters. Confidence must be a number with two decimals.
 
+**CRITICAL JSON FORMATTING RULES:**
+1. **COMPLETE JSON REQUIRED**: Your response MUST be complete, valid JSON. Every opening brace { MUST have a matching closing brace }. Every opening bracket [ MUST have a matching closing bracket ]. Do NOT truncate your response mid-structure.
+2. **NO TRAILING COMMAS**: Never put a comma after the last element in an array or object (e.g., ["a", "b"] not ["a", "b",]).
+3. **PROPER ARRAY SYNTAX**: Arrays must be properly closed: [item1, item2, item3] not [item1, item2, item3 or [item1, item2, item3,.
+4. **PROPER OBJECT SYNTAX**: Objects must be properly closed: {"key": "value"} not {"key": "value" or {"key": "value",.
+5. **IF RESPONSE IS TOO LONG**: Use pagination (summary.hasMore = true, summary.cursor) instead of cutting off the JSON. Return at most 5 items per response, but ALWAYS close all arrays and objects properly.
+
 Only include the array that matches requestType:
 - conflict_check → "conflicts" only
 - more_possible_properties → "suggestedProperties" only
 - modify_language → "languageModifications" only
 Omit the others.
 
-If the result would be long, return at most 5 items, set summary.hasMore = true, and provide a non-empty summary.cursor.
+If the result would be long, return at most 5 items, set summary.hasMore = true, and provide a non-empty summary.cursor. But ALWAYS ensure your JSON is complete and valid, even if you need to return fewer items.
 
 All idx(<propertyId>) segments in patch paths must reference existing property ids in the provided object; otherwise omit that suggestion. Always echo schemaVersion = "1.0", the given requestType, and oopromptId = the root object id. Keep field values concise; no explanations beyond the defined fields.`
 };

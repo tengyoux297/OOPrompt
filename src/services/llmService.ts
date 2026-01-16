@@ -44,6 +44,56 @@ class LLMService {
   private cacheTTL = 5 * 60 * 1000;
   private pendingRequests = new Map<string, Promise<any>>();
 
+  /**
+   * Normalizes an OOPromptObject to ensure it has the correct structure
+   * This is critical for ensuring JSON serialization works correctly
+   */
+  private normalizeOOPromptObject(obj: OOPromptObject): OOPromptObject {
+    const normalized: OOPromptObject = {
+      id: obj.id || 'root',
+      name: obj.name || '',
+      main_task: obj.main_task || '',
+      audience: obj.audience || '',
+      properties: (obj.properties || []).map(prop => this.normalizeProperty(prop)),
+      tabsOrder: Array.isArray(obj.tabsOrder) ? obj.tabsOrder : (obj.tabsOrder ? [obj.tabsOrder] : ['root']),
+      log: Array.isArray(obj.log) ? obj.log : [],
+      createdAt: typeof obj.createdAt === 'number' ? obj.createdAt : Date.now(),
+      updatedAt: typeof obj.updatedAt === 'number' ? obj.updatedAt : Date.now(),
+    };
+    
+    return normalized;
+  }
+
+  /**
+   * Normalizes a Property to ensure it has the correct structure
+   */
+  private normalizeProperty(prop: Property): Property {
+    const normalized: Property = {
+      id: prop.id || `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: typeof prop.name === 'string' ? prop.name : '',
+      value: prop.value || '',
+      emphasis: prop.emphasis || 'normal',
+      createdAt: typeof prop.createdAt === 'number' ? prop.createdAt : Date.now(),
+      updatedAt: typeof prop.updatedAt === 'number' ? prop.updatedAt : Date.now(),
+    };
+    
+    // Add optional fields if they exist
+    if (prop.examples && Array.isArray(prop.examples)) {
+      normalized.examples = prop.examples;
+    }
+    if (prop.source) {
+      normalized.source = prop.source;
+    }
+    if (prop.fileReference) {
+      normalized.fileReference = prop.fileReference;
+    }
+    if (prop.fileData) {
+      normalized.fileData = prop.fileData;
+    }
+    
+    return normalized;
+  }
+
   constructor() {
     // Get default API keys from environment
     const defaultOpenaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY || '';
@@ -575,6 +625,21 @@ class LLMService {
     try {
       console.log('Generating examples for property:', propertyName);
 
+      // Find the property and validate it has a value
+      const property = oopromptObject.properties.find(p => p.name === propertyName);
+      if (!property) {
+        throw new Error(`Property "${propertyName}" not found`);
+      }
+      
+      // Check if property value is empty
+      const propertyValue = typeof property.value === "string" 
+        ? property.value.trim() 
+        : (property.value?.refObjectName || "").trim();
+      
+      if (!propertyValue) {
+        throw new Error(`Cannot generate examples: Property "${propertyName}" has no value. Examples are generated to clarify the property value (e.g., for property {name: "interest", value: "food"}, examples would be "burgers", "rice", "noodles"). Please provide a value for this property first.`);
+      }
+
       // Prepare input according to EXAMPLE_GENERATOR prompt format
       const inputData = {
         ooprompt: oopromptObject,
@@ -644,10 +709,39 @@ class LLMService {
     console.log('Cursor:', cursor);
 
     try {
+      // Normalize the object before sending to ensure proper structure
+      const normalizedObject = this.normalizeOOPromptObject(oopromptObject);
+      
+      // Validate the object can be serialized to JSON and has required structure
+      try {
+        const serialized = JSON.stringify(normalizedObject);
+        // Verify it can be parsed back
+        const parsed = JSON.parse(serialized);
+        
+        // Validate required fields exist
+        if (!parsed.id || !Array.isArray(parsed.properties)) {
+          throw new Error('Invalid object structure: missing required fields');
+        }
+        
+        // Validate all properties have required fields
+        for (const prop of parsed.properties) {
+          if (!prop.id || typeof prop.name !== 'string' || !prop.hasOwnProperty('value') || !prop.emphasis) {
+            console.warn('Invalid property structure:', prop);
+            throw new Error(`Invalid property structure: property ${prop.id || 'unknown'} is missing required fields`);
+          }
+        }
+        
+        console.log('✅ Object validation passed - structure is correct');
+      } catch (serializeError) {
+        console.error('❌ Object validation failed:', serializeError);
+        console.error('Object structure:', JSON.stringify(normalizedObject, null, 2));
+        throw new Error(`Invalid object structure: ${serializeError instanceof Error ? serializeError.message : 'Unknown serialization error'}`);
+      }
+      
       // Prepare input according to OBJECT_MODIFIER prompt format
       // The prompt expects: ooprompt and requestType
       const inputData: any = {
-        ooprompt: oopromptObject,
+        ooprompt: normalizedObject,
         requestType: requestType
       };
       
@@ -665,6 +759,7 @@ class LLMService {
       console.log('OBJECT_MODIFIER response:', response.content);
       
       // Try to parse the JSON response
+      let parseAttempts: string[] = []; // Declare outside try block so it's accessible in catch
       try {
         // Extract JSON from response - handle markdown code fences and extra text
         let jsonContent = response.content.trim();
@@ -688,11 +783,163 @@ class LLMService {
           }
         }
         
-        // Try to fix common JSON issues before parsing
-        // Remove trailing commas before } or ]
-        jsonContent = jsonContent.replace(/,(\s*[}\]])/g, '$1');
+        // Enhanced JSON repair function - handles incomplete JSON and common errors
+        const repairJSON = (json: string): string => {
+          let repaired = json.trim();
+          
+          // Step 1: Remove trailing commas before } or ] (multiple passes to catch nested cases)
+          for (let i = 0; i < 5; i++) {
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+          }
+          
+          // Step 2: Fix incomplete strings (unclosed quotes) - close them if they're at the end
+          let inString = false;
+          let escapeNext = false;
+          for (let i = 0; i < repaired.length; i++) {
+            if (escapeNext) {
+              escapeNext = false;
+              continue;
+            }
+            if (repaired[i] === '\\') {
+              escapeNext = true;
+              continue;
+            }
+            if (repaired[i] === '"') {
+              inString = !inString;
+            }
+          }
+          // If we're still in a string at the end, close it
+          if (inString) {
+            repaired += '"';
+          }
+          
+          // Step 3: Try to balance braces and brackets by adding missing closing ones
+          // Use a stack-based approach to properly close nested structures
+          const stack: string[] = [];
+          let inString2 = false;
+          let escapeNext2 = false;
+          
+          for (let i = 0; i < repaired.length; i++) {
+            if (escapeNext2) {
+              escapeNext2 = false;
+              continue;
+            }
+            if (repaired[i] === '\\') {
+              escapeNext2 = true;
+              continue;
+            }
+            if (repaired[i] === '"') {
+              inString2 = !inString2;
+              continue;
+            }
+            if (inString2) continue;
+            
+            if (repaired[i] === '{') {
+              stack.push('}');
+            } else if (repaired[i] === '[') {
+              stack.push(']');
+            } else if (repaired[i] === '}' || repaired[i] === ']') {
+              if (stack.length > 0 && stack[stack.length - 1] === repaired[i]) {
+                stack.pop();
+              }
+            }
+          }
+          
+          // Add missing closing brackets/braces in reverse order
+          while (stack.length > 0) {
+            repaired += stack.pop();
+          }
+          
+          // Step 4: Final pass - remove any trailing commas that might have been added incorrectly
+          repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+          
+          return repaired;
+        };
         
-        const envelope = JSON.parse(jsonContent);
+        // Try parsing with repair
+        let envelope;
+        try {
+          // First attempt: try parsing the cleaned JSON as-is
+          envelope = JSON.parse(jsonContent);
+          parseAttempts.push('Initial parse succeeded');
+        } catch (firstError) {
+          parseAttempts.push(`Initial parse failed: ${firstError instanceof Error ? firstError.message : 'Unknown'}`);
+          
+          try {
+            // Second attempt: apply conservative repairs
+            const repaired = repairJSON(jsonContent);
+            envelope = JSON.parse(repaired);
+            parseAttempts.push('Repaired JSON parse succeeded');
+            console.log('JSON repair was successful');
+          } catch (secondError) {
+            parseAttempts.push(`Repaired parse failed: ${secondError instanceof Error ? secondError.message : 'Unknown'}`);
+            
+            // Third attempt: try to extract just the JSON structure more aggressively
+            const startIdx = jsonContent.indexOf('{');
+            let endIdx = jsonContent.lastIndexOf('}');
+            
+            // If no closing brace found, the JSON is likely incomplete - try to repair it
+            if (endIdx === -1 || endIdx <= startIdx) {
+              console.warn('No valid JSON boundaries found, attempting to repair incomplete JSON...');
+              // Try to find where the JSON might have been cut off
+              // Look for the last complete object/array structure
+              let lastCompleteIdx = -1;
+              let braceCount = 0;
+              let bracketCount = 0;
+              let inString3 = false;
+              let escapeNext3 = false;
+              
+              for (let i = startIdx; i < jsonContent.length; i++) {
+                if (escapeNext3) {
+                  escapeNext3 = false;
+                  continue;
+                }
+                if (jsonContent[i] === '\\') {
+                  escapeNext3 = true;
+                  continue;
+                }
+                if (jsonContent[i] === '"') {
+                  inString3 = !inString3;
+                  continue;
+                }
+                if (inString3) continue;
+                
+                if (jsonContent[i] === '{') braceCount++;
+                else if (jsonContent[i] === '}') {
+                  braceCount--;
+                  if (braceCount === 0 && bracketCount === 0) {
+                    lastCompleteIdx = i;
+                  }
+                }
+                else if (jsonContent[i] === '[') bracketCount++;
+                else if (jsonContent[i] === ']') bracketCount--;
+              }
+              
+              if (lastCompleteIdx > startIdx) {
+                endIdx = lastCompleteIdx;
+                console.log(`Found last complete structure at position ${endIdx}`);
+              } else {
+                // Use the entire content and let repairJSON add missing brackets
+                endIdx = jsonContent.length - 1;
+              }
+            }
+            
+            if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+              const extracted = jsonContent.substring(startIdx, endIdx + 1);
+              const repaired = repairJSON(extracted);
+              try {
+                envelope = JSON.parse(repaired);
+                parseAttempts.push('Extracted and repaired JSON parse succeeded');
+                console.log('JSON extraction and repair was successful');
+              } catch (thirdError) {
+                parseAttempts.push(`Extracted parse failed: ${thirdError instanceof Error ? thirdError.message : 'Unknown'}`);
+                throw thirdError;
+              }
+            } else {
+              throw secondError;
+            }
+          }
+        }
         
         // Basic validation of the envelope structure
         if (envelope.schemaVersion !== "1.0" || !envelope.requestType || !envelope.oopromptId) {
@@ -702,10 +949,38 @@ class LLMService {
         console.log('Successfully parsed OBJECT_MODIFIER envelope:', envelope);
         return envelope;
       } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
-        console.error('Raw response text:', response.content);
-        console.error('Cleaned JSON attempt:', response.content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, ''));
-        throw new Error(`Invalid JSON format in response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        console.error('Failed to parse JSON response after all attempts');
+        console.error('Parse attempts:', parseAttempts.length > 0 ? parseAttempts : ['No attempts recorded']);
+        console.error('Raw response length:', response.content.length);
+        console.error('Raw response text (first 2000 chars):', response.content.substring(0, 2000));
+        if (response.content.length > 2000) {
+          console.error('Raw response text (last 2000 chars):', response.content.substring(Math.max(0, response.content.length - 2000)));
+        }
+        
+        // Try to provide more helpful error message with context
+        const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
+        const positionMatch = errorMsg.match(/position (\d+)/);
+        if (positionMatch) {
+          const pos = parseInt(positionMatch[1]);
+          const start = Math.max(0, pos - 200);
+          const end = Math.min(response.content.length, pos + 200);
+          console.error('Error context around position', pos, ':', response.content.substring(start, end));
+          console.error('Character at error position:', response.content[pos] || 'EOF');
+        }
+        
+        // Log the cleaned JSON attempt for debugging
+        const cleaned = response.content
+          .replace(/^```(?:json)?\s*\n?/i, '')
+          .replace(/\n?```\s*$/i, '')
+          .trim();
+        const firstBrace = cleaned.indexOf('{');
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          const extracted = cleaned.substring(firstBrace, lastBrace + 1);
+          console.error('Extracted JSON (first 2000 chars):', extracted.substring(0, 2000));
+        }
+        
+        throw new Error(`Invalid JSON format in response: ${errorMsg}. Please check the console for detailed error information.`);
       }
     } catch (error) { 
       console.error('OBJECT_MODIFIER analysis failed:', error); 

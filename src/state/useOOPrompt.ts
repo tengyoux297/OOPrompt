@@ -62,6 +62,55 @@ function logAction(oop: OOPromptObject, action: string, payload?: unknown): OOPr
   };
 }
 
+/**
+ * Normalizes an OOPromptObject to ensure it has the correct structure
+ */
+function normalizeOOPromptObject(obj: OOPromptObject): OOPromptObject {
+  const normalized: OOPromptObject = {
+    id: obj.id || 'root',
+    name: obj.name || '',
+    main_task: obj.main_task || '',
+    audience: obj.audience || '',
+    properties: (obj.properties || []).map(prop => normalizeProperty(prop)),
+    tabsOrder: Array.isArray(obj.tabsOrder) ? obj.tabsOrder : (obj.tabsOrder ? [obj.tabsOrder] : ['root']),
+    log: Array.isArray(obj.log) ? obj.log : [],
+    createdAt: typeof obj.createdAt === 'number' ? obj.createdAt : Date.now(),
+    updatedAt: typeof obj.updatedAt === 'number' ? obj.updatedAt : Date.now(),
+  };
+  
+  return normalized;
+}
+
+/**
+ * Normalizes a Property to ensure it has the correct structure
+ */
+function normalizeProperty(prop: Property): Property {
+  const normalized: Property = {
+    id: prop.id || `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: typeof prop.name === 'string' ? prop.name : '',
+    value: prop.value || '',
+    emphasis: prop.emphasis || 'normal',
+    createdAt: typeof prop.createdAt === 'number' ? prop.createdAt : Date.now(),
+    updatedAt: typeof prop.updatedAt === 'number' ? prop.updatedAt : Date.now(),
+  };
+  
+  // Add optional fields if they exist
+  if (prop.examples && Array.isArray(prop.examples)) {
+    normalized.examples = prop.examples;
+  }
+  if (prop.source) {
+    normalized.source = prop.source;
+  }
+  if (prop.fileReference) {
+    normalized.fileReference = prop.fileReference;
+  }
+  if (prop.fileData) {
+    normalized.fileData = prop.fileData;
+  }
+  
+  return normalized;
+}
+
 function reducer(state: AppState, action: Action, initial: OOPromptObject): AppState {
   switch (action.type) {
     case "LOAD":
@@ -71,14 +120,16 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
     case "TOGGLE_OBJECT_PANEL":
       return { ...state, objectPanelOpen: action.open ?? !state.objectPanelOpen };
     case "SET_OOP": {
-      const updatedState = pushHistory(state, action.payload);
+      // Normalize the object to ensure proper structure
+      const normalized = normalizeOOPromptObject(action.payload);
+      const updatedState = pushHistory(state, normalized);
       
       // Also update the corresponding object in promptObjects if it exists
-      const objectIndex = state.promptObjects.findIndex(obj => obj.id === action.payload.id);
+      const objectIndex = state.promptObjects.findIndex(obj => obj.id === normalized.id);
       if (objectIndex >= 0) {
         const updatedPromptObjects = [...state.promptObjects];
         updatedPromptObjects[objectIndex] = {
-          ...action.payload,
+          ...normalized,
           updatedAt: Date.now()
         };
         
@@ -92,12 +143,17 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       return { ...updatedState, hasUnsavedChanges: true };
     }
     case "UPSERT_PROPERTY": {
-      const exists = state.oop.properties.some((p: Property) => p.id === action.payload.id);
+      // Normalize the property before upserting
+      const normalizedProperty = normalizeProperty(action.payload);
+      const exists = state.oop.properties.some((p: Property) => p.id === normalizedProperty.id);
       const props = exists
-        ? state.oop.properties.map((p: Property) => p.id === action.payload.id ? action.payload : p)
-        : [action.payload, ...state.oop.properties];
-      const nextOop = logAction(state.oop, "UPSERT_PROPERTY", { propertyId: action.payload.id });
-      return pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
+        ? state.oop.properties.map((p: Property) => p.id === normalizedProperty.id ? normalizedProperty : normalizeProperty(p))
+        : [normalizedProperty, ...state.oop.properties.map(p => normalizeProperty(p))];
+      const nextOop = logAction(state.oop, "UPSERT_PROPERTY", { propertyId: normalizedProperty.id });
+      const updatedOop = { ...nextOop, properties: props } as OOPromptObject;
+      // Normalize the entire object to ensure consistency
+      const normalizedOop = normalizeOOPromptObject(updatedOop);
+      return pushHistory({ ...state, hasUnsavedChanges: true }, normalizedOop);
     }
     case "DELETE_PROPERTY": {
       console.log('DELETE_PROPERTY reducer called with id:', action.id);

@@ -21,6 +21,12 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
   const [selectedExamples, setSelectedExamples] = useState<Set<string>>(new Set(property.examples || []));
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [newExample, setNewExample] = useState("");
+  
+  // Check if property value is empty (for disabling example generation)
+  const propertyValue = typeof property.value === "string" 
+    ? property.value.trim() 
+    : (property.value?.refObjectName || "").trim();
+  const hasPropertyValue = !!propertyValue;
 
   // Filter promptObjects to show only latest version of each unique object
   // Group by main_task + audience and keep only the most recently updated version
@@ -57,11 +63,21 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
 
 
   const handleGenerateExamples = async () => {
+    // Check if property value is empty
+    const propertyValue = typeof property.value === "string" 
+      ? property.value.trim() 
+      : (property.value?.refObjectName || "").trim();
+    
+    if (!propertyValue) {
+      alert(`Warning: Cannot generate examples. The property "${property.name}" has no value.\n\nExamples are generated to clarify the property value (e.g., for property {name: "interest", value: "food"}, examples would be "burgers", "rice", "noodles").\n\nPlease provide a value for this property first.`);
+      return;
+    }
+    
     setIsGeneratingExamples(true);
     try {
       const result = await generateExamples({
         name: property.name,
-        value: typeof property.value === "string" ? property.value : property.value.refObjectName
+        value: propertyValue
       }, currentOOP); // Pass the current OOPrompt object
       
       // Add new examples to the list but don't select them by default
@@ -72,6 +88,7 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
       // Users will need to manually select which new examples they want to keep
     } catch (error) {
       console.error("Failed to generate examples:", error);
+      alert(`Failed to generate examples: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingExamples(false);
     }
@@ -271,10 +288,16 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
             <div className="space-y-3">
                 {/* Generate with AI Section */}
                 <div className="text-center">
+                  {!hasPropertyValue && (
+                    <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                      ⚠️ Cannot generate examples: Property value is empty. Examples clarify the property value (e.g., for {`{name: "interest", value: "food"}`}, examples would be "burgers", "rice", "noodles").
+                    </div>
+                  )}
                   <button
                     onClick={handleGenerateExamples}
-                    disabled={isGeneratingExamples}
+                    disabled={isGeneratingExamples || !hasPropertyValue}
                     className="px-4 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    title={!hasPropertyValue ? "Please provide a value for this property first" : "Generate examples to clarify the property value"}
                   >
                     {isGeneratingExamples ? (
                       <div className="flex items-center gap-2">
