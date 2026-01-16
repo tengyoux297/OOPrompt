@@ -230,6 +230,24 @@ class LLMService {
     return results;
   }
 
+  // Unified chat method that routes to the appropriate provider
+  async chat(
+    messages: ChatMessage[],
+    provider: LLMProvider = 'openai',
+    fileAttachments?: FileAttachment[]
+  ): Promise<LLMResponse> {
+    switch (provider) {
+      case 'openai':
+        return this.chatWithOpenAI(messages, fileAttachments);
+      case 'gemini':
+        throw new Error('Gemini chat not yet implemented');
+      case 'claude':
+        throw new Error('Claude chat not yet implemented');
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
+  }
+
   // OpenAI Chat Completion - Use regular Chat Completions API (faster, simpler for general purpose)
   async chatWithOpenAI(
     messages: ChatMessage[],

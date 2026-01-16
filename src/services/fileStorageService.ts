@@ -164,7 +164,7 @@ class FileStorageService {
             resolve({});
             return;
           }
-          resolve(result[this.storageKey] || {});
+          resolve((result[this.storageKey] as Record<string, { id: string; data: string | ArrayBuffer | null; metadata: FileReference }>) || {});
         });
       } else {
         try {

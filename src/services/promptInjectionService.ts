@@ -66,13 +66,14 @@ function injectPromptIntoPage(prompt: string): void {
     let targetTextarea: HTMLTextAreaElement | null = null;
     let maxArea = 0;
     
-    textareas.forEach((textarea) => {
+    for (let i = 0; i < textareas.length; i++) {
+      const textarea = textareas[i] as HTMLTextAreaElement;
       const area = textarea.offsetWidth * textarea.offsetHeight;
       if (area > maxArea && textarea.offsetParent !== null) {
         maxArea = area;
-        targetTextarea = textarea as HTMLTextAreaElement;
+        targetTextarea = textarea;
       }
-    });
+    }
     
     if (targetTextarea) {
       targetTextarea.value = prompt;

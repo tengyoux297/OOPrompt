@@ -16,7 +16,7 @@ export type Property = {
   value: string | ValueRef;
   emphasis: Emphasis;            // single-select via segmented control
   examples?: string[];
-  source?: "user" | "ai-suggested";
+  source?: "user" | "ai-suggested" | "ai-extracted";
   fileReference?: FileReference;     // optional file attachment
   fileData?: {                       // resolved file data for sending to LLM
     fileName: string;

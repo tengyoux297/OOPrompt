@@ -100,9 +100,14 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       return pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
     }
     case "DELETE_PROPERTY": {
+      console.log('DELETE_PROPERTY reducer called with id:', action.id);
+      console.log('Current properties before deletion:', state.oop.properties.map(p => ({ id: p.id, name: p.name })));
       const props = state.oop.properties.filter((p: Property) => p.id !== action.id);
+      console.log('Properties after filtering:', props.map(p => ({ id: p.id, name: p.name })));
       const nextOop = logAction(state.oop, "DELETE_PROPERTY", { propertyId: action.id });
-      return pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
+      const newState = pushHistory({ ...state, hasUnsavedChanges: true }, { ...nextOop, properties: props } as OOPromptObject);
+      console.log('New state after DELETE_PROPERTY:', newState.oop.properties.map(p => ({ id: p.id, name: p.name })));
+      return newState;
     }
     case "SELECT_PROPERTY":
       return { ...state, selectedPropertyId: action.id };

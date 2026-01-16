@@ -13,6 +13,7 @@ type Props = {
 
 export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDeleteObject, onOpenOOPPanel, onOpenPanel }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [deletingObjectId, setDeletingObjectId] = useState<string | null>(null);
   const [historyPopup, setHistoryPopup] = useState<{
     isOpen: boolean;
     objectId: string;
@@ -82,8 +83,22 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
 
   const handleDeleteObject = (event: React.MouseEvent, objectId: string) => {
     event.stopPropagation(); // Prevent object selection when clicking delete
-    if (confirm(`Are you sure you want to delete "${objects.find(obj => obj.id === objectId)?.name || 'this object'}"?`)) {
+    event.preventDefault(); // Prevent any default behavior
+    
+    // Prevent double deletion
+    if (deletingObjectId === objectId) {
+      console.log('ObjectPanel: Delete already in progress for:', objectId);
+      return;
+    }
+    
+    const obj = objects.find(obj => obj.id === objectId);
+    const objName = obj?.name || obj?.main_task || 'this object';
+    if (window.confirm(`Are you sure you want to delete "${objName}"?`)) {
+      console.log('ObjectPanel: Deleting object:', objectId);
+      setDeletingObjectId(objectId);
       onDeleteObject(objectId);
+      // Reset deleting state after a short delay
+      setTimeout(() => setDeletingObjectId(null), 1000);
       // Don't open panel after deletion - let user stay in library view
     }
   };
@@ -187,10 +202,19 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
                          
                          {/* Delete Button */}
                          <button
-                           onClick={(e) => handleDeleteObject(e, obj.id)}
+                           type="button"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             e.preventDefault();
+                             handleDeleteObject(e, obj.id);
+                           }}
+                           onMouseDown={(e) => {
+                             e.stopPropagation(); // Prevent card click on mousedown
+                           }}
                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
                            aria-label={`Delete ${obj.name}`}
                            title="Delete object"
+                           disabled={deletingObjectId === obj.id}
                          >
                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
