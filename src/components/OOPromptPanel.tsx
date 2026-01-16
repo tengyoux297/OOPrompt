@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
 import type { Emphasis as PropertyEmphasis, OOPromptObject, Property, Suggestion, Conflict } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
@@ -422,17 +422,19 @@ export function OOPromptPanel({
     setAudience(oop.audience || "");
   }, [oop.id, oop.main_task, oop.audience]);
 
-  // Filter properties based on search term
-  const filtered = (oop?.properties || []).filter((p: Property) => {
-    try {
-      if (!p || !p.name) return false;
-      return p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (typeof p.value === "string" && p.value.toLowerCase().includes(searchTerm.toLowerCase()));
-    } catch (error) {
-      console.error('Error filtering property:', error, p);
-      return false;
-    }
-  });
+  // Filter properties based on search term - memoized for performance
+  const filtered = useMemo(() => {
+    return (oop?.properties || []).filter((p: Property) => {
+      try {
+        if (!p || !p.name) return false;
+        return p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (typeof p.value === "string" && p.value.toLowerCase().includes(searchTerm.toLowerCase()));
+      } catch (error) {
+        console.error('Error filtering property:', error, p);
+        return false;
+      }
+    });
+  }, [oop?.properties, searchTerm]);
 
   // Sort properties based on user selection
   // Use useMemo to avoid minification issues and improve performance
@@ -547,7 +549,7 @@ export function OOPromptPanel({
 
 
 
-  const handleAddProperty = (property: Property) => {
+  const handleAddProperty = useCallback((property: Property) => {
     dispatch({ type: "UPSERT_PROPERTY", payload: property });
     dispatch({ type: "CLOSE_MODAL" });
     
@@ -557,12 +559,12 @@ export function OOPromptPanel({
       console.log(JSON.stringify(state.oop, null, 2));
       console.log('===============================================');
     }, 100);
-  };
+  }, [dispatch, state.oop]);
 
   // handleAISuggestion is deprecated - now using ObjectModifierModal
   // const handleAISuggestion = async () => { ... };
 
-  const handleAddSuggestion = (suggestion: Suggestion) => {
+  const handleAddSuggestion = useCallback((suggestion: Suggestion) => {
     const property: Property = {
       id: `p${Date.now()}`,
       name: suggestion.name,
@@ -575,7 +577,6 @@ export function OOPromptPanel({
     dispatch({ type: "UPSERT_PROPERTY", payload: property });
     
     // Remove from suggestions
-
     const newSuggested = suggestions.suggested.filter((s: Suggestion) => 
       s.name !== suggestion.name || s.value !== suggestion.value
     );
@@ -583,9 +584,9 @@ export function OOPromptPanel({
       type: "SET_SUGGESTIONS", 
       payload: { ...suggestions, suggested: newSuggested } 
     });
-  };
+  }, [dispatch, suggestions]);
 
-  const handleDismissSuggestion = (suggestion: Suggestion) => {
+  const handleDismissSuggestion = useCallback((suggestion: Suggestion) => {
     const newSuggested = suggestions.suggested.filter((s: Suggestion) => 
       s.name !== suggestion.name || s.value !== suggestion.value
     );
@@ -593,7 +594,7 @@ export function OOPromptPanel({
       type: "SET_SUGGESTIONS", 
       payload: { ...suggestions, suggested: newSuggested } 
     });
-  };
+  }, [dispatch, suggestions]);
 
   const handleResolveConflict = (conflict: Conflict) => {
     dispatch({ type: "OPEN_MODAL", modal: "conflict-resolve", data: conflict });

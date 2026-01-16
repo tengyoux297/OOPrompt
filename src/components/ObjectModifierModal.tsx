@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { 
   ObjectModifierEnvelope, 
   ConflictItem, 
@@ -459,15 +459,17 @@ export function ObjectModifierModal({
     }
   };
 
-  const handleItemToggle = (itemId: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
-    setSelectedItems(newSelected);
-  };
+  const handleItemToggle = useCallback((itemId: string) => {
+    setSelectedItems(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(itemId)) {
+        newSelected.delete(itemId);
+      } else {
+        newSelected.add(itemId);
+      }
+      return newSelected;
+    });
+  }, []);
 
   const handleDuplicatePropertySelection = (conflictId: string, propertyId: string) => {
     const newSelected = new Set(selectedItems);
@@ -687,10 +689,14 @@ export function ObjectModifierModal({
                  <input
                    type="checkbox"
                    checked={selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`)}
-                   onChange={() => {
+                   onChange={(e) => {
+                     e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
                      // Try both with and without sp_ prefix to handle any ID mismatches
                      const idToToggle = selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId;
                      handleItemToggle(idToToggle);
+                   }}
+                   onClick={(e) => {
+                     e.stopPropagation(); // Also stop propagation on click event
                    }}
                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  />
@@ -738,7 +744,13 @@ export function ObjectModifierModal({
                 <input
                   type="checkbox"
                   checked={selectedItems.has(modification.modId)}
-                  onChange={() => handleItemToggle(modification.modId)}
+                  onChange={(e) => {
+                    e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
+                    handleItemToggle(modification.modId);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Also stop propagation on click event
+                  }}
                   className="w-4 h-4 text-blue-600"
                 />
               </div>
@@ -1175,7 +1187,13 @@ function ConflictCard({
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={onToggle}
+              onChange={(e) => {
+                e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
+                onToggle();
+              }}
+              onClick={(e) => {
+                e.stopPropagation(); // Also stop propagation on click event
+              }}
               className="w-4 h-4 text-blue-600"
             />
           </div>

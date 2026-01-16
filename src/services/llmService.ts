@@ -5,6 +5,8 @@ export type LLMProvider = 'openai' | 'gemini' | 'claude';
 import type { OOPromptObject, Property, FileReference, ObjectModifierEnvelope } from '../types';
 // Import system prompts
 import { getSystemPrompt } from '../config/systemPrompts';
+// Import shared normalization utilities
+import { normalizeOOPromptObject, normalizeProperty } from '../utils/normalize';
 
 
 // Use the proper types from the main types file with extensions for internal use
@@ -44,55 +46,6 @@ class LLMService {
   private cacheTTL = 5 * 60 * 1000;
   private pendingRequests = new Map<string, Promise<any>>();
 
-  /**
-   * Normalizes an OOPromptObject to ensure it has the correct structure
-   * This is critical for ensuring JSON serialization works correctly
-   */
-  private normalizeOOPromptObject(obj: OOPromptObject): OOPromptObject {
-    const normalized: OOPromptObject = {
-      id: obj.id || 'root',
-      name: obj.name || '',
-      main_task: obj.main_task || '',
-      audience: obj.audience || '',
-      properties: (obj.properties || []).map(prop => this.normalizeProperty(prop)),
-      tabsOrder: Array.isArray(obj.tabsOrder) ? obj.tabsOrder : (obj.tabsOrder ? [obj.tabsOrder] : ['root']),
-      log: Array.isArray(obj.log) ? obj.log : [],
-      createdAt: typeof obj.createdAt === 'number' ? obj.createdAt : Date.now(),
-      updatedAt: typeof obj.updatedAt === 'number' ? obj.updatedAt : Date.now(),
-    };
-    
-    return normalized;
-  }
-
-  /**
-   * Normalizes a Property to ensure it has the correct structure
-   */
-  private normalizeProperty(prop: Property): Property {
-    const normalized: Property = {
-      id: prop.id || `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: typeof prop.name === 'string' ? prop.name : '',
-      value: prop.value || '',
-      emphasis: prop.emphasis || 'normal',
-      createdAt: typeof prop.createdAt === 'number' ? prop.createdAt : Date.now(),
-      updatedAt: typeof prop.updatedAt === 'number' ? prop.updatedAt : Date.now(),
-    };
-    
-    // Add optional fields if they exist
-    if (prop.examples && Array.isArray(prop.examples)) {
-      normalized.examples = prop.examples;
-    }
-    if (prop.source) {
-      normalized.source = prop.source;
-    }
-    if (prop.fileReference) {
-      normalized.fileReference = prop.fileReference;
-    }
-    if (prop.fileData) {
-      normalized.fileData = prop.fileData;
-    }
-    
-    return normalized;
-  }
 
   constructor() {
     // Get default API keys from environment
@@ -710,7 +663,7 @@ class LLMService {
 
     try {
       // Normalize the object before sending to ensure proper structure
-      const normalizedObject = this.normalizeOOPromptObject(oopromptObject);
+      const normalizedObject = normalizeOOPromptObject(oopromptObject);
       
       // Validate the object can be serialized to JSON and has required structure
       try {
