@@ -648,7 +648,33 @@ class LLMService {
       
       // Try to parse the JSON response
       try {
-        const envelope = JSON.parse(response.content);
+        // Extract JSON from response - handle markdown code fences and extra text
+        let jsonContent = response.content.trim();
+        
+        // Remove markdown code fences if present (```json ... ``` or ``` ... ```)
+        jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/i, '');
+        jsonContent = jsonContent.replace(/\n?```\s*$/i, '');
+        
+        // Try to find JSON object boundaries - use a more robust approach
+        // Find the first { and last } to extract the complete JSON object
+        const firstBrace = jsonContent.indexOf('{');
+        const lastBrace = jsonContent.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
+        } else {
+          // Fallback: try regex match
+          const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[0];
+          }
+        }
+        
+        // Try to fix common JSON issues before parsing
+        // Remove trailing commas before } or ]
+        jsonContent = jsonContent.replace(/,(\s*[}\]])/g, '$1');
+        
+        const envelope = JSON.parse(jsonContent);
         
         // Basic validation of the envelope structure
         if (envelope.schemaVersion !== "1.0" || !envelope.requestType || !envelope.oopromptId) {
@@ -660,7 +686,8 @@ class LLMService {
       } catch (parseError) {
         console.error('Failed to parse JSON response:', parseError);
         console.error('Raw response text:', response.content);
-        throw new Error('Invalid JSON format in response');
+        console.error('Cleaned JSON attempt:', response.content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, ''));
+        throw new Error(`Invalid JSON format in response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
       }
     } catch (error) { 
       console.error('OBJECT_MODIFIER analysis failed:', error); 

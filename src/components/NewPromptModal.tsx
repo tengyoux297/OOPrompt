@@ -46,7 +46,7 @@ export function NewPromptModal({ isOpen, onClose, onExtract, onError }: Props) {
         properties: extractedData.properties.map((prop, index) => ({
           ...prop,
           id: prop.id || `p${Date.now()}_${index}`,
-          action: prop.action || 'normal' as const,
+          emphasis: prop.emphasis || 'normal' as const,
           source: prop.source || 'ai-extracted' as const,
           createdAt: prop.createdAt || Date.now(),
           updatedAt: prop.updatedAt || Date.now(),

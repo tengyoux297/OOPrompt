@@ -222,7 +222,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                 <div className="flex gap-2">
                   {(["normal", "important", "avoid"] as const).map((option) => {
                     const displayLabel = option === "important" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
-                    const isSelected = p.action === option;
+                    const isSelected = p.emphasis === option;
                     return (
                       <label
                         key={option}
@@ -238,7 +238,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
                           value={option}
                           checked={isSelected}
                           onChange={() => {
-                            const updatedProperty = { ...p, action: option, updatedAt: Date.now() };
+                            const updatedProperty = { ...p, emphasis: option, updatedAt: Date.now() };
                             dispatch({
                               type: "UPSERT_PROPERTY",
                               payload: updatedProperty,
@@ -399,7 +399,7 @@ export function OOPromptPanel({
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const { oop, selectedPropertyId, suggestions, modal } = state;
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"none" | "action" | "name" | "time">("none");
+  const [sortBy, setSortBy] = useState<"none" | "emphasis" | "name" | "time">("none");
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
   const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
@@ -437,10 +437,10 @@ export function OOPromptPanel({
     try {
       const sortedArray = [...filtered];
       
-      if (sortBy === "action") {
+      if (sortBy === "emphasis") {
         sortedArray.sort((propA: Property, propB: Property) => {
-          const orderA = getActionOrder(propA.action);
-          const orderB = getActionOrder(propB.action);
+          const orderA = getActionOrder(propA.emphasis);
+          const orderB = getActionOrder(propB.emphasis);
           if (orderA !== orderB) {
             return orderA - orderB;
           }
@@ -485,7 +485,7 @@ export function OOPromptPanel({
       sortBy,
       filteredCount: filtered.length,
       sortedCount: sorted.length,
-      firstProperty: filtered[0] ? { name: filtered[0].name, action: filtered[0].action, createdAt: filtered[0].createdAt, updatedAt: filtered[0].updatedAt } : null
+      firstProperty: filtered[0] ? { name: filtered[0].name, emphasis: filtered[0].emphasis, createdAt: filtered[0].createdAt, updatedAt: filtered[0].updatedAt } : null
     });
     console.log('================================');
   }, [state.oop, oop.properties, filtered, sorted, selectedPropertyId, sortBy]);
@@ -505,7 +505,7 @@ export function OOPromptPanel({
   // Cycle through sorting options
   const cycleSort = () => {
     try {
-      const sortOptions: Array<"none" | "action" | "name" | "time"> = ["none", "action", "name", "time"];
+      const sortOptions: Array<"none" | "emphasis" | "name" | "time"> = ["none", "emphasis", "name", "time"];
       const currentIndex = sortOptions.indexOf(sortBy);
       const nextIndex = (currentIndex + 1) % sortOptions.length;
       const newSortBy = sortOptions[nextIndex];
@@ -519,10 +519,10 @@ export function OOPromptPanel({
     }
   };
 
-  // Get action order for display (avoid, normal, important)
-  const getActionOrder = (action: string) => {
-    console.log(`getActionOrder called with: "${action}"`);
-    switch (action) {
+  // Get emphasis order for display (avoid, normal, important)
+  const getActionOrder = (emphasis: string) => {
+    console.log(`getActionOrder called with: "${emphasis}"`);
+    switch (emphasis) {
       case "avoid": 
         console.log('Returning 0 for avoid');
         return 0;
@@ -533,7 +533,7 @@ export function OOPromptPanel({
         console.log('Returning 2 for important');
         return 2;
       default: 
-        console.log(`Unknown action "${action}", returning 1`);
+        console.log(`Unknown emphasis "${emphasis}", returning 1`);
         return 1;
     }
   };

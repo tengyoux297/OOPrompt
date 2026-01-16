@@ -11,16 +11,16 @@ export const systemPrompts = {
 
 ## Extraction and Structuring Rules
 
-- **main_task**: One maximally brief, imperative sentence summarizing the user's primary action (e.g., "Write a story", "Summarize text", "Generate code", "Analyze data", "Design a wireframe"). Exclude genre, style, or detail unless absolutely required for meaning. Infer even if not explicit; if truly unknowable, use "".
+- **main_task**: One maximally brief, imperative sentence summarizing the user's primary emphsis (e.g., "Write a story", "Summarize text", "Generate code", "Analyze data", "Design a wireframe"). Exclude genre, style, or detail unless absolutely required for meaning. Infer even if not explicit; if truly unknowable, use "".
 - **audience**: Use explicit target group (e.g., "10-year-olds", "executives") if given; otherwise, set to "everyone".
 - **properties** (limit 20):
     - Split the prompt into distinct, atomic constraints or requirements (e.g., style, tone, genre, POV, length, structure, format/output, names, regions, tools, datasets, content to avoid/include).
     - Each property:
         - **name**: Title Case, concise and specific noun phrase, stable controlled vocabulary (examples: "Tone", "Genre", "Length", "POV", "Format", "Framework", "Language", "Dataset", "Libraries", "Content", etc.).
         - **value**: Multi-word, verbatim phrasing from the prompt. Preserve ranges/units as written (e.g., "900–1,100 words").
-        - **action** (emphasis level):
-            - "must/required/definitely/include/priority/strict" → \`important\` (stored in \`action\` field)
-            - Negations: "avoid/no/never/without/do not/exclude" → \`avoid\` (stored in \`action\` field)
+        - **emphsis** (emphasis level):
+            - "must/required/definitely/include/priority/strict" → \`important\` (stored in \`emphsis\` field)
+            - Negations: "avoid/no/never/without/do not/exclude" → \`avoid\` (stored in \`emphsis\` field)
             - Everything else → \`normal\` (or "optional/nice to have").
         - **examples**: Populate with literal examples, snippets, code, or inline quoted content from the prompt (else empty array).
         - **source**: "user" if directly extracted; "ai-suggested" only for obvious standard gaps (≤3 inferred).
@@ -41,13 +41,13 @@ export const systemPrompts = {
 ## Output Schema (TypeScript reference)
 
 \`\`\`
-type Action = "avoid" | "normal" | "important";
+type Emphasis = "avoid" | "normal" | "important";
 type ValueRef = { refObjectId: string; refObjectName: string };
 type Property = {
   id: string;                // p1, p2, ...
   name: string;              // Title Case noun phrase
   value: string | ValueRef;  // String or reference object
-  action: Action;
+  emphasis: Emphasis;
   examples: string[];
   source: "user" | "ai-suggested";
   createdAt: number;
@@ -71,7 +71,7 @@ type OOPromptObject = {
 3. Extract \`audience\`, or default to "everyone".
 4. Parse, split, deduplicate, and normalize all constraints and atomic properties per guidelines.
 5. For object references, use proper object-typed property value.
-6. Map action (emphasis) and fill in all other schema fields appropriately.
+6. Map emphsis (emphasis) and fill in all other schema fields appropriately.
 7. Assemble one OOPromptObject JSON.
 8. Output only valid JSON, no further prose, headers, or explanations.
 
@@ -92,13 +92,13 @@ Output:
   "main_task": "Write a story",
   "audience": "10-year-olds",
   "properties": [
-    { "id":"p1","name":"Tone","value":"upbeat, hopeful","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Genre","value":"science fiction","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Length","value":"1,000–1,200 words","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p4","name":"POV","value":"first person","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p5","name":"Ending","value":"twist","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p6","name":"Protagonist Name","value":"Maya","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p7","name":"Content","value":"violence, gore","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Tone","value":"upbeat, hopeful","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Genre","value":"science fiction","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Length","value":"1,000–1,200 words","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p4","name":"POV","value":"first person","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p5","name":"Ending","value":"twist","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p6","name":"Protagonist Name","value":"Maya","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p7","name":"Content","value":"violence, gore","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -115,9 +115,9 @@ Output:
   "main_task": "Write a story",
   "audience": "everyone",
   "properties": [
-    { "id":"p1","name":"Protagonist","value":{"refObjectId":"ref-hero-character-sheet","refObjectName":"Hero Character Sheet"},"action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Tone","value":"mysterious, hopeful","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Style","value":"clichés","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Protagonist","value":{"refObjectId":"ref-hero-character-sheet","refObjectName":"Hero Character Sheet"},"emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Tone","value":"mysterious, hopeful","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Style","value":"clichés","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -134,14 +134,14 @@ Output:
   "main_task": "Generate code",
   "audience": "everyone",
   "properties": [
-    { "id":"p1","name":"Framework","value":"React","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Language","value":"TypeScript","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Styling","value":"Tailwind CSS","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p4","name":"Testing","value":"Vitest","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p5","name":"Functionality","value":"add, delete todos; local state","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p6","name":"Length","value":"≤120 lines","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p7","name":"Libraries","value":"external state libraries","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p8","name":"Format","value":"single file","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Framework","value":"React","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Language","value":"TypeScript","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Styling","value":"Tailwind CSS","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p4","name":"Testing","value":"Vitest","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p5","name":"Functionality","value":"add, delete todos; local state","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p6","name":"Length","value":"≤120 lines","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p7","name":"Libraries","value":"external state libraries","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p8","name":"Format","value":"single file","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -158,11 +158,11 @@ Output:
   "main_task": "Summarize text",
   "audience": "executives",
   "properties": [
-    { "id":"p1","name":"Format","value":"5 bullet points","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Tone","value":"neutral","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Length","value":"150–200 words","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p4","name":"Include","value":"one risk; one next step","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p5","name":"Style","value":"jargon","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Format","value":"5 bullet points","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Tone","value":"neutral","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Length","value":"150–200 words","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p4","name":"Include","value":"one risk; one next step","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p5","name":"Style","value":"jargon","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -179,12 +179,12 @@ Output:
   "main_task": "Analyze data",
   "audience": "everyone",
   "properties": [
-    { "id":"p1","name":"Dataset","value":"sales.csv","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Language","value":"Python","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Libraries","value":"pandas; matplotlib","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p4","name":"Metrics","value":"monthly growth %; top 5 products","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p5","name":"Format","value":"Markdown table + chart","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p6","name":"Libraries","value":"seaborn","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Dataset","value":"sales.csv","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Language","value":"Python","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Libraries","value":"pandas; matplotlib","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p4","name":"Metrics","value":"monthly growth %; top 5 products","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p5","name":"Format","value":"Markdown table + chart","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p6","name":"Libraries","value":"seaborn","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -201,10 +201,10 @@ Output:
   "main_task": "Translate text",
   "audience": "Latin American readers",
   "properties": [
-    { "id":"p1","name":"Target Language","value":"Spanish","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p2","name":"Tone","value":"formal","action":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p3","name":"Preserve","value":"code blocks; URLs","action":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
-    { "id":"p4","name":"Terms","value":"product names","action":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
+    { "id":"p1","name":"Target Language","value":"Spanish","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p2","name":"Tone","value":"formal","emphsis":"normal","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p3","name":"Preserve","value":"code blocks; URLs","emphsis":"important","examples":[],"source":"user","createdAt":0,"updatedAt":0 },
+    { "id":"p4","name":"Terms","value":"product names","emphsis":"avoid","examples":[],"source":"user","createdAt":0,"updatedAt":0 }
   ],
   "tabsOrder": ["root"],
   "log": []
@@ -215,7 +215,7 @@ Output:
 ---
 
 **REMINDER:**  
-Your exact objective: extract, normalize, and serialize all constraints into a single OOPromptObject JSON, applying all above extraction, naming, action (emphasis), value, reference, and structure rules precisely—never add extra keys or formatting. Output only valid JSON, one object per user prompt. If ambiguous, make the best conservative guess. If audience info is missing, set \`"everyone"\`. If main_task cannot be confidently inferred, set \`""\`.
+Your exact objective: extract, normalize, and serialize all constraints into a single OOPromptObject JSON, applying all above extraction, naming, emphsis (emphasis), value, reference, and structure rules precisely—never add extra keys or formatting. Output only valid JSON, one object per user prompt. If ambiguous, make the best conservative guess. If audience info is missing, set \`"everyone"\`. If main_task cannot be confidently inferred, set \`""\`.
 
 (Make sure to adhere to the primary task: output one strict OOPromptObject JSON according to all normalization, mapping, and property handling rules above. If the instructions or sample outputs above conflict with previous information, always defer to these rules and outputs as correct.)`,
 
@@ -239,7 +239,7 @@ type Property = {
   id: string;
   name: string;
   value: string | ValueRef;
-  action: Emphasis;  // Note: field name is "action", not "importance"
+  emphasis: Emphasis;  // Field name is "emphasis"
   examples: string[];
   source: "user" | "ai-suggested";
   createdAt: number;
@@ -267,7 +267,7 @@ Prefer a verbatim string for concrete values ("first person", "900–1,100 words
 
 If the text clearly says to use another object (e.g., "Use Hero Character Sheet / based on … / from …"), set a ValueRef. Create refObjectId by slugifying the name (lowercase, non-alnum→-), e.g., "Hero Character Sheet" → ref-hero-character-sheet; refObjectName is the exact surface form.
 
-Action (single-select):
+Emphasis (single-select):
 
 important if the text implies must, required, definitely include, strictly, priority.
 
@@ -289,7 +289,7 @@ If no match → append the candidate.
 
 If match exists, perform idempotent merge:
 
-Action: keep the stronger among existing and new using important > normal > avoid, except:
+Emphasis: keep the stronger among existing and new using important > normal > avoid, except:
 
 If one is avoid and the other is non-avoid for the exact same value (e.g., "POV: first person" vs "POV: first person (avoid)"), keep only the avoid and drop that exact opposite allowance.
 
@@ -317,7 +317,7 @@ Do not invent fields outside the schema.
 
 Keep the total property count reasonable (≤ 50).
 
-If you cannot confidently classify the sentence, create a property {"name":"Uncategorized","value":<verbatim>,"action":"normal"} and append it.
+If you cannot confidently classify the sentence, create a property {"name":"Uncategorized","value":<verbatim>,"emphsis":"normal"} and append it.
 
 If the sentence clearly removes or negates a prior value ("no longer use first person"), convert it into the appropriate avoid entry and apply the merge rules above.
 
@@ -333,27 +333,27 @@ addition_text: "Tone should be mysterious yet hopeful."
 
 Merge result (append or update existing Tone):
 
-name: "Tone", value: "mysterious, hopeful", action: "normal" (or "important" if "must").
+name: "Tone", value: "mysterious, hopeful", emphsis: "normal" (or "important" if "must").
 
-Example 2 — Upgrade action (emphasis) & union value
+Example 2 — Upgrade emphsis (emphasis) & union value
 
-Current: {"name":"Length","value":"800–1,000 words","action":"normal"}
+Current: {"name":"Length","value":"800–1,000 words","emphsis":"normal"}
 
 addition_text: "Must be 900–1,100 words."
 
-Result: action: "important", value: "800–1,000 words; 900–1,100 words" (union; first occurrence preserved).
+Result: emphsis: "important", value: "800–1,000 words; 900–1,100 words" (union; first occurrence preserved).
 
 Example 3 — Create avoid that cancels an exact allowance
 
-Current: {"name":"POV","value":"first person","action":"normal"}
+Current: {"name":"POV","value":"first person","emphsis":"normal"}
 
 addition_text: "Avoid first person."
 
-Result: single property for POV with action: "avoid" and value: "first person" (the allowance is removed as an exact opposite).
+Result: single property for POV with emphsis: "avoid" and value: "first person" (the allowance is removed as an exact opposite).
 
 Example 4 — Switch to a ValueRef
 
-Current: {"name":"Protagonist","value":"Maya","action":"normal"}
+Current: {"name":"Protagonist","value":"Maya","emphsis":"normal"}
 
 addition_text: "Use Hero Character Sheet for the protagonist."
 
@@ -361,11 +361,11 @@ Result: value: {"refObjectId":"ref-hero-character-sheet","refObjectName":"Hero C
 
 Example 5 — Libraries (avoid + allow coexist)
 
-Current: {"name":"Libraries","value":"pandas; matplotlib","action":"important"}
+Current: {"name":"Libraries","value":"pandas; matplotlib","emphsis":"important"}
 
 addition_text: "Avoid seaborn."
 
-Result: keep existing Libraries property unchanged and (if same property) merge value tokens so that seaborn moves under the same property with action:"avoid" if you model "Libraries" split; otherwise create/merge a distinct property {"name":"Libraries","value":"seaborn","action":"avoid"} (schema permits multiple entries with same name; choose the clearer one per context).`,
+Result: keep existing Libraries property unchanged and (if same property) merge value tokens so that seaborn moves under the same property with emphsis:"avoid" if you model "Libraries" split; otherwise create/merge a distinct property {"name":"Libraries","value":"seaborn","emphsis":"avoid"} (schema permits multiple entries with same name; choose the clearer one per context).`,
 
   PROMPT_BUILDER: `You are a Final Prompt Generator.
 Your role is to take an OOPromptObject (with properties and possible nested ValueRefs and/or fileReferences) plus an optional objectIndex and convert them into a single plain-text task prompt that any general LLM can directly understand and execute.
@@ -394,7 +394,7 @@ Property
   id: string,
   name: string,
   value: string | ValueRef,
-  action: "avoid" | "normal" | "important",
+  emphasis: "avoid" | "normal" | "important",
   examples: string[],
   fileReference?: FileReference,
   ...
@@ -440,13 +440,13 @@ avoid → - Do not include <name> (append value if meaningful)
 
 If value is a ValueRef:
 
-Print a parent bullet based on action:
+Print a parent bullet based on emphsis:
 
 e.g., - Must <name> or - Prefer <name>
 
 Recursively indent the referenced object's properties underneath as sub-bullets.
 
-Action propagates downward: a parent marked important makes all children at least important.
+emphsis propagates downward: a parent marked important makes all children at least important.
 
 If a property has a fileReference:
 
@@ -477,7 +477,7 @@ Input
         "id": "p1",
         "name": "style",
         "value": "",
-        "action": "normal",
+        "emphsis": "normal",
         "fileReference": {
           "fileName": "出亡.pdf"
         }
@@ -486,7 +486,7 @@ Input
         "id": "p2",
         "name": "structure",
         "value": { "refObjectId": "obj1", "refObjectName": "Story structure" },
-        "action": "important"
+        "emphsis": "important"
       }
     ]
   },
@@ -495,8 +495,8 @@ Input
       "id": "obj1",
       "name": "Story structure",
       "properties": [
-        { "id": "p3", "name": "beginning", "value": "mild", "action": "normal" },
-        { "id": "p4", "name": "ending", "value": "sad", "action": "normal" }
+        { "id": "p3", "name": "beginning", "value": "mild", "emphsis": "normal" },
+        { "id": "p4", "name": "ending", "value": "sad", "emphsis": "normal" }
       ]
     }
   }
@@ -534,7 +534,7 @@ export type OOPromptObject = {
   audience: string;
   properties: Property[];
   tabsOrder: string[];
-  log: { ts: number; action: string; payload?: unknown }[];
+  log: { ts: number; emphsis: string; payload?: unknown }[];
   createdAt: number;
   updatedAt: number;
 };
@@ -543,7 +543,7 @@ type Property = {
   id: string;
   name: string;
   value: string | ValueRef;
-  action: "avoid" | "normal" | "important";
+  emphsis: "avoid" | "normal" | "important";
   examples: string[];
   source: "user" | "ai-suggested";
   createdAt: number;
@@ -614,21 +614,59 @@ Singular-value conflicts (same property forced to multiple divergent values).
 
 For each conflict: provide severity (error|warning|info), category (duplicate_name | logic_conflict | singular_value_conflict), and one or more resolution options with patches.
 
+**Resolution strategy for duplicate_name conflicts:**
+- DO NOT provide patches that modify/update property values to make them consistent
+- INSTEAD: The client will handle duplicate removal by letting the user choose which property to keep
+- Set suggestedResolutions to an empty array [] for duplicate_name conflicts
+- The client-side code will generate remove patches for the duplicates the user doesn't select
+
+**Resolution strategy for other conflicts (logic_conflict, singular_value_conflict):**
+- Provide patches that resolve the logical inconsistency (e.g., remove contradictory properties, update conflicting values)
+
 more_possible_properties
 
-Suggest up to 10 additional property names (no values). Each includes:
+Suggest up to 10 additional properties. Each includes:
 
-name, rationale, confidence, optional valueTemplate (type/placeholder/example/enumValues).
+name, rationale, confidence, and valueTemplate with an example value.
 
-A patch that adds a stub (name only) to the correct properties array with:
+**IMPORTANT: Always provide a concrete example value in valueTemplate.example** that demonstrates what the property should contain. The example should be:
+- Relevant to the context of the prompt (main_task, audience, other properties)
+- Specific and concrete (not generic placeholders like "value" or "text")
+- Representative of typical usage
 
-id: "suggested:<uuid>", name: "<name>", value: "", action: "normal".
+For example:
+- If suggesting "target audience", example might be "young adults aged 18-25"
+- If suggesting "tone", example might be "professional and friendly"
+- If suggesting "format", example might be "markdown with headers"
+
+The patch should add the property with the example value:
+
+id: "suggested:<uuid>", name: "<name>", value: "<example_value_from_valueTemplate.example>", emphasis: "normal".
+
+If valueTemplate.example is not provided, use valueTemplate.placeholder as fallback, or generate a reasonable example based on the property name and context.
 
 modify_language
 
 Suggest up to 10 improvements to property name and/or value. Each includes:
 
 current, proposed, rationale, confidence, and a patch with replace ops.
+
+**IMPORTANT: Only suggest MAJOR improvements that significantly enhance clarity, meaning, or effectiveness.**
+
+**DO NOT suggest minor cosmetic changes such as:**
+- Capitalization changes (e.g., "word count" → "Word Count", "sci-fi" → "Sci-Fi")
+- Adding/removing spaces between words (e.g., "wordcount" → "word count")
+- Minor punctuation changes (e.g., adding/removing hyphens, commas)
+- Pluralization changes (e.g., "character" → "characters") unless it changes meaning
+- Minor word order changes that don't affect meaning
+
+**DO suggest substantial improvements such as:**
+- Replacing vague terms with more specific/descriptive ones (e.g., "length" → "target word count")
+- Clarifying ambiguous language (e.g., "style" → "writing style and tone")
+- Improving precision (e.g., "short" → "between 200-300 words")
+- Fixing unclear or confusing phrasing
+- Replacing jargon with clearer alternatives
+- Adding important context that clarifies intent
 
 Do not touch fields outside the target property.
 

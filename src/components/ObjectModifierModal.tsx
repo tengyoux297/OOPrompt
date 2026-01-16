@@ -133,19 +133,27 @@ export function ObjectModifierModal({
   const [envelope, setEnvelope] = useState<ObjectModifierEnvelope | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [cursor, setCursor] = useState<string | null>(null);
+  
+  // Clear suggestions whenever modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Modal closed - clear all suggestions
+      console.log('🔄 Modal closed, clearing all suggestions');
+      setEnvelope(null);
+      setSelectedItems(new Set());
+      setCursor(null);
+    }
+  }, [isOpen]);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Don't reset envelope when reopening - keep the analysis results
-      // Only reset if this is a fresh open (no envelope from previous session)
-      if (!envelope) {
-        setSelectedItems(new Set());
-        setCursor(null);
-        setActiveTab("conflict_check");
-      }
+      // Fresh open - reset to default state
+      setSelectedItems(new Set());
+      setCursor(null);
+      setActiveTab("conflict_check");
     }
-  }, [isOpen, envelope]);
+  }, [isOpen]);
 
   // Debug selectedItems changes
   useEffect(() => {
@@ -182,37 +190,6 @@ export function ObjectModifierModal({
 
   const handleTabChange = (newTab: RequestType) => {
     if (newTab !== activeTab) {
-      // Check if there are unsaved changes
-      const hasUnsavedChanges = selectedItems.size > 0 || envelope !== null;
-      
-      if (hasUnsavedChanges) {
-        // Show confirmation dialog
-        const tabName = newTab === "conflict_check" ? "Check Conflicts" : 
-                       newTab === "more_possible_properties" ? "Suggest Properties" : 
-                       "Improve Wording";
-        
-        const changeDetails = [];
-        if (selectedItems.size > 0) {
-          changeDetails.push(`${selectedItems.size} selected item(s)`);
-        }
-        if (envelope !== null) {
-          changeDetails.push("analysis results");
-        }
-        
-        const confirmed = window.confirm(
-          `⚠️ Unsaved Changes Detected\n\n` +
-          `You have: ${changeDetails.join(" and ")}\n\n` +
-          `Switching to "${tabName}" will remove these changes.\n\n` +
-          `• Click "OK" to continue and lose changes\n` +
-          `• Click "Cancel" to stay on current tab\n\n` +
-          `Do you want to continue?`
-        );
-        
-        if (!confirmed) {
-          return; // Don't switch tabs
-        }
-      }
-      
       setActiveTab(newTab);
       // Reset envelope and cursor when switching tabs
       setEnvelope(null);
@@ -245,14 +222,19 @@ export function ObjectModifierModal({
       selectedItems.forEach(itemId => {
         console.log(`🔄 Processing selected item: ${itemId}`);
         
-        // Skip conflict resolution property selection items (they contain ':' but are not suggested properties)
-        if (itemId.includes(':') && !itemId.startsWith('suggested:')) {
+        // Skip duplicate-name conflict property selection items (format: conflictId:propertyId where conflictId already contains ':')
+        // But allow: conflict:..., mod:..., suggested:..., sugg:... (these are valid item IDs)
+        if (itemId.includes(':') && 
+            !itemId.startsWith('suggested:') && 
+            !itemId.startsWith('sugg:') && 
+            !itemId.startsWith('mod:') && 
+            !itemId.startsWith('conflict:')) {
           console.log(`⏩ Skipping conflict property selection item: ${itemId}`);
           return;
         }
       
       switch (activeTab) {
-        case "conflict_check":
+        case "conflict_check": {
           const conflict = envelope.conflicts?.find(c => c.conflictId === itemId);
           console.log(`🔍 Found conflict for ${itemId}:`, conflict?.title);
           
@@ -284,17 +266,18 @@ export function ObjectModifierModal({
             console.log(`❌ No conflict found for itemId: ${itemId}`);
           }
           break;
+        }
           
-        case "more_possible_properties":
+        case "more_possible_properties": {
           console.log(`🔍 Looking for property with itemId: ${itemId}`);
           console.log(`🔍 Available suggestedProperties:`, envelope.suggestedProperties?.map(p => ({ suggestionId: p.suggestionId, name: p.name })));
           
           // Try to find property by exact suggestionId match first
           let property = envelope.suggestedProperties?.find(p => p.suggestionId === itemId);
           
-          // If not found and itemId starts with 'suggested:', try to find by property name
-          if (!property && itemId.startsWith('suggested:')) {
-            const propertyName = itemId.split(':')[1];
+          // If not found and itemId starts with 'suggested:' or 'sugg:', try to find by property name
+          if (!property && (itemId.startsWith('suggested:') || itemId.startsWith('sugg:'))) {
+            const propertyName = itemId.split(':').slice(1).join(':'); // Handle multiple colons
             console.log(`🔍 Trying to find property by name: ${propertyName}`);
             property = envelope.suggestedProperties?.find(p => p.name.toLowerCase() === propertyName.toLowerCase());
           }
@@ -311,8 +294,8 @@ export function ObjectModifierModal({
               const newProperty: Property = {
                 id: `p${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 name: property.name,
-                value: property.valueTemplate?.placeholder || property.valueTemplate?.example || "Value to be filled",
-                action: "normal" as Emphasis,
+                value: property.valueTemplate?.example || property.valueTemplate?.placeholder || "Value to be filled",
+                emphasis: "normal" as Emphasis,
                 source: "ai-suggested",
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -330,18 +313,91 @@ export function ObjectModifierModal({
             }
           }
           break;
+        }
           
-        case "modify_language":
+        case "modify_language": {
+          console.log(`🔍 Looking for modification with itemId: ${itemId}`);
+          console.log(`🔍 Available modifications:`, envelope.languageModifications?.map(m => ({ modId: m.modId, targetId: m.targetId })));
+          
           const modification = envelope.languageModifications?.find(m => m.modId === itemId);
-          if (modification?.patch) {
-            patches.push(...modification.patch);
+          console.log(`🔍 Found modification:`, modification);
+          
+          if (modification) {
+            if (modification.patch && modification.patch.length > 0) {
+              console.log(`📝 Adding ${modification.patch.length} patches from AI`);
+              patches.push(...modification.patch);
+            } else {
+              // Generate patches manually if AI didn't provide them
+              console.log(`🔄 AI didn't provide patches, generating manually`);
+              console.log(`🔄 modification.targetId:`, modification.targetId);
+              console.log(`🔄 modification.current:`, modification.current);
+              console.log(`🔄 modification.proposed:`, modification.proposed);
+              
+              // Find the property by targetId
+              const propertyIndex = currentOOP.properties.findIndex(p => p.id === modification.targetId);
+              console.log(`🔄 propertyIndex:`, propertyIndex);
+              
+              if (propertyIndex === -1) {
+                console.error(`❌ Property with ID "${modification.targetId}" not found`);
+                console.error(`❌ Available property IDs:`, currentOOP.properties.map(p => p.id));
+              } else {
+                const actualProperty = currentOOP.properties[propertyIndex];
+                console.log(`✅ Found property:`, { name: actualProperty.name, value: actualProperty.value });
+                
+                let patchesGeneratedCount = 0;
+                
+                // Generate replace patches for name and/or value changes
+                if (modification.proposed.name !== undefined && actualProperty.name !== modification.proposed.name) {
+                  const namePatch = {
+                    op: "replace" as const,
+                    path: `/properties/${propertyIndex}/name`,
+                    value: modification.proposed.name
+                  };
+                  patches.push(namePatch);
+                  patchesGeneratedCount++;
+                  console.log(`📝 Generated name patch:`, namePatch);
+                }
+                
+                if (modification.proposed.value !== undefined) {
+                  const currentValue = typeof actualProperty.value === 'string' ? actualProperty.value : '';
+                  if (currentValue !== modification.proposed.value) {
+                    const valuePatch = {
+                      op: "replace" as const,
+                      path: `/properties/${propertyIndex}/value`,
+                      value: modification.proposed.value
+                    };
+                    patches.push(valuePatch);
+                    patchesGeneratedCount++;
+                    console.log(`📝 Generated value patch:`, valuePatch);
+                  }
+                }
+                
+                // Update timestamp if we generated any patches
+                if (patchesGeneratedCount > 0) {
+                  patches.push({
+                    op: "replace",
+                    path: `/properties/${propertyIndex}/updatedAt`,
+                    value: Date.now()
+                  });
+                  console.log(`✅ Generated ${patchesGeneratedCount + 1} total patches`);
+                } else {
+                  console.warn(`⚠️ No patches generated - values appear unchanged`);
+                }
+              }
+            }
+          } else {
+            console.warn(`⚠️ Modification ${itemId} not found in envelope`);
+            console.warn(`⚠️ envelope.languageModifications:`, envelope.languageModifications);
           }
           break;
+        }
       }
     });
 
     console.log(`📊 Total patches collected: ${patches.length}`);
     console.log(`📝 Patches:`, patches);
+    console.log(`📊 Active tab: ${activeTab}`);
+    console.log(`📊 Selected items:`, Array.from(selectedItems));
 
     if (patches.length > 0) {
       console.log(`🎯 ObjectModifierModal: About to apply ${patches.length} patches`);
@@ -372,6 +428,21 @@ export function ObjectModifierModal({
       onClose();
     } else {
       console.log(`❌ No patches to apply!`);
+      console.log(`❌ Active tab: ${activeTab}`);
+      console.log(`❌ Selected items:`, Array.from(selectedItems));
+      console.log(`❌ Envelope has:`, {
+        conflicts: envelope.conflicts?.length || 0,
+        suggestedProperties: envelope.suggestedProperties?.length || 0,
+        languageModifications: envelope.languageModifications?.length || 0
+      });
+      
+      // Show error to user
+      if (onError) {
+        onError(
+          "No Changes Selected",
+          `No patches were generated from the selected items. Please ensure you have selected items and they contain valid patches.`
+        );
+      }
     }
   };
 
@@ -1050,9 +1121,9 @@ function ConflictCard({
                           {prop.value && typeof prop.value === 'string' && (
                             <div className="text-xs text-gray-600 mt-0.5">"{prop.value}"</div>
                           )}
-                          {prop.action && (
+                          {prop.emphasis && (
                             <div className="text-xs text-gray-500 mt-0.5">
-                              Emphasis: {prop.action}
+                              Emphasis: {prop.emphasis}
                             </div>
                           )}
                         </div>

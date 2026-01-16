@@ -14,7 +14,7 @@ export type Property = {
   id: string;
   name: string;
   value: string | ValueRef;
-  action: Emphasis;            // single-select via segmented control
+  emphasis: Emphasis;            // single-select via segmented control
   examples?: string[];
   source?: "user" | "ai-suggested";
   fileReference?: FileReference;     // optional file attachment

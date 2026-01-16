@@ -14,7 +14,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
   const [mode, setMode] = useState<"structured" | "unstructured">("structured");
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
-  const [action, setAction] = useState<Emphasis>("normal");
+  const [emphasis, setEmphasis] = useState<Emphasis>("normal");
   const [unstructuredText, setUnstructuredText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -24,7 +24,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
         id: `p${Date.now()}`,
         name: name.trim(),
         value: value.trim(), // Allow empty values
-        action,
+        emphasis,
         source: "user",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -33,7 +33,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
       onClose();
       setName("");
       setValue("");
-      setAction("normal");
+      setEmphasis("normal");
     }
   };
 
@@ -162,7 +162,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
               <div className="flex gap-2">
                 {(["normal", "important", "avoid"] as const).map((option) => {
                   const displayLabel = option === "important" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
-                  const isSelected = action === option;
+                  const isSelected = emphasis === option;
                   return (
                     <label
                       key={option}
@@ -177,7 +177,7 @@ export function AddPropertyModal({ isOpen, onClose, onAdd, currentOOP, onUpdateO
                         name="emphasis-new"
                         value={option}
                         checked={isSelected}
-                        onChange={() => setAction(option)}
+                        onChange={() => setEmphasis(option)}
                         className="w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
                       />
                       <span className={`text-xs ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>

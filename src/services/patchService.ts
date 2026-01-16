@@ -70,11 +70,19 @@ export class PatchService {
    */
   private static resolvePropertyPath(obj: OOPromptObject, path: string): string {
     console.log(`🔍 ResolvePropertyPath: path="${path}"`);
+    
+    // Strip /ooprompt/ prefix if present (AI sometimes includes it incorrectly)
+    let normalizedPath = path;
+    if (normalizedPath.startsWith('/ooprompt/')) {
+      normalizedPath = normalizedPath.replace(/^\/ooprompt/, '');
+      console.log(`🔍 ResolvePropertyPath: Stripped /ooprompt/ prefix, new path: "${normalizedPath}"`);
+    }
+    
     console.log(`🔍 Available properties:`, obj.properties.map(p => ({ id: p.id, name: p.name })));
     
     // Handle idx(<id>) syntax for properties array
-    if (path.includes("idx(")) {
-      return path.replace(/idx\(([^)]+)\)/g, (_match, propertyId) => {
+    if (normalizedPath.includes("idx(")) {
+      return normalizedPath.replace(/idx\(([^)]+)\)/g, (_match, propertyId) => {
         console.log(`🔍 Looking for property ID: "${propertyId}"`);
         let index = obj.properties.findIndex(p => p.id === propertyId);
         console.log(`🔍 Found at index: ${index}`);
@@ -109,7 +117,7 @@ export class PatchService {
           
           // Fallback 1b: For wording suggestions, try to infer property name from the context
           // Check if this is a path like "/properties/idx(p...)/name" or "/properties/idx(p...)/value"
-          const pathContext = path.split('/');
+          const pathContext = normalizedPath.split('/');
           const targetField = pathContext[pathContext.length - 1]; // 'name' or 'value'
           if (targetField === 'name' || targetField === 'value') {
             // For wording suggestions, we often know the property name from the modification context
@@ -161,7 +169,7 @@ export class PatchService {
           }
           
           // Final fallback: For wording suggestions, use the first user property if available
-          if (path.includes('/name') || path.includes('/value')) {
+          if (normalizedPath.includes('/name') || normalizedPath.includes('/value')) {
             const userProperties = obj.properties.filter(p => p.source === 'user');
             if (userProperties.length > 0) {
               const finalIndex = obj.properties.findIndex(p => p.id === userProperties[0].id);
@@ -185,8 +193,8 @@ export class PatchService {
       });
     }
     
-    console.log(`🔍 No idx() found, returning original path: "${path}"`);
-    return path;
+    console.log(`🔍 No idx() found, returning normalized path: "${normalizedPath}"`);
+    return normalizedPath;
   }
 
 
@@ -195,7 +203,14 @@ export class PatchService {
    * Adds a value at the specified path
    */
   private static addValue(obj: OOPromptObject, path: string, value: any): OOPromptObject {
-    const pathParts = path.split('/').filter(Boolean);
+    // Strip /ooprompt/ prefix if present (AI sometimes includes it incorrectly)
+    let normalizedPath = path;
+    if (normalizedPath.startsWith('/ooprompt/')) {
+      normalizedPath = normalizedPath.replace(/^\/ooprompt/, '');
+      console.log(`PatchService: Stripped /ooprompt/ prefix, new path: "${normalizedPath}"`);
+    }
+    
+    const pathParts = normalizedPath.split('/').filter(Boolean);
     const result = { ...obj };
     
     console.log(`PatchService: Adding value at path: ${path}`);
@@ -207,20 +222,28 @@ export class PatchService {
       return { ...obj, ...value };
     }
     
+    // Special case: /properties/- means add to properties array
+    if (pathParts.length === 2 && pathParts[0] === 'properties' && pathParts[1] === '-') {
+      console.log(`PatchService: Adding to properties array, current properties length: ${result.properties.length}`);
+      result.properties = [...result.properties, value];
+      console.log(`PatchService: New properties length: ${result.properties.length}`);
+      return result;
+    }
+    
     let current: any = result;
     for (let i = 0; i < pathParts.length - 1; i++) {
       const part = pathParts[i];
       console.log(`PatchService: Processing part ${i}: ${part}, current:`, current);
       
-      // Path is already resolved at the applyPatch level, no need to resolve again
-      const resolvedPart = part;
-      
-      if (resolvedPart === 'properties' && current.properties) {
+      if (part === 'properties' && current.properties) {
+        current.properties = [...current.properties];
         current = current.properties;
-      } else if (!isNaN(Number(resolvedPart)) && Array.isArray(current)) {
-        current = current[Number(resolvedPart)];
+      } else if (!isNaN(Number(part)) && Array.isArray(current)) {
+        current[Number(part)] = { ...current[Number(part)] };
+        current = current[Number(part)];
       } else {
-        current = current[resolvedPart];
+        current[part] = { ...current[part] };
+        current = current[part];
       }
     }
     
@@ -236,14 +259,10 @@ export class PatchService {
       current.properties = [...current.properties, value];
     } else if (!isNaN(Number(lastPart)) && Array.isArray(current)) {
       current[Number(lastPart)] = value;
-    } else if (lastPart === '-' && current && typeof current === 'object' && current.properties && Array.isArray(current.properties)) {
-      // Special case: /properties/- means add to properties array
-      console.log(`PatchService: Adding to properties array, current properties length: ${current.properties.length}`);
-      current.properties.push(value);
-      console.log(`PatchService: New properties length: ${current.properties.length}`);
     } else {
       // If we can't determine how to add the value, throw a helpful error
-      console.error(`PatchService: Cannot add value at path: ${path}`);
+      console.error(`PatchService: Cannot add value at path: ${path} (normalized: ${normalizedPath})`);
+      console.error(`PatchService: Path parts:`, pathParts);
       console.error(`PatchService: Current object structure:`, current);
       console.error(`PatchService: Last part: ${lastPart}`);
       throw new Error(`Cannot add value at path: ${path} - invalid target`);
@@ -256,9 +275,16 @@ export class PatchService {
    * Removes a value at the specified path
    */
   private static removeValue(obj: OOPromptObject, path: string): OOPromptObject {
-    const pathParts = path.split('/').filter(Boolean);
+    // Strip /ooprompt/ prefix if present
+    let normalizedPath = path;
+    if (normalizedPath.startsWith('/ooprompt/')) {
+      normalizedPath = normalizedPath.replace(/^\/ooprompt/, '');
+      console.log(`🗑️ RemoveValue: Stripped /ooprompt/ prefix, new path: "${normalizedPath}"`);
+    }
     
-    console.log(`🗑️ RemoveValue: path=${path}, pathParts=`, pathParts);
+    const pathParts = normalizedPath.split('/').filter(Boolean);
+    
+    console.log(`🗑️ RemoveValue: path=${path} (normalized: ${normalizedPath}), pathParts=`, pathParts);
     
     // For simple property removal, handle directly
     if (pathParts.length === 2 && pathParts[0] === 'properties' && !isNaN(Number(pathParts[1]))) {
@@ -360,7 +386,14 @@ export class PatchService {
    * Replaces a value at the specified path
    */
   private static replaceValue(obj: OOPromptObject, path: string, value: any): OOPromptObject {
-    const pathParts = path.split('/').filter(Boolean);
+    // Strip /ooprompt/ prefix if present
+    let normalizedPath = path;
+    if (normalizedPath.startsWith('/ooprompt/')) {
+      normalizedPath = normalizedPath.replace(/^\/ooprompt/, '');
+      console.log(`📝 ReplaceValue: Stripped /ooprompt/ prefix, new path: "${normalizedPath}"`);
+    }
+    
+    const pathParts = normalizedPath.split('/').filter(Boolean);
     
     console.log(`📝 ReplaceValue: path=${path}, pathParts=`, pathParts, `value=`, value);
     
@@ -422,7 +455,13 @@ export class PatchService {
    * Tests if a value exists at the specified path
    */
   private static testValue(obj: OOPromptObject, path: string, expectedValue: any): boolean {
-    const pathParts = path.split('/').filter(Boolean);
+    // Strip /ooprompt/ prefix if present
+    let normalizedPath = path;
+    if (normalizedPath.startsWith('/ooprompt/')) {
+      normalizedPath = normalizedPath.replace(/^\/ooprompt/, '');
+    }
+    
+    const pathParts = normalizedPath.split('/').filter(Boolean);
     
     let current: any = obj;
     for (const part of pathParts) {
@@ -478,7 +517,7 @@ export class PatchService {
       id: newId,
       name: template.name,
       value,
-              action: "normal",
+              emphasis: "normal",
       source: "ai-suggested",
       createdAt: Date.now(),
       updatedAt: Date.now(),
