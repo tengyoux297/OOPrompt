@@ -2860,7 +2860,6 @@
                                     align-items: center;
                                     margin-bottom: 8px;
                                     gap: 8px;
-                                    position: relative;
                                 `;
                                 
                                 const audienceInput = document.createElement('input');
@@ -2868,13 +2867,15 @@
                                 audienceInput.value = audience;
                                 audienceInput.style.cssText = `
                                     flex: 1;
-                                    padding: 6px 30px 6px 10px;
+                                    padding: 6px 10px;
                                     border: 1px solid #ced4da;
                                     border-radius: 4px;
                                     font-size: 14px;
                                     color: #212529;
                                     background-color: white;
                                     transition: border-color 0.2s ease;
+                                    height: 32px;
+                                    box-sizing: border-box;
                                 `;
                                 
                                 audienceInput.addEventListener('input', () => {
@@ -2897,22 +2898,22 @@
                                 // Add delete button for audience items
                                 const deleteAudienceBtn = document.createElement('button');
                                 deleteAudienceBtn.textContent = '×';
-                                deleteAudienceBtn.style.position = 'absolute';
-                                deleteAudienceBtn.style.right = '0';
-                                deleteAudienceBtn.style.top = '50%';
-                                deleteAudienceBtn.style.transform = 'translateY(-50%)';
-                                deleteAudienceBtn.style.backgroundColor = '#dc3545';
-                                deleteAudienceBtn.style.color = 'white';
-                                deleteAudienceBtn.style.border = 'none';
-                                deleteAudienceBtn.style.borderRadius = '3px';
-                                deleteAudienceBtn.style.width = '20px';
-                                deleteAudienceBtn.style.height = '20px';
-                                deleteAudienceBtn.style.cursor = 'pointer';
-                                deleteAudienceBtn.style.fontSize = '12px';
-                                deleteAudienceBtn.style.display = 'flex';
-                                deleteAudienceBtn.style.alignItems = 'center';
-                                deleteAudienceBtn.style.justifyContent = 'center';
-                                deleteAudienceBtn.style.zIndex = '1000';
+                                deleteAudienceBtn.style.cssText = `
+                                    background-color: #dc3545;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 4px;
+                                    width: 32px;
+                                    height: 32px;
+                                    cursor: pointer;
+                                    font-size: 16px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    padding: 0;
+                                    flex-shrink: 0;
+                                    box-sizing: border-box;
+                                `;
                                 
                                 deleteAudienceBtn.addEventListener('mouseenter', () => {
                                     deleteAudienceBtn.style.backgroundColor = '#c82333';
