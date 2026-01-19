@@ -3,7 +3,8 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-require('dotenv').config();
+// Always load env from `.env.mvp` (not `.env`)
+require('dotenv').config({ path: path.join(__dirname, '.env.mvp') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,10 +27,10 @@ if (missingEnvVars.length > 0) {
     missingEnvVars.forEach(varName => {
         console.error(`   - ${varName}`);
     });
-    console.error('\n📝 Please create a .env file in the root directory with the following variables:');
+    console.error('\n📝 Please create a .env.mvp file in the root directory with the following variables:');
     console.error('   Copy from env.example and replace with your actual values.');
-    console.error('\n🔧 You can create the .env file by running:');
-    console.error('   cp env.example .env');
+    console.error('\n🔧 You can create the .env.mvp file by running:');
+    console.error('   cp env.example .env.mvp');
     console.error('\n⚠️  The application will start but API calls will fail until environment variables are set.');
 }
 
