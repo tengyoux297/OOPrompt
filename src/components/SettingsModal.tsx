@@ -12,6 +12,19 @@ export function SettingsModal({ isOpen, onClose, onSave, currentApiKey }: Props)
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [snapshotMode, setSnapshotMode] = useState(false);
+
+  const applySnapshotMode = (enabled: boolean) => {
+    setSnapshotMode(enabled);
+    try {
+      const mode = enabled ? "snapshot" : "default";
+      document.documentElement.dataset.ui = mode;
+      localStorage.setItem("ooprompt_ui_mode", mode);
+    } catch {
+      // ignore (e.g. storage disabled)
+      document.documentElement.dataset.ui = enabled ? "snapshot" : "default";
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -23,6 +36,13 @@ export function SettingsModal({ isOpen, onClose, onSave, currentApiKey }: Props)
       }
       setError(null);
       setShowKey(false);
+
+      try {
+        const mode = localStorage.getItem("ooprompt_ui_mode");
+        setSnapshotMode(mode === "snapshot");
+      } catch {
+        setSnapshotMode(document.documentElement.dataset.ui === "snapshot");
+      }
     }
   }, [isOpen, currentApiKey]);
 
@@ -92,6 +112,36 @@ export function SettingsModal({ isOpen, onClose, onSave, currentApiKey }: Props)
 
         {/* Content */}
         <div className="p-4 sm:p-6 space-y-4">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium text-gray-700">Snapshot mode</div>
+                <div className="text-xs text-gray-500">
+                  Larger text, tighter spacing (for paper screenshots)
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => applySnapshotMode(!snapshotMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  snapshotMode ? "bg-blue-600" : "bg-gray-200"
+                }`}
+                role="switch"
+                aria-checked={snapshotMode}
+                aria-label="Toggle snapshot mode"
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                    snapshotMode ? "translate-x-5" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              Tip: you can also open the app with <code className="px-1 py-0.5 bg-gray-100 rounded">?ui=snapshot</code>.
+            </div>
+          </div>
+
           <div>
             <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-2">
               OpenAI API Key

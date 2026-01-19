@@ -93,10 +93,19 @@ export function ObjectPanel({ objects, selectedObjectId, onSelectObject, onDelet
     
     const obj = objects.find(obj => obj.id === objectId);
     const objName = obj?.name || obj?.main_task || 'this object';
-    if (window.confirm(`Are you sure you want to delete "${objName}"?`)) {
-      console.log('ObjectPanel: Deleting object:', objectId);
+    if (!obj) return;
+
+    // Library cards represent a "prompt" that may have multiple saved versions.
+    // Delete all versions with the same (main_task, audience) so the card disappears reliably.
+    const versionsToDelete = objects.filter(o =>
+      o.main_task === obj.main_task && o.audience === obj.audience
+    );
+
+    const suffix = versionsToDelete.length > 1 ? ` (and ${versionsToDelete.length - 1} older version(s))` : "";
+    if (window.confirm(`Delete "${objName}"${suffix}?`)) {
+      console.log('ObjectPanel: Deleting prompt versions:', versionsToDelete.map(v => v.id));
       setDeletingObjectId(objectId);
-      onDeleteObject(objectId);
+      versionsToDelete.forEach(v => onDeleteObject(v.id));
       // Reset deleting state after a short delay
       setTimeout(() => setDeletingObjectId(null), 1000);
       // Don't open panel after deletion - let user stay in library view

@@ -75,9 +75,18 @@ export function HistoryPanel({ objects, selectedObjectId, onSelectObject, onDele
     event.preventDefault(); // Prevent any default behavior
     const obj = objects.find(obj => obj.id === objectId);
     const objName = obj?.name || obj?.main_task || 'this object';
-    if (window.confirm(`Are you sure you want to delete "${objName}"?`)) {
-      console.log('HistoryPanel: Deleting object:', objectId);
-      onDeleteObject(objectId);
+    if (!obj) return;
+
+    // Sidebar cards represent a "prompt" that may have multiple saved versions.
+    // Delete all versions with the same (main_task, audience) so the card disappears reliably.
+    const versionsToDelete = objects.filter(o =>
+      o.main_task === obj.main_task && o.audience === obj.audience
+    );
+
+    const suffix = versionsToDelete.length > 1 ? ` (and ${versionsToDelete.length - 1} older version(s))` : "";
+    if (window.confirm(`Delete "${objName}"${suffix}?`)) {
+      console.log('HistoryPanel: Deleting prompt versions:', versionsToDelete.map(v => v.id));
+      versionsToDelete.forEach(v => onDeleteObject(v.id));
     }
   };
 

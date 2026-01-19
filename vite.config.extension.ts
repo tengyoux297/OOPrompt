@@ -17,7 +17,9 @@ export default defineConfig({
   },
   envPrefix: 'VITE_',
   build: {
-    outDir: 'dist',
+    // Keep extension build output separate from web build output (`dist`)
+    // so `npm run build` (web) doesn't overwrite the extension manifest.
+    outDir: 'dist-extension',
     rollupOptions: {
       input: {
         popup: 'index.html',

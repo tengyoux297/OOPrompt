@@ -45,7 +45,7 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
   console.log(`PropertyCard render: ${p.id}, isSelected: ${isSelected}, selectedStyle: ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''}`);
   console.log(`Details Panel will render: ${isSelected ? 'YES' : 'NO'}`);
   
-  const base = "bg-white border border-gray-200 rounded p-2.5 w-full transition-all duration-200 hover:shadow-sm";
+  const base = "oop-property-card bg-white border border-gray-200 rounded p-2.5 w-full transition-all duration-200 hover:shadow-sm";
   const selectedStyle = isSelected ? "ring-1 ring-black ring-offset-1 shadow-md" : "";
 
   return (
@@ -54,19 +54,19 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2.5 items-start">
           {/* Name Column */}
           <div className="text-left">
-            <div className="text-[10px] text-gray-500 mb-0.5">Name</div>
-            <div className="text-xs font-semibold text-gray-900">{p.name || <span className="text-gray-400 italic">No name</span>}</div>
+            <div className="oop-property-label text-[10px] text-gray-500 mb-0.5">Name</div>
+            <div className="oop-property-name text-xs font-semibold text-gray-900">{p.name || <span className="text-gray-400 italic">No name</span>}</div>
           </div>
           
           {/* Value Column */}
           <div className="text-left">
-            <div className="text-[10px] text-gray-500 mb-0.5">Value</div>
-            <div className="text-xs text-gray-700">
+            <div className="oop-property-label text-[10px] text-gray-500 mb-0.5">Value</div>
+            <div className="oop-property-value text-xs text-gray-700">
           {typeof p.value === "string" 
             ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
             : (p.value?.refObjectName 
                     ? <span className="text-blue-600 font-medium">
-                        <span className="text-blue-500 text-[10px] font-semibold">object: </span>{p.value.refObjectName}
+                        <span className="oop-property-object-prefix text-blue-500 text-[10px] font-semibold">object: </span>{p.value.refObjectName}
                   </span>
                 : <span className="text-gray-400 italic">To be added...</span>)
           }

@@ -24,6 +24,7 @@ export type AppState = {
 
 export type Action =
   | { type: "LOAD"; payload: OOPromptObject }
+  | { type: "HYDRATE_STATE"; payload: Partial<AppState> }
   | { type: "TOGGLE_PANEL"; open?: boolean }
   | { type: "TOGGLE_OBJECT_PANEL"; open?: boolean }
   | { type: "SET_OOP"; payload: OOPromptObject }          // Optimize (replace)
@@ -68,6 +69,46 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
   switch (action.type) {
     case "LOAD":
       return { ...state, oop: action.payload };
+    case "HYDRATE_STATE": {
+      const nextPromptObjects = Array.isArray(action.payload.promptObjects)
+        ? action.payload.promptObjects.map(normalizeOOPromptObject)
+        : state.promptObjects;
+
+      const nextOop = action.payload.oop ? normalizeOOPromptObject(action.payload.oop) : state.oop;
+
+      const nextCurrentObjectId = action.payload.currentObjectId ?? state.currentObjectId;
+
+      // Validate open tabs + active tab (avoid stale IDs)
+      const allowedIds = new Set<string>([initial.id, ...nextPromptObjects.map(o => o.id)]);
+
+      const proposedOpenTabs = action.payload.openTabs ?? state.openTabs;
+      const filteredOpenTabs = (Array.isArray(proposedOpenTabs) ? proposedOpenTabs : [])
+        .filter(id => allowedIds.has(id));
+
+      const ensuredOpenTabs = filteredOpenTabs.length > 0
+        ? filteredOpenTabs
+        : (allowedIds.has(nextCurrentObjectId) ? [nextCurrentObjectId] : [initial.id]);
+
+      let nextActiveTabId = action.payload.activeTabId ?? state.activeTabId;
+      if (!allowedIds.has(nextActiveTabId)) {
+        nextActiveTabId = ensuredOpenTabs[ensuredOpenTabs.length - 1];
+      }
+
+      // Ensure current object is also present in tabs
+      if (allowedIds.has(nextCurrentObjectId) && !ensuredOpenTabs.includes(nextCurrentObjectId)) {
+        ensuredOpenTabs.push(nextCurrentObjectId);
+      }
+
+      return {
+        ...state,
+        ...action.payload,
+        oop: nextOop,
+        promptObjects: nextPromptObjects,
+        currentObjectId: nextCurrentObjectId,
+        openTabs: ensuredOpenTabs,
+        activeTabId: nextActiveTabId
+      };
+    }
     case "TOGGLE_PANEL":
       return { ...state, openPanel: action.open ?? !state.openPanel };
     case "TOGGLE_OBJECT_PANEL":
@@ -174,18 +215,18 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
           ...action.payload,
           id: state.promptObjects[existingIndex].id, // Keep original ID
           createdAt: state.promptObjects[existingIndex].createdAt, // Keep original creation time
-          updatedAt: Date.now() // Update timestamp
+          updatedAt: action.payload.updatedAt ?? Date.now() // Keep caller timestamp if provided
         };
         console.log('Updated object:', updatedObject);
         newPromptObjects = [...state.promptObjects];
         newPromptObjects[existingIndex] = updatedObject;
       } else {
-        // Add new object with unique ID
+        // Add new object (keep provided ID/timestamps; hydrate relies on this)
         const newObject = {
           ...action.payload,
-          id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          id: action.payload.id || `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: action.payload.createdAt ?? Date.now(),
+          updatedAt: action.payload.updatedAt ?? Date.now()
         };
         console.log('Adding new object:', newObject);
         newPromptObjects = [...state.promptObjects, newObject];
@@ -208,6 +249,10 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
     }
     case "DELETE_PROMPT_OBJECT": {
       const newPromptObjects = state.promptObjects.filter(obj => obj.id !== action.id);
+
+      // Remove deleted object from tab state (prevents "ghost" tabs / stuck selection)
+      const prunedOpenTabs = state.openTabs.filter(id => id !== action.id);
+
       // If we're deleting the currently loaded object, reset to default
       let newOop = state.oop;
       let newCurrentObjectId = state.currentObjectId;
@@ -215,7 +260,28 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
         newOop = initial;
         newCurrentObjectId = initial.id;
       }
-      return { ...state, promptObjects: newPromptObjects, oop: newOop, currentObjectId: newCurrentObjectId };
+
+      // Ensure activeTabId remains valid
+      let newActiveTabId = state.activeTabId;
+      if (newActiveTabId === action.id) {
+        newActiveTabId = prunedOpenTabs.length > 0
+          ? prunedOpenTabs[prunedOpenTabs.length - 1]
+          : newCurrentObjectId;
+      }
+
+      const ensuredOpenTabs = prunedOpenTabs.length > 0 ? prunedOpenTabs : [newCurrentObjectId];
+      if (!ensuredOpenTabs.includes(newActiveTabId)) {
+        newActiveTabId = ensuredOpenTabs[ensuredOpenTabs.length - 1];
+      }
+
+      return {
+        ...state,
+        promptObjects: newPromptObjects,
+        openTabs: ensuredOpenTabs,
+        activeTabId: newActiveTabId,
+        oop: newOop,
+        currentObjectId: newCurrentObjectId
+      };
     }
     case "OPEN_TAB": {
       const newOpenTabs = state.openTabs.includes(action.objectId) 
@@ -435,35 +501,37 @@ export function useOOPrompt(initial: OOPromptObject) {
           openPanel: saved.openPanel
         });
 
-        // Load prompt objects first (needed for loading current object)
-        if (saved.promptObjects && Array.isArray(saved.promptObjects) && saved.promptObjects.length > 0) {
-          console.log(`Loading ${saved.promptObjects.length} prompt objects`);
-          // Load all prompt objects (including all versions/history)
-          saved.promptObjects.forEach((obj: OOPromptObject) => {
-            dispatch({ type: "SAVE_PROMPT_OBJECT", payload: obj });
-          });
-        }
-        
-        // Load current object
-        if (saved.currentObjectId && saved.promptObjects && saved.promptObjects.length > 0) {
-          const objectToLoad = saved.promptObjects.find((obj: OOPromptObject) => obj.id === saved.currentObjectId);
-          if (objectToLoad) {
-            console.log('Loading current object:', objectToLoad.id, objectToLoad.main_task);
-            dispatch({ type: "LOAD_PROMPT_OBJECT", payload: objectToLoad });
-          } else if (saved.oop) {
-            console.log('Current object not found in promptObjects, loading saved oop');
-            dispatch({ type: "LOAD", payload: saved.oop });
+        const savedPromptObjects: OOPromptObject[] = Array.isArray(saved.promptObjects) ? saved.promptObjects : [];
+        const normalizedPromptObjects = savedPromptObjects.map(normalizeOOPromptObject);
+
+        // Choose the latest version as the current object on reopen (by updatedAt)
+        const latestOverall = normalizedPromptObjects
+          .slice()
+          .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+
+        const requestedCurrentId: string | undefined = saved.currentObjectId;
+        const requestedObj = requestedCurrentId
+          ? normalizedPromptObjects.find(o => o.id === requestedCurrentId)
+          : undefined;
+
+        const objectToLoad = latestOverall ?? requestedObj ?? saved.oop ?? initial;
+        const currentObjectId = latestOverall?.id ?? requestedObj?.id ?? saved.currentObjectId ?? objectToLoad.id ?? initial.id;
+
+        dispatch({
+          type: "HYDRATE_STATE",
+          payload: {
+            oop: objectToLoad,
+            promptObjects: normalizedPromptObjects,
+            currentObjectId,
+            openPanel: saved.openPanel ?? state.openPanel,
+            past: Array.isArray(saved.past) ? saved.past : state.past,
+            future: Array.isArray(saved.future) ? saved.future : state.future,
+            openTabs: Array.isArray(saved.openTabs) ? saved.openTabs : state.openTabs,
+            activeTabId: saved.activeTabId ?? state.activeTabId,
+            hasUnsavedChanges: !!saved.hasUnsavedChanges,
+            lastSavedState: saved.lastSavedState
           }
-        } else if (saved.oop && saved.oop.id !== initial.id) {
-          // Fallback to saved oop if no currentObjectId and it's not the initial empty object
-          console.log('Loading saved oop object');
-          dispatch({ type: "LOAD", payload: saved.oop });
-        }
-        
-        // Restore UI state
-        if (saved.openPanel !== undefined) {
-          dispatch({ type: "TOGGLE_PANEL", open: saved.openPanel });
-        }
+        });
         
         console.log('Data loaded successfully');
       } catch (error) {

@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "heroku-postbuild": "npm run build",
-    "package": "npm run build:extension && powershell Compress-Archive -Path dist/* -DestinationPath ooprompt-extension.zip -Force",
+    "package": "npm run build:extension && powershell Compress-Archive -Path dist-extension/* -DestinationPath ooprompt-extension.zip -Force",
     "generate-icons": "node scripts/generate-placeholder-icons.js"
   },
   "dependencies": {

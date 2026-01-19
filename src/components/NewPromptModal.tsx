@@ -122,7 +122,8 @@ export function NewPromptModal({ isOpen, onClose, onExtract, onError }: Props) {
                 onChange={(e) => setRawPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Example: Write a blog post about sustainable living for eco-conscious millennials. Use a friendly, informative tone. Include practical tips and real-world examples. Keep it around 1000 words..."
-                className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+                rows={8}
+                className="oop-newprompt-textarea w-full min-h-[10rem] px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
                 disabled={isExtracting}
               />
               <p className="text-xs text-gray-400 mt-2">
