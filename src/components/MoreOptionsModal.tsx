@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, selectedLLM, onClose, onUpdateProperty, onCreateEmbeddedObject, onEmbedExistingObject }: Props) {
-  const [activeTab, setActiveTab] = useState<"examples" | "Embed">("examples");
+  const [activeTab, setActiveTab] = useState<"examples" | "nested">("examples");
   const [examples, setExamples] = useState<string[]>(property.examples || []);
   const [selectedExamples, setSelectedExamples] = useState<Set<string>>(new Set(property.examples || []));
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
@@ -247,15 +247,15 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
         className="bg-white rounded-lg border-2 border-gray-300 shadow-lg flex flex-col"
         style={{
           width: '100%',
-          maxWidth: '672px',
+          maxWidth: '400px',
           maxHeight: '80vh',
-          margin: '0 16px',
+          margin: '0 12px',
           overflow: 'hidden'
         }}
       >
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">More Options for "{property.name}"</h2>
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 flex-shrink-0">
+          <h2 className="text-sm font-semibold text-gray-900">"{property.name}" options</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
@@ -265,62 +265,78 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
           </button>
         </div>
 
-        {/* Tab Navigation - Fixed */}
-        <div className="flex border-b border-gray-200 px-4 flex-shrink-0">
-          {(["examples", "Embed"] as const).map((tab) => (
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 px-3 flex-shrink-0">
+          {(["examples", "nested"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
+              className={`px-2 py-1.5 text-xs font-medium border-b-2 transition-colors ${
                 activeTab === tab
                   ? "border-blue-600 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "nested" ? "Nested" : "Examples"}
             </button>
           ))}
         </div>
 
-        {/* Tab Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-4">
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-3">
           {activeTab === "examples" && (
-            <div className="space-y-3">
-                {/* Generate with AI Section */}
-                <div className="text-center">
-                  {!hasPropertyValue && (
-                    <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                      ⚠️ Cannot generate examples: Property value is empty. Examples clarify the property value (e.g., for {`{name: "interest", value: "food"}`}, examples would be "burgers", "rice", "noodles").
-                    </div>
-                  )}
-                  <button
-                    onClick={handleGenerateExamples}
-                    disabled={isGeneratingExamples || !hasPropertyValue}
-                    className="px-4 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                    title={!hasPropertyValue ? "Please provide a value for this property first" : "Generate examples to clarify the property value"}
-                  >
-                    {isGeneratingExamples ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Generating Examples...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">✨</span>
-                        <span>Generate Examples with AI</span>
-                      </div>
-                    )}
-                  </button>
+            <div className="space-y-2">
+              {!hasPropertyValue && (
+                <div className="px-2 py-1.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                  ⚠️ Set a property value first to generate examples.
                 </div>
+              )}
 
-              {/* Selection Controls */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newExample}
+                  onChange={(e) => setNewExample(e.target.value)}
+                  placeholder="Add example..."
+                  className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddExample();
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddExample}
+                  disabled={!newExample.trim()}
+                  className="flex-shrink-0 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateExamples}
+                  disabled={isGeneratingExamples || !hasPropertyValue}
+                  className="flex-shrink-0 p-1.5 border border-gray-300 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title={!hasPropertyValue ? "Please provide a value for this property first" : "Generate examples with AI"}
+                  aria-label="Generate examples with AI"
+                >
+                  {isGeneratingExamples ? (
+                    <div className="w-4 h-4 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
               {examples.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="text-xs text-gray-600 font-medium">
-                    {selectedExamples.size} of {examples.length} examples selected
+                <div className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded border border-gray-200">
+                  <span className="text-xs text-gray-600">
+                    {selectedExamples.size}/{examples.length} selected
                   </span>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => setSelectedExamples(new Set(examples))}
                       disabled={selectedExamples.size === examples.length}
                       className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium border border-green-200"
@@ -328,6 +344,7 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
                       Select All
                     </button>
                     <button
+                      type="button"
                       onClick={() => setSelectedExamples(new Set())}
                       disabled={selectedExamples.size === 0}
                       className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium border border-gray-200"
@@ -338,33 +355,11 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
                 </div>
               )}
 
-              {/* Add new example */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newExample}
-                  onChange={(e) => setNewExample(e.target.value)}
-                  placeholder="Add a new example..."
-                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddExample();
-                  }}
-                />
-                <button
-                  onClick={handleAddExample}
-                  disabled={!newExample.trim()}
-                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  Add
-                </button>
-              </div>
-
-              {/* Examples list */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {examples.map((example, index) => (
                   <div 
                     key={index} 
-                    className={`flex items-center justify-between rounded-lg border p-2 cursor-pointer transition-all duration-200 ${
+                    className={`flex items-center justify-between rounded border px-2 py-1.5 cursor-pointer transition-colors ${
                       selectedExamples.has(example)
                         ? "bg-blue-50 border-blue-200"
                         : "bg-gray-50 border-gray-200 hover:border-gray-300"
@@ -384,97 +379,76 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
                   </div>
                 ))}
                 {examples.length === 0 && (
-                  <p className="text-gray-500 text-xs text-center py-3">
-                    No examples yet. Add some manually or generate with AI.
+                  <p className="text-gray-500 text-xs text-center py-2">
+                    No examples. Add manually or use AI (💡).
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {activeTab === "Embed" && (
-            <div className="space-y-3">
-              <div className="text-center">
-                <h3 className="text-xs font-medium text-gray-900 mb-1.5">Embed OOPrompt Object</h3>
-                <p className="text-xs text-gray-500">
-                  Use another OOPrompt object as the value for this property to create complex, nested definitions.
-                </p>
+          {activeTab === "nested" && (
+            <div className="space-y-2">
+              <button 
+                onClick={() => {
+                  if (onCreateEmbeddedObject) {
+                    onCreateEmbeddedObject(property.id, currentOOP.id);
+                    onClose();
+                  }
+                }}
+                className="w-full text-left px-2 py-1.5 border-2 border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 transition-colors flex items-center gap-2"
+              >
+                <span className="text-base">➕</span>
+                <span className="text-xs font-medium text-blue-900">Create New Object</span>
+              </button>
+              
+              <div className="relative py-0.5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-2 bg-white text-gray-500 text-xs">or</span>
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <button 
-                  onClick={() => {
-                    if (onCreateEmbeddedObject) {
-                      onCreateEmbeddedObject(property.id, currentOOP.id);
-                      onClose();
-                    }
-                  }}
-                  className="w-full text-left p-2 border-2 border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">➕</span>
-                    <div>
-                      <div className="text-xs font-medium text-blue-900">Create New Object</div>
-                      <div className="text-xs text-blue-700">Create a new OOPrompt object to embed in this property</div>
-                    </div>
-                  </div>
-                </button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-2 bg-white text-gray-500 text-xs">or</span>
-                  </div>
-                </div>
-                
-                {latestObjects.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-medium text-gray-900">Select Existing Object:</h4>
-                    <div className="max-h-48 overflow-y-auto space-y-1.5 border border-gray-200 rounded-lg p-2">
-                      {latestObjects.map((obj) => (
-                        <button
-                          key={obj.id}
-                          onClick={() => {
-                            if (onEmbedExistingObject) {
-                              onEmbedExistingObject(property.id, obj.id, obj.name || obj.main_task || 'Untitled Object');
-                              onClose();
-                            }
-                          }}
-                          className="w-full text-left p-2 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📄</span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-medium text-gray-900 truncate">
-                                {obj.main_task || obj.name || 'Untitled Object'}
-                              </div>
-                              <div className="text-xs text-gray-500 truncate">
-                                {obj.properties.length} properties
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                Last updated: {new Date(obj.updatedAt).toLocaleDateString()}
-                              </div>
+              {latestObjects.length > 0 ? (
+                <div className="space-y-1">
+                  <h4 className="text-[11px] font-medium text-gray-600 uppercase tracking-wide">Existing objects</h4>
+                  <div className="max-h-40 overflow-y-auto space-y-1 border border-gray-200 rounded p-1.5">
+                    {latestObjects.map((obj) => (
+                      <button
+                        key={obj.id}
+                        onClick={() => {
+                          if (onEmbedExistingObject) {
+                            onEmbedExistingObject(property.id, obj.id, obj.name || obj.main_task || 'Untitled Object');
+                            onClose();
+                          }
+                        }}
+                        className="w-full text-left px-2 py-1.5 border border-transparent rounded hover:bg-gray-50 hover:border-gray-200 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">📄</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-medium text-gray-900 truncate">
+                              {obj.main_task || obj.name || 'Untitled Object'}
+                            </div>
+                            <div className="text-[11px] text-gray-500">
+                              {obj.properties.length} properties · {new Date(obj.updatedAt).toLocaleDateString()}
                             </div>
                           </div>
-                        </button>
-                      ))}
-                    </div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    <span className="text-lg block mb-1">📝</span>
-                    <p className="text-xs">No existing objects available to embed.</p>
-                    <p className="text-xs mt-1">Create some objects first, then come back to embed them.</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-xs text-center py-2">No other objects to nest.</p>
+              )}
 
-              <div className="flex gap-2 pt-3 border-t border-gray-200">
+              <div className="flex gap-2 pt-2 border-t border-gray-200">
                 <button
                   onClick={onClose}
-                  className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 text-xs rounded-lg transition-colors"
+                  className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 text-xs rounded transition-colors"
                 >
                   Cancel
                 </button>
@@ -483,15 +457,14 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
           )}
         </div>
 
-        {/* Footer - Fixed at bottom (only for Examples tab) */}
         {activeTab === "examples" && (
-          <div className="flex gap-2 p-4 border-t border-gray-200 flex-shrink-0">
+          <div className="flex gap-2 px-3 py-2 border-t border-gray-200 flex-shrink-0">
             <button
               onClick={handleSaveExamples}
               disabled={selectedExamples.size === 0}
               className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Save {selectedExamples.size > 0 ? `(${selectedExamples.size})` : ''} Examples
+              Save{selectedExamples.size > 0 ? ` (${selectedExamples.size})` : ''}
             </button>
             <button
               onClick={onClose}

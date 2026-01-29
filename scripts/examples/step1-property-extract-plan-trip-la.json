@@ -1,0 +1,32 @@
+{
+  "id": "root",
+  "name": "",
+  "main_task": "Plan a trip",
+  "audience": "everyone",
+  "properties": [
+    {
+      "id": "p1",
+      "name": "Destination",
+      "value": "Los Angeles",
+      "emphasis": "normal",
+      "examples": [],
+      "source": "ai-extracted",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    {
+      "id": "p2",
+      "name": "Trip Type",
+      "value": "general travel / vacation",
+      "emphasis": "normal",
+      "examples": [],
+      "source": "ai-extracted",
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ],
+  "tabsOrder": ["root"],
+  "log": [],
+  "createdAt": 0,
+  "updatedAt": 0
+}

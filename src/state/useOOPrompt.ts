@@ -28,6 +28,7 @@ export type Action =
   | { type: "TOGGLE_PANEL"; open?: boolean }
   | { type: "TOGGLE_OBJECT_PANEL"; open?: boolean }
   | { type: "SET_OOP"; payload: OOPromptObject }          // Optimize (replace)
+  | { type: "PATCH_OOP"; payload: Partial<Pick<OOPromptObject, "main_task" | "audience">> }
   | { type: "UPSERT_PROPERTY"; payload: Property }
   | { type: "DELETE_PROPERTY"; id: string }
   | { type: "SELECT_PROPERTY"; id?: string }
@@ -135,6 +136,12 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       }
       
       return { ...updatedState, hasUnsavedChanges: true };
+    }
+    case "PATCH_OOP": {
+      // Merge only main_task/audience into current state.oop so we never overwrite
+      // with a stale object (e.g. from a closure) and lose the current properties.
+      const next = { ...state.oop, ...action.payload, updatedAt: Date.now() };
+      return { ...pushHistory(state, next), hasUnsavedChanges: true };
     }
     case "UPSERT_PROPERTY": {
       // Normalize the property before upserting
@@ -245,7 +252,18 @@ function reducer(state: AppState, action: Action, initial: OOPromptObject): AppS
       };
     }
     case "LOAD_PROMPT_OBJECT": {
-      return { ...state, oop: action.payload, currentObjectId: action.payload.id };
+      const normalized = normalizeOOPromptObject(action.payload);
+      const existsInLibrary = state.promptObjects.some(obj => obj.id === normalized.id);
+      const nextPromptObjects = existsInLibrary
+        ? state.promptObjects
+        : [normalized, ...state.promptObjects];
+      return {
+        ...state,
+        oop: normalized,
+        currentObjectId: normalized.id,
+        promptObjects: nextPromptObjects,
+        hasUnsavedChanges: existsInLibrary ? state.hasUnsavedChanges : true
+      };
     }
     case "DELETE_PROMPT_OBJECT": {
       const newPromptObjects = state.promptObjects.filter(obj => obj.id !== action.id);

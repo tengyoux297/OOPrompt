@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { AppState, Action } from "../state/useOOPrompt";
-import type { Emphasis as PropertyEmphasis, OOPromptObject, Property, Suggestion, Conflict } from "../types";
+import type { OOPromptObject, Property, Suggestion, Conflict, Emphasis } from "../types";
 import { AddPropertyModal } from "./AddPropertyModal";
 import { ConflictResolveModal } from "./ConflictResolveModal";
 import { MoreOptionsModal } from "./MoreOptionsModal";
@@ -8,130 +8,151 @@ import { ObjectModifierModal } from "./ObjectModifierModal";
 import { SuggestionsBanner } from "./SuggestionsBanner";
 // import { suggest } from "../api"; // Deprecated - now using ObjectModifierModal
 import { llmService } from "../services/llmService";
-import type { FileAttachment } from "../services/llmService";
 import { PatchService } from "../services/patchService";
 
 
 
-function ActionSegmented({
-  value, onChange
-}: { value: PropertyEmphasis; onChange: (v: PropertyEmphasis) => void }) {
-  const opts: PropertyEmphasis[] = ["important", "normal", "avoid"];
+const EMPHASIS_ORDER: Emphasis[] = ["normal", "important", "avoid"];
+
+function EmphasisIcon({ emphasis }: { emphasis: Emphasis }) {
+  if (emphasis === "important") {
+    return (
+      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-label="Important">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+      </svg>
+    );
+  }
+  if (emphasis === "avoid") {
+    return (
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Avoid">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </svg>
+    );
+  }
   return (
-    <div className="segmented">
-      {opts.map(o => (
-        <button
-          key={o}
-          onClick={() => onChange(o)}
-          className={"segmented-btn " + (o === value ? "segmented-on" : "segmented-off")}
-          aria-pressed={o === value}
-        >
-          {o}
-        </button>
-      ))}
-    </div>
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Normal">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
   );
 }
 
-function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, selectedLLM }: { 
+function PropertyCard({ p, onSelect, isSelected, dispatch, selectedLLM }: { 
   p: Property; 
   onSelect: () => void; 
   isSelected: boolean;
-  onToggleDetails: () => void;
   dispatch: React.Dispatch<Action>;
   selectedLLM: 'openai' | 'gemini' | 'claude';
 }) {
-  
-  console.log(`PropertyCard render: ${p.id}, isSelected: ${isSelected}, selectedStyle: ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 shadow-lg' : ''}`);
-  console.log(`Details Panel will render: ${isSelected ? 'YES' : 'NO'}`);
-  
-  const base = "oop-property-card bg-white border border-gray-200 rounded p-2.5 w-full transition-all duration-200 hover:shadow-sm";
+  const base = "oop-property-card bg-white border border-gray-200 rounded px-2 py-1.5 w-full transition-all duration-200 hover:shadow-sm";
   const selectedStyle = isSelected ? "ring-1 ring-black ring-offset-1 shadow-md" : "";
+  const isObjectRef = typeof p.value === "object" && p.value?.refObjectName;
+
+  const cycleEmphasis = () => {
+    const i = EMPHASIS_ORDER.indexOf(p.emphasis);
+    const next = EMPHASIS_ORDER[(i + 1) % EMPHASIS_ORDER.length];
+    dispatch({ type: "UPSERT_PROPERTY", payload: { ...p, emphasis: next, updatedAt: Date.now() } });
+  };
 
   return (
     <div className="w-full">
-      <div onClick={onSelect} className={`${base} ${selectedStyle} cursor-pointer`}>
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2.5 items-start">
-          {/* Name Column */}
-          <div className="text-left">
-            <div className="oop-property-label text-[10px] text-gray-500 mb-0.5">Name</div>
-            <div className="oop-property-name text-xs font-semibold text-gray-900">{p.name || <span className="text-gray-400 italic">No name</span>}</div>
-          </div>
-          
-          {/* Value Column */}
-          <div className="text-left">
-            <div className="oop-property-label text-[10px] text-gray-500 mb-0.5">Value</div>
-            <div className="oop-property-value text-xs text-gray-700">
-          {typeof p.value === "string" 
-            ? (p.value || <span className="text-gray-400 italic">To be added...</span>) 
-            : (p.value?.refObjectName 
-                    ? <span className="text-blue-600 font-medium">
-                        <span className="oop-property-object-prefix text-blue-500 text-[10px] font-semibold">object: </span>{p.value.refObjectName}
-                  </span>
-                : <span className="text-gray-400 italic">To be added...</span>)
-          }
-            </div>
-          </div>
-          
-          {/* Action Icons Column */}
-          <div className="flex flex-col items-center gap-0.5">
-            {/* Edit Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect();
+      <div onClick={onSelect} className={`${base} ${selectedStyle}`}>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
+          <div className="text-left min-w-0">
+            <div className="oop-property-label text-[10px] text-gray-500 mb-0 leading-none">Name</div>
+            <input
+              type="text"
+              className="oop-property-name w-full px-1 py-0.5 text-xs font-semibold text-gray-900 border border-transparent hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-transparent leading-tight"
+              defaultValue={p.name || ""}
+              placeholder="No name"
+              onClick={(e) => e.stopPropagation()}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== (p.name || "")) {
+                  dispatch({ type: "UPSERT_PROPERTY", payload: { ...p, name: v || "Unnamed", updatedAt: Date.now() } });
+                }
               }}
-              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-              aria-label="Edit property"
-              title="Edit property"
+            />
+          </div>
+          <div className="text-left min-w-0">
+            <div className="oop-property-label text-[10px] text-gray-500 mb-0 leading-none">Value</div>
+            {isObjectRef ? (
+              <div className="oop-property-value text-xs text-blue-600 font-medium py-0.5 px-1 leading-tight">
+                <span className="text-blue-500 font-semibold">object:</span> {(p.value as { refObjectName: string }).refObjectName}
+              </div>
+            ) : (
+              <input
+                type="text"
+                className="oop-property-value w-full px-1 py-0.5 text-xs text-gray-700 border border-transparent hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-transparent leading-tight"
+                defaultValue={typeof p.value === "string" ? (p.value || "") : ""}
+                placeholder="To be added..."
+                onClick={(e) => e.stopPropagation()}
+                onBlur={(e) => {
+                  const nextVal = e.target.value;
+                  if (nextVal !== (typeof p.value === "string" ? p.value : "")) {
+                    dispatch({ type: "UPSERT_PROPERTY", payload: { ...p, value: nextVal, updatedAt: Date.now() } });
+                  }
+                }}
+              />
+            )}
+          </div>
+          <div className="flex flex-col items-center gap-px">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); cycleEmphasis(); }}
+              className={`p-0.5 rounded transition-colors ${
+                p.emphasis === "important" ? "text-amber-500 hover:bg-amber-50" :
+                p.emphasis === "avoid" ? "text-red-500 hover:bg-red-50" :
+                "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              }`}
+              title={p.emphasis === "important" ? "Important" : p.emphasis === "avoid" ? "Avoid" : "Normal"}
+              aria-label={`Emphasis: ${p.emphasis}. Click to cycle.`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              <EmphasisIcon emphasis={p.emphasis} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p }); }}
+              className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              aria-label="More options"
+              title="More options"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
               </svg>
             </button>
-            
-            {/* Delete Button */}
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Delete button clicked for property:', p.id, p.name);
                 if (confirm(`Are you sure you want to delete "${p.name}"?`)) {
-                  console.log('User confirmed deletion, dispatching DELETE_PROPERTY action');
                   dispatch({ type: "DELETE_PROPERTY", id: p.id });
-                } else {
-                  console.log('User cancelled deletion');
                 }
               }}
-              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+              className="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
               aria-label="Delete property"
               title="Delete property"
-              style={{ pointerEvents: 'auto', zIndex: 10 }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
           </div>
         </div>
         
-        {/* File reference display - only show for OpenAI */}
         {p.fileReference && selectedLLM === 'openai' && (
-          <div className="mt-1.5 flex items-center gap-1.5">
+          <div className="mt-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <span className="text-green-600 text-[10px] font-medium bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
               📎 {p.fileReference.fileName}
             </span>
             <button
+              type="button"
               className="text-green-600 hover:text-green-700 text-[10px]"
-              onClick={async (e) => {
-                e.stopPropagation();
+              onClick={async () => {
                 try {
-                  console.log('=== Downloading File from Property Card ===');
                   const { fileStorageService } = await import("../services/fileStorageService");
                   await fileStorageService.downloadFile(p.fileReference!);
                 } catch (error) {
-                  console.error('Download failed:', error);
                   alert(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
               }}
@@ -142,257 +163,20 @@ function PropertyCard({ p, onSelect, isSelected, onToggleDetails, dispatch, sele
           </div>
         )}
         
-        {/* Show file unavailable notice for Gemini/Claude */}
         {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
-          <div className="mt-1.5 flex items-center gap-1.5">
+          <div className="mt-1 flex items-center gap-1">
             <span className="text-amber-600 text-[10px] font-medium bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
               📎 {p.fileReference.fileName} (Not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)})
             </span>
           </div>
         )}
       </div>
-      
-      {/* Expandable Details Panel */}
-      {isSelected && (
-        <div className="mt-3 overflow-hidden" data-testid="details-panel">
-          <div className="bg-white rounded-lg border-2 border-gray-300 shadow-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Property Details</h3>
-              <button 
-                onClick={onToggleDetails}
-                className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
-                aria-label="Close details"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={p.name}
-                    onBlur={(e) => {
-                      const updatedProperty = { ...p, name: e.target.value, updatedAt: Date.now() };
-                      dispatch({
-                        type: "UPSERT_PROPERTY",
-                        payload: updatedProperty,
-                      });
-                      
-                      // Debug: Log updated property
-                      console.log('=== Property Name Updated ===');
-                      console.log('Updated Property:', updatedProperty);
-                      console.log('============================');
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Value</label>
-                  {typeof p.value === "object" && p.value?.refObjectName ? (
-                    <div className="flex items-center gap-2 p-1.5 bg-blue-50 border border-blue-200 rounded-md">
-                      <span className="text-blue-600 font-medium text-xs">
-                        <span className="text-blue-500 text-xs font-semibold">object:</span> {p.value.refObjectName}
-                      </span>
-                      <button 
-                        className="text-xs text-gray-500 hover:text-gray-700 ml-auto"
-                        onClick={() => dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p })}
-                      >
-                        Change…
-                      </button>
-                    </div>
-                  ) : (
-                    <input
-                      className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      defaultValue={typeof p.value === "string" ? (p.value || "") : ""}
-                      onBlur={(e) => {
-                        const nextVal = e.target.value;
-                        const updatedProperty = { ...p, value: nextVal, updatedAt: Date.now() };
-                        dispatch({
-                          type: "UPSERT_PROPERTY",
-                          payload: updatedProperty,
-                        });
-                        
-                        // Debug: Log updated property
-                        console.log('=== Property Value Updated ===');
-                        console.log('Updated Property:', updatedProperty);
-                        console.log('============================');
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-gray-700">Emphasis</label>
-                <div className="flex gap-2">
-                  {(["normal", "important", "avoid"] as const).map((option) => {
-                    const displayLabel = option === "important" ? "Important" : option.charAt(0).toUpperCase() + option.slice(1);
-                    const isSelected = p.emphasis === option;
-                    return (
-                      <label
-                        key={option}
-                        className={`flex items-center gap-1.5 cursor-pointer px-2 py-1.5 rounded-lg border transition-colors flex-1 ${
-                          isSelected
-                            ? "bg-blue-50 border-blue-300"
-                            : "bg-white border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`emphasis-${p.id}`}
-                          value={option}
-                          checked={isSelected}
-                          onChange={() => {
-                            const updatedProperty = { ...p, emphasis: option, updatedAt: Date.now() };
-                            dispatch({
-                              type: "UPSERT_PROPERTY",
-                              payload: updatedProperty,
-                            });
-                            
-                            // Debug: Log updated property
-                            console.log('=== Property Emphasis Updated ===');
-                            console.log('Updated Property:', updatedProperty);
-                            console.log('==================================');
-                          }}
-                          className="w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-1"
-                        />
-                        <span className={`text-xs ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}>
-                          {displayLabel}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* File reference management in details panel - only for OpenAI */}
-              {p.fileReference && selectedLLM === 'openai' && (
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-600">File Reference</span>
-                    <div className="flex gap-2">
-                      <button 
-                        className="text-xs text-blue-600 hover:text-blue-700"
-                        onClick={async () => {
-                          try {
-                            console.log('=== Downloading File from Details Panel ===');
-                            const { fileStorageService } = await import("../services/fileStorageService");
-                            await fileStorageService.downloadFile(p.fileReference!);
-                          } catch (error) {
-                            console.error('Download failed:', error);
-                            alert(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                          }
-                        }}
-                      >
-                        Download
-                      </button>
-    <button
-                        className="text-xs text-red-600 hover:text-red-700"
-                        onClick={async () => {
-                          try {
-                            const { fileStorageService } = await import("../services/fileStorageService");
-                            await fileStorageService.removeFile(p.fileReference!.id);
-                            const updatedProperty = { ...p, fileReference: undefined, updatedAt: Date.now() };
-                            dispatch({
-                              type: "UPSERT_PROPERTY",
-                              payload: updatedProperty,
-                            });
-                          } catch (error) {
-                            console.error('File removal failed:', error);
-                            alert(`Failed to remove file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                          }
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-600 text-xs">📎</span>
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-green-800">{p.fileReference.fileName}</div>
-                        <div className="text-xs text-green-600">
-                          {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
-                        </div>
-                        <div className="text-xs text-green-500">
-                          Uploaded: {new Date(p.fileReference.uploadTime).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-green-400">
-                          File ID: {p.fileReference.id}
-                        </div>
-                        <div className="text-xs text-green-400">
-                          Stored: {p.fileReference.storedPath}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Show file unavailable notice for Gemini/Claude in details panel */}
-              {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-600">File Reference</span>
-                  </div>
-                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-600 text-xs">📎</span>
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-amber-800">{p.fileReference.fileName}</div>
-                        <div className="text-xs text-amber-600">
-                          {(p.fileReference.fileSize / 1024).toFixed(1)} KB • {p.fileReference.fileType}
-                        </div>
-                        <div className="text-xs text-amber-500">
-                          File attachments are not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)}. Switch to OpenAI for file processing.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-3 border-t border-gray-200">
-                <button 
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                  onClick={() => {
-                    console.log('=== SAVE Button Clicked - Hiding Details Panel ===');
-                    onToggleDetails();
-                  }}
-                >
-                  save
-                </button>
-                <button 
-                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 text-xs font-medium rounded-lg transition-colors"
-                  onClick={() => {
-                    console.log('=== CANCEL Button Clicked - Hiding Details Panel ===');
-                    onToggleDetails();
-                  }}
-                >
-                  cancel
-                </button>
-                <button 
-                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 text-xs font-medium rounded-lg transition-colors"
-                  onClick={() => {
-                    dispatch({ type: "OPEN_MODAL", modal: "more-options", data: p });
-                  }}
-                >
-                  More options…
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export function OOPromptPanel({
-  state, dispatch, onSendMessage, onCreateEmbeddedObject, onEmbedExistingObject, selectedLLM, onError
+  state, dispatch, onSendMessage: _onSendMessage, onCreateEmbeddedObject, onEmbedExistingObject, selectedLLM, onError
 }: { 
   state: AppState; 
   dispatch: React.Dispatch<Action>;
@@ -405,8 +189,8 @@ export function OOPromptPanel({
   const [showSuccess, setShowSuccess] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const { oop, selectedPropertyId, suggestions, modal } = state;
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"none" | "emphasis" | "name" | "time">("none");
+  const searchTerm = "";
+  const sortBy: "none" | "emphasis" | "name" | "time" = "none";
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'idle' | 'building' | 'sending'>('idle');
   const [builtPrompt, setBuiltPrompt] = useState<string | null>(null);
@@ -422,6 +206,11 @@ export function OOPromptPanel({
     setAudience(oop.audience || "");
   }, [oop.id, oop.main_task, oop.audience]);
 
+  // Clear built prompt when switching or creating a new object so the previous object's prompt doesn't persist
+  useEffect(() => {
+    setBuiltPrompt(null);
+  }, [oop.id]);
+
   // Filter properties based on search term - memoized for performance
   const filtered = useMemo(() => {
     return (oop?.properties || []).filter((p: Property) => {
@@ -436,46 +225,51 @@ export function OOPromptPanel({
     });
   }, [oop?.properties, searchTerm]);
 
-  // Sort properties based on user selection
+  // Sort properties: emphasis (important→normal→avoid), then createdAt, then alphabetical
   // Use useMemo to avoid minification issues and improve performance
   const sorted = useMemo(() => {
-    if (sortBy === "none") {
-      return filtered;
-    }
-    
+    // Get emphasis order for sorting: important=0, normal=1, avoid=2
+    const getEmphasisOrder = (emphasis: string) => {
+      switch (emphasis) {
+        case "important": 
+          return 0;
+        case "normal": 
+          return 1;
+        case "avoid": 
+          return 2;
+        default: 
+          return 1; // default to normal
+      }
+    };
+
     try {
       const sortedArray = [...filtered];
       
-      if (sortBy === "emphasis") {
-        sortedArray.sort((propA: Property, propB: Property) => {
-          const orderA = getActionOrder(propA.emphasis);
-          const orderB = getActionOrder(propB.emphasis);
-          if (orderA !== orderB) {
-            return orderA - orderB;
-          }
-          // Fallback to time if action order is the same
-          const timeA = propA.updatedAt ?? propA.createdAt ?? 0;
-          const timeB = propB.updatedAt ?? propB.createdAt ?? 0;
-          return timeB - timeA;
-        });
-      } else if (sortBy === "name") {
-        sortedArray.sort((propA: Property, propB: Property) => {
-          return propA.name.localeCompare(propB.name);
-        });
-      } else if (sortBy === "time") {
-        sortedArray.sort((propA: Property, propB: Property) => {
-          const timeA = propA.createdAt ?? propA.updatedAt ?? 0;
-          const timeB = propB.createdAt ?? propB.updatedAt ?? 0;
-          return timeB - timeA;
-        });
-      }
+      sortedArray.sort((propA: Property, propB: Property) => {
+        // Primary: emphasis order (important=0, normal=1, avoid=2)
+        const emphasisA = getEmphasisOrder(propA.emphasis);
+        const emphasisB = getEmphasisOrder(propB.emphasis);
+        if (emphasisA !== emphasisB) {
+          return emphasisA - emphasisB;
+        }
+        
+        // Secondary: creation time (oldest first)
+        const timeA = propA.createdAt ?? 0;
+        const timeB = propB.createdAt ?? 0;
+        if (timeA !== timeB) {
+          return timeA - timeB;
+        }
+        
+        // Tertiary: alphabetical by name
+        return (propA.name || "").localeCompare(propB.name || "");
+      });
       
       return sortedArray;
     } catch (error) {
       console.error('Error during sorting:', error);
       return filtered; // Fallback to unsorted on error
     }
-  }, [filtered, sortBy]);
+  }, [filtered]);
 
   // Debug: Log current state whenever it changes
   useEffect(() => {
@@ -510,42 +304,6 @@ export function OOPromptPanel({
       console.log('=== Object Panel Auto-Opened ===');
     }
   }, [state.openPanel, state.promptObjects.length, dispatch]);
-
-  // Cycle through sorting options
-  const cycleSort = () => {
-    try {
-      const sortOptions: Array<"none" | "emphasis" | "name" | "time"> = ["none", "emphasis", "name", "time"];
-      const currentIndex = sortOptions.indexOf(sortBy);
-      const nextIndex = (currentIndex + 1) % sortOptions.length;
-      const newSortBy = sortOptions[nextIndex];
-      
-      console.log(`Sorting: ${sortBy} -> ${newSortBy}`);
-      setSortBy(newSortBy);
-    } catch (error) {
-      console.error('Error in cycleSort:', error);
-      // Reset to no sorting on error
-      setSortBy("none");
-    }
-  };
-
-  // Get emphasis order for display (avoid, normal, important)
-  const getActionOrder = (emphasis: string) => {
-    console.log(`getActionOrder called with: "${emphasis}"`);
-    switch (emphasis) {
-      case "avoid": 
-        console.log('Returning 0 for avoid');
-        return 0;
-      case "normal": 
-        console.log('Returning 1 for normal');
-        return 1;
-      case "important": 
-        console.log('Returning 2 for important');
-        return 2;
-      default: 
-        console.log(`Unknown emphasis "${emphasis}", returning 1`);
-        return 1;
-    }
-  };
 
 
 
@@ -632,37 +390,41 @@ export function OOPromptPanel({
     <div className="h-full w-full flex flex-col bg-white">
       {/* Fixed height container with flexbox layout */}
       <div className="flex flex-col h-full">
-        {/* Header Section */}
-        <div className="panel-chrome p-3 flex-shrink-0 border-b border-gray-200">
-          <div className="grid grid-cols-2 gap-2 mb-2">
+        {/* Header: Main Task, Audience, actions */}
+        <div className="panel-chrome px-2.5 py-2 flex-shrink-0 border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-1.5">
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-1">Main Task</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Main Task</label>
               <input
-                className="input text-xs"
+                className="input text-xs w-full"
                 placeholder="What do you want to accomplish?"
                 value={mainTask}
                 onChange={(e) => setMainTask(e.target.value)}
                 onBlur={(e) => {
-                  const next: OOPromptObject = { ...oop, main_task: e.target.value };
-                  dispatch({ type: "SET_OOP", payload: next });
+                  const v = e.target.value;
+                  if (v !== (oop.main_task || "")) {
+                    dispatch({ type: "PATCH_OOP", payload: { main_task: v } });
+                  }
                 }}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-1">Audience</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Audience</label>
               <input
-                className="input text-xs"
+                className="input text-xs w-full"
                 placeholder="Who is this for?"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
                 onBlur={(e) => {
-                  const next: OOPromptObject = { ...oop, audience: e.target.value };
-                  dispatch({ type: "SET_OOP", payload: next });
+                  const v = e.target.value;
+                  if (v !== (oop.audience || "")) {
+                    dispatch({ type: "PATCH_OOP", payload: { audience: v } });
+                  }
                 }}
               />
             </div>
           </div>
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="flex items-center justify-end gap-1 flex-wrap">
             {/* SAVE Button - Save prompt object to history */}
             <button
               onClick={() => {
@@ -682,40 +444,36 @@ export function OOPromptPanel({
                   setShowSaveSuccess(false);
                 }, 2000);
               }}
-              className="px-2 py-1 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1 relative"
+              className="px-1.5 py-0.5 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1 relative"
               title="Save prompt object to history"
             >
               {showSaveSuccess ? (
-                <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               )}
               <span>{showSaveSuccess ? 'Saved!' : 'SAVE'}</span>
             </button>
-            
-            {/* ADD AI SUGGESTIONS Button */}
             <button
               onClick={() => dispatch({ type: "OPEN_MODAL", modal: "object-modifier" })}
-              className="px-2 py-1 text-[10px] font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors flex items-center gap-1"
+              className="px-1.5 py-0.5 text-[10px] font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors flex items-center gap-1"
               title="Add AI Suggestions"
             >
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2L2 12l10 10 10-10L12 2z" />
               </svg>
-              <span>ADD AI SUGGESTIONS</span>
+              <span>AI SUGGESTIONS</span>
             </button>
-            
-            {/* + ADD PROPERTY Button */}
             <button
               onClick={() => dispatch({ type: "OPEN_MODAL", modal: "add-property" })}
-              className="px-2 py-1 text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-1"
+              className="px-1.5 py-0.5 text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-1"
               title="Add Property"
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               <span>ADD PROPERTY</span>
@@ -735,10 +493,10 @@ export function OOPromptPanel({
       />
 
 
-        {/* Properties area with scrollbar */}
+        {/* Properties area */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/30">
-          <div className="p-3">
-            <div className="space-y-2">
+          <div className="p-2">
+            <div className="space-y-1">
                 {sorted.map((p: Property) => {
                   try {
                     if (!p || !p.id || !p.name) {
@@ -755,15 +513,12 @@ export function OOPromptPanel({
                         isSelected={isSelected}
                         selectedLLM={selectedLLM}
                         onSelect={() => {
-                          console.log(`Property ${p.id} clicked, current selectedPropertyId: ${selectedPropertyId}, will set to: ${isSelected ? 'undefined' : p.id}`);
-                          // Toggle selection: if already selected, deselect; otherwise select
                           if (isSelected) {
                             dispatch({ type: "SELECT_PROPERTY", id: undefined });
                           } else {
                             dispatch({ type: "SELECT_PROPERTY", id: p.id });
                           }
                         }}
-                        onToggleDetails={() => dispatch({ type: "SELECT_PROPERTY", id: undefined })}
                         dispatch={dispatch}
                       />
                     );
@@ -777,73 +532,72 @@ export function OOPromptPanel({
           </div>
         </div>
 
-        {/* Action buttons area */}
-        <div className="panel-chrome p-2.5 flex-shrink-0 border-t border-gray-200 bg-white space-y-2">
-          
-          {/* Built prompt display */}
+        {/* Footer: built prompt + Build Prompt */}
+        <div className="panel-chrome px-2 py-2 flex-shrink-0 border-t border-gray-200 bg-white space-y-1.5">
           {builtPrompt && !isSending && (
-            <div className="space-y-2">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded p-2.5 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+            <div className="space-y-1.5">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded p-2 shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white text-[10px]">✓</span>
-                  </div>
+                    </div>
                     <span className="text-green-800 font-semibold text-xs">Prompt Built Successfully</span>
-                </div>
-                  <button
-                    onClick={() => setIsPromptPanelExpanded(!isPromptPanelExpanded)}
-                    className="text-green-700 hover:text-green-900 transition-colors p-0.5"
-                    aria-label={isPromptPanelExpanded ? "Collapse" : "Expand"}
-                    title={isPromptPanelExpanded ? "Collapse" : "Expand"}
-                  >
-                    <svg 
-                      className={`w-3.5 h-3.5 transition-transform ${isPromptPanelExpanded ? '' : 'rotate-180'}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
+                  </div>
+                  <div className="flex items-center gap-0.5 flex-shrink-0" style={{ height: '1.25rem' }}>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await navigator.clipboard.writeText(builtPrompt);
+                          setShowSuccess(true);
+                          setTimeout(() => setShowSuccess(false), 2000);
+                        } catch {
+                          if (onError) onError('Copy Failed', 'Could not copy prompt to clipboard.');
+                        }
+                      }}
+                      className="p-0.5 text-green-700 hover:text-green-900 hover:bg-green-100/80 rounded transition-colors"
+                      aria-label="Copy to clipboard"
+                      title={showSuccess ? 'Copied!' : 'Copy to clipboard'}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                      {showSuccess ? (
+                        <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setIsPromptPanelExpanded(!isPromptPanelExpanded)}
+                      className="text-green-700 hover:text-green-900 transition-colors p-0.5"
+                      aria-label={isPromptPanelExpanded ? "Collapse" : "Expand"}
+                      title={isPromptPanelExpanded ? "Collapse" : "Expand"}
+                    >
+                      <svg
+                        className={`w-3.5 h-3.5 transition-transform ${isPromptPanelExpanded ? '' : 'rotate-180'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 {isPromptPanelExpanded && (
-                  <div className="bg-white rounded border border-green-200 p-2 max-h-32 overflow-y-auto text-xs text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
-                  {builtPrompt}
-                </div>
+                  <div className="bg-white rounded border border-green-200 p-1.5 max-h-[40vh] md:max-h-[50vh] overflow-y-auto text-xs text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
+                    {builtPrompt}
+                  </div>
                 )}
               </div>
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(builtPrompt);
-                      setShowSuccess(true);
-                      setTimeout(() => {
-                        setShowSuccess(false);
-                      }, 2000);
-                    } catch (clipboardError) {
-                      if (onError) {
-                      onError('Copy Failed', 'Could not copy prompt to clipboard. Please copy it manually from the preview above.');
-                    }
-                  }
-                }}
-                className="btn-primary w-full py-2 text-xs font-semibold shadow-md hover:shadow-lg transition-shadow"
-              >
-                <span className="mr-1.5">📋</span>
-                Copy to Clipboard
-              </button>
-              {showSuccess && (
-                <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 bg-green-50 border border-green-300 rounded text-green-700 text-xs font-medium">
-                  <span className="text-green-600">✓</span>
-                  <span>Copied to clipboard!</span>
-                </div>
-              )}
             </div>
           )}
           
-          {/* Build Prompt button */}
           <button 
-            className={`btn-primary w-full py-2 text-xs font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
+            className={`btn-primary w-full py-1.5 text-xs font-semibold shadow-md hover:shadow-lg transition-all ${isSending ? 'opacity-75 cursor-not-allowed' : ''}`}
             onClick={async () => {
               if (isSending) return; // Prevent multiple clicks
               
@@ -938,9 +692,17 @@ export function OOPromptPanel({
                 const prompt = await llmService.buildPromptWithAssistant(promptData);
                 console.log('Built prompt:', prompt);
                 
-                // Store the built prompt
+                // Store the built prompt and auto-copy to clipboard
                 setBuiltPrompt(prompt);
                 setIsPromptPanelExpanded(true); // Reset to expanded when new prompt is built
+                try {
+                  await navigator.clipboard.writeText(prompt);
+                  setShowSuccess(true);
+                  setTimeout(() => setShowSuccess(false), 2000);
+                } catch {
+                  // clipboard may be unavailable (e.g. non-HTTPS); ignore
+                }
+                _onSendMessage?.(prompt);
                 
                 // Console output: Final Prompt
                 console.log('╔════════════════════════════════════════════════════════════════════════════════════╗');
@@ -998,7 +760,7 @@ export function OOPromptPanel({
             {isSending ? (
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Building...</span>
+                <span>{sendStatus === 'sending' ? 'Sending...' : 'Building...'}</span>
               </div>
             ) : (
               'Build Prompt'

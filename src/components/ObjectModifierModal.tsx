@@ -128,30 +128,41 @@ export function ObjectModifierModal({
   onApplyPatches,
   onError 
 }: Props) {
-  const [activeTab, setActiveTab] = useState<RequestType>("conflict_check");
+  const [activeTab, setActiveTab] = useState<RequestType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [envelope, setEnvelope] = useState<ObjectModifierEnvelope | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [cursor, setCursor] = useState<string | null>(null);
-  
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleCardExpanded = useCallback((id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   // Clear suggestions whenever modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Modal closed - clear all suggestions
       console.log('🔄 Modal closed, clearing all suggestions');
       setEnvelope(null);
       setSelectedItems(new Set());
       setCursor(null);
+      setExpandedCards(new Set());
     }
   }, [isOpen]);
 
-  // Reset state when modal opens
+  // Reset state when modal opens (no tab selected initially)
   useEffect(() => {
     if (isOpen) {
-      // Fresh open - reset to default state
       setSelectedItems(new Set());
       setCursor(null);
-      setActiveTab("conflict_check");
+      setEnvelope(null);
+      setActiveTab(null);
+      setExpandedCards(new Set());
     }
   }, [isOpen]);
 
@@ -160,27 +171,30 @@ export function ObjectModifierModal({
     console.log(`🔄 selectedItems changed:`, Array.from(selectedItems));
   }, [selectedItems]);
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (overrideTab?: RequestType | null) => {
     if (!isOpen) return;
-    
+    const tab = overrideTab ?? activeTab;
+    if (tab == null) return;
+
     setIsLoading(true);
     try {
       const { llmService } = await import("../services/llmService");
       const result = await llmService.analyzeObjectModifier(
         currentOOP,
-        activeTab,
-        cursor || undefined
+        tab,
+        overrideTab ? undefined : cursor || undefined
       );
-      
+
       console.log(`🔍 Setting envelope with suggestedProperties:`, result.suggestedProperties?.map(p => ({ suggestionId: p.suggestionId, name: p.name })));
       setEnvelope(result);
       setCursor(result.summary.cursor);
+      setExpandedCards(new Set());
     } catch (error) {
       console.error("Object modifier analysis failed:", error);
       if (onError) {
         onError(
-          "Analysis Failed", 
-          `Failed to analyze ${activeTab}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          "Analysis Failed",
+          `Failed to analyze ${tab}: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     } finally {
@@ -188,17 +202,12 @@ export function ObjectModifierModal({
     }
   };
 
-  const handleTabChange = (newTab: RequestType) => {
-    if (newTab !== activeTab) {
-      setActiveTab(newTab);
-      // Reset envelope and cursor when switching tabs
-      setEnvelope(null);
-      setSelectedItems(new Set());
-      setCursor(null);
-      
-      // Clear any previous error state
-      console.log(`Switched to ${newTab} tab - resetting analysis state`);
-    }
+  const handleSelectAndRun = async (tab: RequestType) => {
+    setActiveTab(tab);
+    setEnvelope(null);
+    setSelectedItems(new Set());
+    setCursor(null);
+    await handleAnalyze(tab);
   };
 
   const handleLoadMore = async () => {
@@ -539,7 +548,11 @@ export function ObjectModifierModal({
     console.log(`🔍 renderConflicts: envelope.conflicts:`, envelope?.conflicts);
     console.log(`🔍 renderConflicts: conflicts count:`, envelope?.conflicts?.length || 0);
     
-    if (!envelope?.conflicts) return null;
+    if (!envelope?.conflicts || envelope.conflicts.length === 0) {
+      return (
+        <p className="text-sm text-gray-500 py-4">No conflicts found.</p>
+      );
+    }
 
     const grouped = {
       errors: envelope.conflicts.filter(c => c.severity === "error"),
@@ -551,8 +564,8 @@ export function ObjectModifierModal({
       <div className="space-y-4">
                       {grouped.errors.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-red-700 mb-1.5">🚨 Errors ({grouped.errors.length})</h4>
-                  <div className="space-y-2">
+                  <h4 className="text-[11px] font-semibold text-red-700 uppercase tracking-wide mb-2">🚨 Errors ({grouped.errors.length})</h4>
+                  <div className="space-y-3">
                     {grouped.errors.map(conflict => (
                       <ConflictCard 
                         key={conflict.conflictId}
@@ -560,7 +573,9 @@ export function ObjectModifierModal({
                         currentOOP={currentOOP}
                         selectedItems={selectedItems}
                         isSelected={selectedItems.has(conflict.conflictId)}
+                        isExpanded={expandedCards.has(conflict.conflictId)}
                         onToggle={() => handleItemToggle(conflict.conflictId)}
+                        onToggleExpand={() => toggleCardExpanded(conflict.conflictId)}
                         onDuplicatePropertySelection={handleDuplicatePropertySelection}
                       />
                     ))}
@@ -570,8 +585,8 @@ export function ObjectModifierModal({
         
         {grouped.warnings.length > 0 && (
           <div>
-            <h4 className="text-xs font-semibold text-yellow-700 mb-1.5">⚠️ Warnings ({grouped.warnings.length})</h4>
-            <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold text-yellow-700 uppercase tracking-wide mb-2">⚠️ Warnings ({grouped.warnings.length})</h4>
+            <div className="space-y-3">
               {grouped.warnings.map(conflict => (
                 <ConflictCard 
                   key={conflict.conflictId}
@@ -579,7 +594,9 @@ export function ObjectModifierModal({
                   currentOOP={currentOOP}
                   selectedItems={selectedItems}
                   isSelected={selectedItems.has(conflict.conflictId)}
+                  isExpanded={expandedCards.has(conflict.conflictId)}
                   onToggle={() => handleItemToggle(conflict.conflictId)}
+                  onToggleExpand={() => toggleCardExpanded(conflict.conflictId)}
                   onDuplicatePropertySelection={handleDuplicatePropertySelection}
                 />
               ))}
@@ -589,8 +606,8 @@ export function ObjectModifierModal({
         
         {grouped.infos.length > 0 && (
           <div>
-            <h4 className="text-xs font-semibold text-blue-700 mb-1.5">ℹ️ Info ({grouped.infos.length})</h4>
-            <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide mb-2">ℹ️ Info ({grouped.infos.length})</h4>
+            <div className="space-y-3">
               {grouped.infos.map(conflict => (
                 <ConflictCard 
                   key={conflict.conflictId}
@@ -598,7 +615,9 @@ export function ObjectModifierModal({
                   currentOOP={currentOOP}
                   selectedItems={selectedItems}
                   isSelected={selectedItems.has(conflict.conflictId)}
+                  isExpanded={expandedCards.has(conflict.conflictId)}
                   onToggle={() => handleItemToggle(conflict.conflictId)}
+                  onToggleExpand={() => toggleCardExpanded(conflict.conflictId)}
                   onDuplicatePropertySelection={handleDuplicatePropertySelection}
                 />
               ))}
@@ -610,153 +629,144 @@ export function ObjectModifierModal({
   };
 
   const renderSuggestedProperties = () => {
-    if (!envelope?.suggestedProperties) return null;
+    if (!envelope?.suggestedProperties || envelope.suggestedProperties.length === 0) {
+      return (
+        <p className="text-sm text-gray-500 py-4">No property suggestions.</p>
+      );
+    }
 
     return (
       <div className="space-y-2">
-        {envelope.suggestedProperties.map(property => (
-                     <div 
-             key={property.suggestionId}
-             className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-               selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`)
-                 ? "border-blue-500 bg-blue-50"
-                 : "border-gray-200 hover:border-gray-300"
-             }`}
-             onClick={() => {
-               // Try both with and without sp_ prefix to handle any ID mismatches
-               const idToToggle = selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId;
-               handleItemToggle(idToToggle);
-             }}
-           >
-             <div className="flex items-start gap-3">
-               <div className="flex-1 min-w-0">
-                 <div className="flex items-start gap-2 mb-1.5">
-                   <div className="flex-1 min-w-0">
-                     <div className="text-xs font-semibold text-gray-900 break-words leading-tight">
-                       {formatPropertyName(property.name)}
-                     </div>
-                   </div>
-                   <div className="px-1.5 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
-                     AI Suggested
-                   </div>
-                 </div>
-                 <div className="text-xs text-gray-700 mb-1.5 leading-relaxed break-words">{property.rationale}</div>
-                 {property.valueTemplate && (
-                   <div className="mt-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                     <div className="text-xs font-medium text-blue-800 mb-0.5">💡 Suggested Value Format:</div>
-                     <div className="text-xs text-blue-700 space-y-0.5">
-                       {property.valueTemplate.type === "string" && (
-                         <div>• <strong>Text input</strong> - Enter any words or sentences</div>
-                       )}
-                       {property.valueTemplate.type === "number" && (
-                         <div>• <strong>Number input</strong> - Enter a numeric value</div>
-                       )}
-                       {property.valueTemplate.type === "enum" && (
-                         <div>• <strong>Choose from options</strong> - Select one of the available choices</div>
-                       )}
-                       {property.valueTemplate.type === "json" && (
-                         <div>• <strong>Structured data</strong> - Enter in a specific format</div>
-                       )}
-                       
-                       {property.valueTemplate.placeholder && (
-                         <div>• <strong>Suggested:</strong> "{property.valueTemplate.placeholder}"</div>
-                       )}
-                       {property.valueTemplate.example && (
-                         <div>• <strong>Example:</strong> "{property.valueTemplate.example}"</div>
-                       )}
-                       {property.valueTemplate.enumValues && property.valueTemplate.enumValues.length > 0 && (
-                         <div>• <strong>Available options:</strong> {property.valueTemplate.enumValues.join(", ")}</div>
-                       )}
-                     </div>
-                   </div>
-                 )}
-               </div>
-               <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                 <div className="text-center">
-                   <div className="text-xs text-gray-500 mb-0.5">AI Confidence</div>
-                   <div className="flex items-center gap-1">
-                     <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                       <div 
-                         className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
-                         style={{ width: `${Math.round(property.confidence * 100)}%` }}
-                       ></div>
-                     </div>
-                     <span className="text-xs font-medium text-gray-700">
-                       {Math.round(property.confidence * 100)}%
-                     </span>
-                   </div>
-                 </div>
-                 <input
-                   type="checkbox"
-                   checked={selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`)}
-                   onChange={(e) => {
-                     e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
-                     // Try both with and without sp_ prefix to handle any ID mismatches
-                     const idToToggle = selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId;
-                     handleItemToggle(idToToggle);
-                   }}
-                   onClick={(e) => {
-                     e.stopPropagation(); // Also stop propagation on click event
-                   }}
-                   className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                 />
-               </div>
-             </div>
-          </div>
-        ))}
+        {envelope.suggestedProperties.map(property => {
+          const id = property.suggestionId;
+          const isExpanded = expandedCards.has(id);
+          const isSelected = selectedItems.has(property.suggestionId) || selectedItems.has(`sp_${property.suggestionId}`);
+          return (
+            <div 
+              key={property.suggestionId}
+              className={`border rounded-lg transition-all duration-200 ${
+                isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+              }`}
+            >
+              <div
+                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none"
+                onClick={() => toggleCardExpanded(id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCardExpanded(id); } }}
+              >
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-gray-900 break-words">
+                    {formatPropertyName(property.name)}
+                  </span>
+                  <span className="px-1.5 py-0.5 bg-green-100 text-green-800 text-[11px] font-medium rounded-full flex-shrink-0">
+                    AI Suggested
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[11px] text-gray-400">{Math.round(property.confidence * 100)}%</span>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleItemToggle(selectedItems.has(`sp_${property.suggestionId}`) ? `sp_${property.suggestionId}` : property.suggestionId)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    aria-label="Select to apply"
+                  />
+                </div>
+              </div>
+              {isExpanded && (
+                <div className="px-3 pb-3 pt-0 border-t border-gray-100 space-y-2">
+                  <p className="text-xs text-gray-600 leading-relaxed pt-2">{property.rationale}</p>
+                  {property.valueTemplate && (
+                    <div className="pt-2 border-t border-blue-100">
+                      <div className="text-[11px] font-medium text-blue-600 uppercase tracking-wide mb-1">Suggested value format</div>
+                      <div className="text-xs text-blue-800/90 space-y-0.5">
+                        {property.valueTemplate.type === "string" && <div>• <strong>Text input</strong> — Enter any words or sentences</div>}
+                        {property.valueTemplate.type === "number" && <div>• <strong>Number input</strong> — Enter a numeric value</div>}
+                        {property.valueTemplate.type === "enum" && <div>• <strong>Choose from options</strong> — Select one of the available choices</div>}
+                        {property.valueTemplate.type === "json" && <div>• <strong>Structured data</strong> — Enter in a specific format</div>}
+                        {property.valueTemplate.placeholder && <div>• <strong>Suggested:</strong> "{property.valueTemplate.placeholder}"</div>}
+                        {property.valueTemplate.example && <div>• <strong>Example:</strong> "{property.valueTemplate.example}"</div>}
+                        {property.valueTemplate.enumValues && property.valueTemplate.enumValues.length > 0 && (
+                          <div>• <strong>Available options:</strong> {property.valueTemplate.enumValues.join(", ")}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   const renderLanguageModifications = () => {
-    if (!envelope?.languageModifications) return null;
+    if (!envelope?.languageModifications || envelope.languageModifications.length === 0) {
+      return (
+        <p className="text-sm text-gray-500 py-4">No wording improvements suggested.</p>
+      );
+    }
 
     return (
       <div className="space-y-2">
-        {envelope.languageModifications.map(modification => (
-          <div 
-            key={modification.modId}
-            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-              selectedItems.has(modification.modId)
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => handleItemToggle(modification.modId)}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="font-medium text-xs">
-                  {/* Show property name if changing name, otherwise show value change */}
+        {envelope.languageModifications.map(modification => {
+          const isExpanded = expandedCards.has(modification.modId);
+          return (
+            <div 
+              key={modification.modId}
+              className={`border rounded-lg transition-colors ${
+                selectedItems.has(modification.modId)
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-200"
+              }`}
+            >
+              <div
+                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none"
+                onClick={() => toggleCardExpanded(modification.modId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCardExpanded(modification.modId); } }}
+              >
+                <div className="flex-1 min-w-0 text-sm font-semibold text-gray-900 leading-snug">
                   {modification.current.name && modification.proposed.name && modification.current.name !== modification.proposed.name ? (
-                    <span><span className="text-gray-600">Name:</span> "{modification.current.name}" → "{modification.proposed.name}"</span>
+                    <>
+                      <span className="line-through text-gray-500">"{modification.current.name}"</span>
+                      <span className="mx-1.5 text-gray-400">→</span>
+                      <span className="text-blue-700">"{modification.proposed.name}"</span>
+                    </>
                   ) : modification.current.value && modification.proposed.value && modification.current.value !== modification.proposed.value ? (
-                    <span><span className="text-gray-600">Value:</span> "{modification.current.value}" → "{modification.proposed.value}"</span>
+                    <>
+                      <span className="line-through text-gray-500">"{modification.current.value}"</span>
+                      <span className="mx-1.5 text-gray-400">→</span>
+                      <span className="text-blue-700">"{modification.proposed.value}"</span>
+                    </>
                   ) : (
                     <span>Property modification</span>
                   )}
                 </div>
-                <div className="text-xs text-gray-600 mt-1">{modification.rationale}</div>
-              </div>
-              <div className="flex items-center gap-2 ml-3">
-                <div className="text-xs text-gray-500">
-                  {Math.round(modification.confidence * 100)}% confidence
-                </div>
+                <span className="text-[11px] text-gray-400 flex-shrink-0">
+                  {Math.round(modification.confidence * 100)}%
+                </span>
                 <input
                   type="checkbox"
                   checked={selectedItems.has(modification.modId)}
-                  onChange={(e) => {
-                    e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
-                    handleItemToggle(modification.modId);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Also stop propagation on click event
-                  }}
-                  className="w-4 h-4 text-blue-600"
+                  onChange={() => handleItemToggle(modification.modId)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 text-blue-600 flex-shrink-0 cursor-pointer"
+                  aria-label="Select to apply"
                 />
               </div>
+              {isExpanded && (
+                <div className="px-3 pb-3 pt-0 border-t border-gray-100">
+                  <p className="text-xs text-gray-600 leading-relaxed pt-2">{modification.rationale}</p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -771,11 +781,13 @@ export function ObjectModifierModal({
         onClick={onClose}
       />
       
-             {/* Modal */}
-               <div className="relative bg-white rounded-lg border-2 border-gray-300 shadow-lg w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+             {/* Modal — compact when only buttons; large when showing results */}
+               <div className={`relative bg-white rounded-lg border-2 border-gray-300 shadow-lg mx-4 flex flex-col ${
+                 envelope ? "w-full max-w-4xl max-h-[90vh]" : "w-full max-w-sm"
+               }`}>
          
          {/* Floating Apply Button removed to avoid overlap with fixed actions section */}
-        {/* Header - Fixed height */}
+        {/* Header */}
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">AI Object Analysis</h3>
@@ -786,134 +798,65 @@ export function ObjectModifierModal({
               ×
             </button>
           </div>
-          
-                     {/* Tab Navigation */}
-           <div className="flex gap-2 mt-3">
-             {(["conflict_check", "more_possible_properties", "modify_language"] as const).map((tab) => (
-               <button
-                 key={tab}
-                 onClick={() => handleTabChange(tab)}
-                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors relative ${
-                   activeTab === tab
-                     ? "bg-blue-600 text-white"
-                     : "bg-white text-gray-600 hover:bg-gray-100"
-                 }`}
-               >
-                 {tab === "conflict_check" && "🔍 Check Conflicts"}
-                 {tab === "more_possible_properties" && "➕ Suggest Properties"}
-                 {tab === "modify_language" && "✏️ Improve Wording"}
-                 
-                 {/* Show indicator if current tab has unsaved changes */}
-                 {activeTab === tab && (selectedItems.size > 0 || envelope !== null) && (
-                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
-                 )}
-               </button>
-             ))}
-           </div>
-           
-           {/* Unsaved changes warning */}
-           {(selectedItems.size > 0 || envelope !== null) && (
-             <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-               <div className="flex items-center gap-2 text-orange-700">
-                 <span className="text-xs">⚠️</span>
-                 <div className="text-xs">
-                   <div>
-                     {selectedItems.size > 0 
-                       ? `You have ${selectedItems.size} item(s) selected. ` 
-                       : "You have analysis results. "
-                     }
-                     Remember to apply changes before switching tabs.
-                   </div>
-                   {selectedItems.size > 0 && (
-                     <div className="mt-1 text-orange-600">
-                       💡 Tip: Click "Apply Selected" to save your changes
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-           )}
         </div>
-        
-                {/* Content - Scrollable with fixed height */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
-          {!envelope ? (
-            <div className="text-center py-6">
-              <p className="text-xs text-gray-600 mb-3">
-                Click "Analyze" to get AI-powered analysis of your OOPrompt object.
-              </p>
-              <button
-                onClick={handleAnalyze}
-                disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-              >
-                {isLoading ? "Analyzing..." : "Analyze"}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="grid grid-cols-5 gap-2 text-center">
-                  <div>
-                    <div className="text-lg font-bold text-gray-900">{envelope.summary.total}</div>
-                    <div className="text-xs text-gray-600">Total</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-red-600">{envelope.summary.errors}</div>
-                    <div className="text-xs text-gray-600">Errors</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-yellow-600">{envelope.summary.warnings}</div>
-                    <div className="text-xs text-gray-600">Warnings</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-blue-600">{envelope.summary.infos}</div>
-                    <div className="text-xs text-gray-600">Info</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-gray-900">
-                      {envelope.summary.hasMore ? "Yes" : "No"}
-                    </div>
-                    <div className="text-xs text-gray-600">More Available</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Content based on active tab - removed outer scrollbar to prevent double scrolling */}
+        {/* Three action buttons: vertical when no results; horizontal at top when results exist */}
+        <div className={`flex-shrink-0 px-4 ${envelope ? "py-3 border-b border-gray-200 bg-gray-50/50" : "py-8"}`}>
+          <div className={envelope ? "flex flex-row flex-wrap justify-center gap-2" : "flex flex-col gap-3 items-stretch max-w-xs mx-auto"}>
+            {(["conflict_check", "more_possible_properties", "modify_language"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => handleSelectAndRun(tab)}
+                disabled={isLoading}
+                className={`rounded-lg font-medium transition-colors relative inline-flex items-center justify-center gap-2 ${
+                  envelope ? "px-3 py-1.5 text-xs" : "px-4 py-2.5 text-sm"
+                } ${
+                  activeTab === tab
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
+                } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+              >
+                {isLoading && activeTab === tab ? (
+                  <svg className="animate-spin h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <>
+                    {tab === "conflict_check" && "🔍"}
+                    {tab === "more_possible_properties" && "➕"}
+                    {tab === "modify_language" && "✏️"}
+                  </>
+                )}
+                {tab === "conflict_check" && "Check Conflicts"}
+                {tab === "more_possible_properties" && "Suggest Properties"}
+                {tab === "modify_language" && "Improve Wording"}
+                {activeTab === tab && envelope && (selectedItems.size > 0 || envelope !== null) && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content — scrollable when results exist; minimal when only buttons */}
+        <div className={envelope ? "flex-1 overflow-y-auto p-4 min-h-0" : "flex-shrink-0"}>
+          {envelope ? (
+            <div className="space-y-3">
+              {/* Content based on active tab */}
               <div className="pr-2">
                 {activeTab === "conflict_check" && (
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-900 mb-3">🔍 Conflict Analysis</h4>
                     {renderConflicts()}
                   </div>
                 )}
                                  {activeTab === "more_possible_properties" && (
                    <div>
-                     <h4 className="text-xs font-semibold text-gray-900 mb-3">➕ Property Suggestions</h4>
-                     
-                     {/* Helpful Instructions */}
-                     <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                       <div className="flex items-start gap-2">
-                         <div className="text-blue-600 text-sm">💡</div>
-                         <div className="text-xs text-blue-800">
-                           <div className="font-medium mb-1.5">How to use AI Property Suggestions:</div>
-                           <ul className="space-y-0.5 text-blue-700">
-                             <li>• <strong>Review</strong> each suggested property and its explanation</li>
-                             <li>• <strong>Check</strong> the suggested value format to understand what to enter</li>
-                             <li>• <strong>Select</strong> properties you want to add by checking the boxes</li>
-                             <li>• <strong>Click "Apply Selected"</strong> to add them to your prompt</li>
-                           </ul>
-                         </div>
-                       </div>
-                     </div>
-                     
                      {renderSuggestedProperties()}
                    </div>
                  )}
                 {activeTab === "modify_language" && (
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-900 mb-3">✏️ Language Improvements</h4>
                     {renderLanguageModifications()}
                   </div>
                 )}
@@ -932,7 +875,7 @@ export function ObjectModifierModal({
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
         
         {/* Actions - Always visible when there are results, with better positioning */}
@@ -1085,61 +1028,74 @@ function generateDuplicateResolutionPatches(conflict: ConflictItem, currentOOP: 
   return patches;
 }
 
-// Helper component for conflict display
+// Helper component for conflict display — concise by default; click row to expand; only checkbox (or property choice) selects
 function ConflictCard({ 
   conflict, 
   currentOOP,
   selectedItems,
   isSelected, 
+  isExpanded,
   onToggle,
+  onToggleExpand,
   onDuplicatePropertySelection
 }: { 
   conflict: ConflictItem; 
   currentOOP: OOPromptObject;
   selectedItems: Set<string>;
   isSelected: boolean; 
+  isExpanded: boolean;
   onToggle: () => void; 
+  onToggleExpand: () => void;
   onDuplicatePropertySelection: (conflictId: string, propertyId: string) => void;
 }) {
   return (
     <div 
-      className={`p-3 border rounded-lg transition-colors ${
-        conflict.category === "duplicate_name" 
-          ? (isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200")
-          : (isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300 cursor-pointer")
+      className={`border rounded-lg transition-colors ${
+        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
       }`}
-      onClick={conflict.category === "duplicate_name" ? undefined : onToggle}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="font-medium text-xs">{conflict.title}</div>
-          <div className="text-xs text-gray-600 mt-1">{conflict.description}</div>
-          {/* Hide property IDs from user display - they're technical implementation details */}
-          <div className="text-xs text-gray-500 mt-1">
-            {conflict.rationale}
-          </div>
-          
-          {/* Show conflicting properties as clickable buttons for duplicate name conflicts */}
+      <div
+        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none"
+        onClick={onToggleExpand}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand(); } }}
+      >
+        <div className="flex-1 min-w-0 text-sm font-semibold text-gray-900">{conflict.title}</div>
+        {conflict.category !== "duplicate_name" && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggle()}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 text-blue-600 flex-shrink-0 cursor-pointer"
+            aria-label="Select to apply"
+          />
+        )}
+      </div>
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-0 border-t border-gray-100 space-y-1.5">
+          <div className="text-xs text-gray-600 leading-relaxed pt-2">{conflict.description}</div>
+          {conflict.rationale && (
+            <p className="text-[11px] text-gray-500 leading-relaxed">{conflict.rationale}</p>
+          )}
           {conflict.category === "duplicate_name" && (
-            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="font-medium text-yellow-800 mb-1.5 text-xs">🔍 Select Property to Keep:</div>
+            <div className="mt-2 p-2.5 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-[11px] font-semibold text-yellow-800 uppercase tracking-wide mb-1">Select property to keep</div>
               <div className="text-yellow-700 text-xs mb-2">
-                Click on the property you want to keep - others will be automatically removed
+                Click on the property you want to keep — others will be removed
               </div>
               <div className="grid gap-2">
                 {conflict.propertiesInvolved.map((propId) => {
                   const prop = currentOOP.properties.find(p => p.id === propId);
                   if (!prop) return null;
-                  
                   const isPropertySelected = selectedItems.has(`${conflict.conflictId}:${propId}`);
-                  
                   return (
                     <button
                       key={propId}
+                      type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent parent ConflictCard click
-                        console.log(`🖱️ Property button clicked: ${propId} for conflict ${conflict.conflictId}`);
-                        console.log(`🖱️ Before click - isPropertySelected: ${isPropertySelected}`);
+                        e.stopPropagation();
                         onDuplicatePropertySelection(conflict.conflictId, propId);
                       }}
                       className={`w-full p-2 text-left rounded border-2 transition-all ${
@@ -1155,18 +1111,12 @@ function ConflictCard({
                             <div className="text-xs text-gray-600 mt-0.5">"{prop.value}"</div>
                           )}
                           {prop.emphasis && (
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              Emphasis: {prop.emphasis}
-                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">Emphasis: {prop.emphasis}</div>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {isPropertySelected && (
-                            <span className="text-green-600 text-sm">✅</span>
-                          )}
-                          <span className={`w-2.5 h-2.5 rounded-full ${
-                            isPropertySelected ? 'bg-green-500' : 'bg-yellow-400'
-                          }`}></span>
+                          {isPropertySelected && <span className="text-green-600 text-sm">✅</span>}
+                          <span className={`w-2.5 h-2.5 rounded-full ${isPropertySelected ? 'bg-green-500' : 'bg-yellow-400'}`} />
                         </div>
                       </div>
                     </button>
@@ -1175,30 +1125,13 @@ function ConflictCard({
               </div>
               {selectedItems.has(conflict.conflictId) && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-                  ✅ Property selected for keeping - others will be removed
+                  ✅ Property selected for keeping — others will be removed
                 </div>
-                )}
+              )}
             </div>
           )}
         </div>
-        {/* Only show checkbox for non-duplicate conflicts */}
-        {conflict.category !== "duplicate_name" && (
-          <div className="flex items-center gap-2 ml-3">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
-                e.stopPropagation(); // Prevent event from bubbling to parent div's onClick
-                onToggle();
-              }}
-              onClick={(e) => {
-                e.stopPropagation(); // Also stop propagation on click event
-              }}
-              className="w-4 h-4 text-blue-600"
-            />
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -190,30 +190,25 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">💬</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 1: Start with a Natural Prompt</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 1: Main Task & Audience</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    To begin with, write naturally about what you want to do, just like how you do to a common AI chat bot!
+                  <p className="text-xs text-gray-600 mb-3">
+                    At the top of the editing panel you’ll see <strong>Main Task</strong> and <strong>Audience</strong>. Describe what you want to accomplish and who it’s for—just like talking to an AI assistant.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
                       <div className="p-2 bg-white rounded-lg border border-gray-200">
-                        <div className="font-medium text-xs text-gray-900 mb-1">Natural Input:</div>
-                        <div className="text-xs text-gray-700 italic">
-                          "I need to create a marketing strategy for launching our new eco-friendly product. It should target environmentally conscious consumers and include social media campaigns, influencer partnerships, and sustainability messaging."
-                        </div>
+                        <div className="text-sm font-semibold text-gray-900 mb-1">Main Task</div>
+                        <div className="text-xs text-gray-500 italic">e.g. “Plan a trip” or “Create a marketing strategy for our eco-friendly product”</div>
                       </div>
-                      <div className="text-center text-xs text-gray-400">↓</div>
                       <div className="p-2 bg-white rounded-lg border border-gray-200">
-                        <div className="font-medium text-xs text-gray-900 mb-1">OOPrompt Converts To:</div>
-                        <div className="text-xs text-gray-700">
-                          A structured object with properties like "Product Type", "Target Audience", "Marketing Channels", "Key Messages", etc.
-                        </div>
+                        <div className="text-sm font-semibold text-gray-900 mb-1">Audience</div>
+                        <div className="text-xs text-gray-500 italic">e.g. “everyone” or “environmentally conscious consumers”</div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> You do not need to include all details at once. You can always add more properties easily by our system!
+                  ☛ <strong>Pro tip:</strong> You can create a new prompt with the <strong>+</strong> button in the top bar, or open one from the prompt library (left sidebar).
                   </div>
                 </div>
               )}
@@ -226,39 +221,38 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">➕</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 2: Add Detailed Properties</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 2: Add Properties</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    Some properties are extracted from your initial prompt. You can always add more at any time.
+                  <p className="text-xs text-gray-600 mb-3">
+                    Use the <strong>ADD PROPERTY</strong> button (blue, next to Main Task & Audience) to add requirements. Each property has a <strong>Name</strong> and <strong>Value</strong> that you can edit inline.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                        <span className="text-xs">🟠</span>
+                        <span className="text-xs">⭐</span>
                         <div className="flex-1">
-                          <div className="font-medium text-xs text-gray-900">Product Features</div>
-                          <div className="text-xs text-gray-700">Highlight eco-friendly materials, sustainable packaging, and carbon-neutral production</div>
+                          <div className="text-sm font-semibold text-gray-900">Important</div>
+                          <div className="text-xs text-gray-500">Properties the AI should prefer or prioritize</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                        <span className="text-xs">⚪</span>
+                        <span className="text-xs">✏️</span>
                         <div className="flex-1">
-                          <div className="font-medium text-xs text-gray-900">Budget Constraints</div>
-                          <div className="text-xs text-gray-700">Marketing budget: $50,000, timeline: 3 months</div>
+                          <div className="text-sm font-semibold text-gray-900">Normal</div>
+                          <div className="text-xs text-gray-500">Default emphasis for standard requirements</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                        <span className="text-xs">⚫️</span>
+                        <span className="text-xs">🚫</span>
                         <div className="flex-1">
-                          <div className="font-medium text-xs text-gray-900">Avoid</div>
-                          <div className="text-xs text-gray-700">Greenwashing, overly technical language, aggressive sales tactics</div>
+                          <div className="text-sm font-semibold text-gray-900">Avoid</div>
+                          <div className="text-xs text-gray-500">Things the AI should not do or include</div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> Use the action buttons to manage properties: 🟠 (important), ⚪ (normal), ⚫️ (avoid)
+                  ☛ <strong>Pro tip:</strong> On each property card, the icon on the left cycles emphasis: normal → important → avoid. Use <strong>⋯</strong> for more options (examples, nested).
                   </div>
                 </div>
               )}
@@ -267,76 +261,34 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">✏️</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 3: Modify Properties</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 3: Edit & More Options</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    Now you can further define and modify your properties!
+                  <p className="text-xs text-gray-600 mb-3">
+                    Each property card has inline <strong>Name</strong> and <strong>Value</strong> fields—click to edit. On the right you’ll see the emphasis icon, <strong>⋯</strong> (more options), and delete.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
-                      <div className="font-medium text-xs text-gray-900 mb-2">Property Modification Options</div>
+                      <div className="text-sm font-semibold text-gray-900 mb-2">From the ⋯ (more options) button</div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                            <span className="text-xs">📝</span>
-                            <div>
-                              <div className="font-medium text-xs text-gray-900">Edit Content</div>
-                              <div className="text-xs text-gray-700">Click on property text to edit names and values</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                            <span className="text-xs">📍</span>
-                            <div>
-                              <div className="font-medium text-xs text-gray-900">Change Emphasis</div>
-                              <div className="text-xs text-gray-700">Use important (🟠), normal (⚪), or avoid (⚫️)</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                            <span className="text-xs">🔑</span>
-                            <div>
-                              <div className="font-medium text-xs text-gray-900">Embed Objects</div>
-                              <div className="text-xs text-gray-700">Include another prompt as a property</div>
-                            </div>
+                        <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                          <span className="text-xs">💬</span>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">Examples</div>
+                            <div className="text-xs text-gray-500">Add examples or use the lightbulb to generate them with AI</div>
                           </div>
                         </div>
-                        
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                            <span className="text-xs">🗑️</span>
-                            <div>
-                              <div className="font-medium text-xs text-gray-900">Delete Properties</div>
-                              <div className="text-xs text-gray-700">Remove properties you no longer need</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                            <span className="text-xs">💬</span>
-                            <div>
-                              <div className="font-medium text-xs text-gray-900">Add Examples</div>
-                              <div className="text-xs text-gray-700">Add examples to your properties to help AI understand better</div>
-                            </div>
+                        <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                          <span className="text-xs">🔑</span>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">Nested</div>
+                            <div className="text-xs text-gray-500">Attach another saved prompt object as this property’s value</div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> Use the "More options..." button for advanced functionalities like embedding objects!
-                  </div>
-                  
-                  {/* Embedded Objects Feature */}
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs">🔑</span>
-                      <span className="font-medium text-xs text-gray-900">Embed Other Prompt Objects</span>
-                    </div>
-                    <p className="text-xs text-gray-700 mb-2">
-                      You can use one prompt object to define a property in another prompt object, creating powerful nested structures.
-                    </p>
-                    <div className="bg-white p-2 rounded-lg border border-gray-200">
-                      <div className="text-xs text-gray-700">
-                        <strong>Example:</strong> In your "Marketing Strategy" object, you can have a "Competitor Analysis" property that references a separate "Competitor Research" prompt object with its own detailed properties.
-                      </div>
-                    </div>
+                  ☛ <strong>Pro tip:</strong> Use nested when a requirement is complex enough to deserve its own Main Task + Audience + properties (e.g. “Competitor Analysis” as its own prompt object).
                   </div>
                 </div>
               )}
@@ -345,31 +297,31 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">💾</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 4: Save & Version Control</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 4: Prompt Library & Versions</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    Save your prompt objects to the left sidebar library for easy management.
+                  <p className="text-xs text-gray-600 mb-3">
+                    Use <strong>SAVE</strong> (next to Main Task) to store the current prompt in the library. Open or close the library with the <strong>clock icon</strong> in the top bar—it’s the left sidebar with your saved prompts.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xs">📚</span>
                         <div>
-                          <div className="font-medium text-xs text-gray-900">Left Sidebar Library</div>
-                          <div className="text-xs text-gray-700">You can access all your saved prompts from the left sidebar.</div>
+                          <div className="text-sm font-semibold text-gray-900">Prompt library (left sidebar)</div>
+                          <div className="text-xs text-gray-500">Each card shows Main Task, property count, and date. Click a card to load that prompt.</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-xs">🔄</span>
+                        <span className="text-xs">🕐</span>
                         <div>
-                          <div className="font-medium text-xs text-gray-900">Version Control</div>
-                          <div className="text-xs text-gray-700">You can go back to any history version of each saved prompt object.</div>
+                          <div className="text-sm font-semibold text-gray-900">Version history</div>
+                          <div className="text-xs text-gray-500">On each library card, click the clock icon to open the History Menu and load an older version.</div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> Save your work regularly to build a library of reusable prompt structures!
+                  ☛ <strong>Pro tip:</strong> Save often so you can switch between prompts and revisit earlier versions anytime.
                   </div>
                 </div>
               )}
@@ -378,50 +330,41 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">🤖</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 5: Get AI Assistance</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 5: AI Suggestions</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    OOPrompt provides 3 powerful AI tools help you modify and improve your prompt!
+                  <p className="text-xs text-gray-600 mb-3">
+                    Click the yellow <strong>AI SUGGESTIONS</strong> button (in the header next to SAVE and ADD PROPERTY) to open a panel with three actions. Each one both chooses the mode and runs it—no separate “Analyze” step.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
-                      <div className="font-medium text-xs text-gray-900 mb-2">3 Powerful AI Tools Available</div>
+                      <div className="text-sm font-semibold text-gray-900 mb-2">Three AI actions</div>
                       <div className="space-y-1.5">
                         <div className="flex items-start gap-2 p-2 bg-white rounded-lg border border-gray-200">
                           <span className="text-xs">🔍</span>
                           <div>
-                            <div className="font-medium text-xs text-gray-900">Conflict Check</div>
-                            <div className="text-xs text-gray-700 mb-1">AI automatically detects conflicting properties and suggests resolutions. Sometimes maybe you forget you have already added some properties!</div>
-                            <div className="text-xs text-gray-600 bg-gray-100 p-1.5 rounded">
-                              <strong>Example:</strong> "Budget: $50,000" vs "Budget: $100,000" - AI helps you choose or merge
-                            </div>
+                            <div className="text-sm font-semibold text-gray-900">Check Conflicts</div>
+                            <div className="text-xs text-gray-500">Finds conflicting properties (e.g. two different budgets) and suggests how to resolve them.</div>
                           </div>
                         </div>
                         <div className="flex items-start gap-2 p-2 bg-white rounded-lg border border-gray-200">
                           <span className="text-xs">➕</span>
                           <div>
-                            <div className="font-medium text-xs text-gray-900">More Properties</div>
-                            <div className="text-xs text-gray-700 mb-1">AI suggests more related properties that can possibly add to your prompt. Maybe some you need but forgot to add!</div>
-                            <div className="text-xs text-gray-600 bg-gray-100 p-1.5 rounded">
-                              <strong>Example:</strong> "Add 'Timeline Constraints' and 'Success Metrics' properties"
-                            </div>
+                            <div className="text-sm font-semibold text-gray-900">Suggest Properties</div>
+                            <div className="text-xs text-gray-500">Suggests extra properties you might want to add (e.g. timeline, success metrics).</div>
                           </div>
                         </div>
                         <div className="flex items-start gap-2 p-2 bg-white rounded-lg border border-gray-200">
                           <span className="text-xs">✏️</span>
                           <div>
-                            <div className="font-medium text-xs text-gray-900">Language Modify</div>
-                            <div className="text-xs text-gray-700 mb-1">AI improves the clarity of the language in your existing properties. Not good at summarizing? No worries!</div>
-                            <div className="text-xs text-gray-600 bg-gray-100 p-1.5 rounded">
-                              <strong>Example:</strong> "Refine 'readers' to 'target audience'"
-                            </div>
+                            <div className="text-sm font-semibold text-gray-900">Improve Wording</div>
+                            <div className="text-xs text-gray-500">Refines the wording of your existing properties for clarity and consistency.</div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> Click the 💡 button in the toolbar to access all three AI tools and help you modify your prompt!
+                  ☛ <strong>Pro tip:</strong> Pick one of the three actions to run it. You can apply, ignore, or tweak suggestions in the panel.
                   </div>
                 </div>
               )}
@@ -430,37 +373,32 @@ export default function App() {
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="text-lg">🚀</div>
-                    <h3 className="text-xs font-semibold text-gray-900">Step 6: Build Prompt</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Step 6: Build Prompt</h3>
                   </div>
-                  <p className="text-xs text-gray-700 mb-3">
-                    Once you've structured your prompt with properties, click the "Build Prompt" button to convert it into a natural language prompt ready to send to AI!
+                  <p className="text-xs text-gray-600 mb-3">
+                    Click the blue <strong>Build Prompt</strong> button at the bottom to turn your Main Task, Audience, and properties into a single natural-language prompt.
                   </p>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="space-y-2">
-                      <div className="font-medium text-xs text-gray-900 mb-2">Build Prompt Button</div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <button className="w-full py-2 px-3 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-                          Build Prompt
-                        </button>
-                      </div>
-                      <div className="text-xs text-gray-700 space-y-1.5">
+                      <div className="text-sm font-semibold text-gray-900 mb-2">What happens when you build</div>
+                      <div className="text-xs text-gray-500 space-y-1.5">
                         <div className="flex items-start gap-2">
                           <span className="text-xs">•</span>
-                          <span>Converts your structured properties into a natural language prompt</span>
+                          <span>The prompt is <strong className="text-gray-700">copied to your clipboard</strong> automatically.</span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-xs">•</span>
-                          <span>Automatically saves your prompt object to the library</span>
+                          <span>A <strong className="text-gray-700">“Prompt Built Successfully”</strong> panel appears with the full text. Use the <strong className="text-gray-700">copy icon</strong> in the top-right of that panel to copy again.</span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-xs">•</span>
-                          <span>Displays the built prompt in an expandable panel below</span>
+                          <span>Your prompt object is saved to the library.</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-gray-600">
-                  ☛ <strong>Pro tip:</strong> After building your prompt, you can copy it and use it with any AI model (ChatGPT, Gemini, Claude, etc.) in your preferred chat interface!
+                  ☛ <strong>Pro tip:</strong> Paste the built prompt into any AI chat (ChatGPT, Gemini, Claude, etc.). Switching or creating a new prompt clears the built result so you always see the one for the current object.
                   </div>
                 </div>
               )}
@@ -737,8 +675,9 @@ export default function App() {
             console.log('=== Setting extracted OOP object ===');
             console.log('Extracted object:', oopObject);
             
-            // Set the extracted object as the current OOP object
-            dispatch({ type: "SET_OOP", payload: oopObject });
+            // Load the extracted object as current (sets oop, currentObjectId, adds to promptObjects
+            // when new) so the panel and sidebar show this object's properties only
+            dispatch({ type: "LOAD_PROMPT_OBJECT", payload: oopObject });
             
             // Open the OOP panel to show the extracted properties
             dispatch({ type: "TOGGLE_PANEL", open: true });
