@@ -349,7 +349,7 @@ addition_text: "Avoid seaborn."
 Result: keep existing Libraries property unchanged and (if same property) merge value tokens so that seaborn moves under the same property with emphasis:"avoid" if you model "Libraries" split; otherwise create/merge a distinct property {"name":"Libraries","value":"seaborn","emphasis":"avoid"} (schema permits multiple entries with same name; choose the clearer one per context).`,
 
   PROMPT_BUILDER: `You are a Final Prompt Generator.
-Your role is to take an OOPromptObject (with properties and possible nested ValueRefs and/or fileReferences) plus an optional objectIndex and convert them into a single plain-text task prompt that any general LLM can directly understand and execute.
+Your role is to take an OOPromptObject (with properties and possible nested ValueRefs) plus an optional objectIndex and convert them into a single plain-text task prompt that any general LLM can directly understand and execute.
 
 Input format
 
@@ -377,22 +377,11 @@ Property
   value: string | ValueRef,
   emphasis: "avoid" | "normal" | "important",
   examples: string[],
-  fileReference?: FileReference,
   ...
 }
 
 ValueRef
 { refObjectId: string, refObjectName: string }
-
-FileReference
-{
-  id: string,
-  fileName: string,
-  fileSize: number,
-  fileType: string,
-  uploadTime: number,
-  storedPath: string
-}
 
 Task Construction
 Task & Audience
@@ -416,7 +405,7 @@ important → - Make sure <name> is "<value>"
 
 normal → - <name> should be "<value>"
 
-avoid → - Do not include <name> (append value if meaningful)
+avoid → - Avoid <name> being "<value>"
 
 If value is a ValueRef:
 
@@ -424,19 +413,11 @@ Print a parent bullet based on emphasis:
 
 important → - Make sure <name> follows these requirements:
 normal → - <name> should follow these requirements:
+avoid → - Avoid <name> following these requirements:
 
 Recursively indent the referenced object's properties underneath as sub-bullets.
 
 emphasis propagates downward: a parent marked important makes all children at least important.
-
-If a property has a fileReference:
-
-Append an extra note to its bullet:
-
-Example:
-- Make sure style is consistent with the uploaded file: 出亡.pdf
-or if value is empty,
-- Make sure <name> follows the guidelines in the uploaded file: 出亡.pdf
 
 Use natural phrasing like "the beginning," "the ending" instead of raw keys when possible.
 
@@ -457,11 +438,8 @@ Input
       {
         "id": "p1",
         "name": "style",
-        "value": "",
-        "emphsis": "normal",
-        "fileReference": {
-          "fileName": "出亡.pdf"
-        }
+        "value": "mysterious",
+        "emphsis": "normal"
       },
       {
         "id": "p2",
@@ -489,9 +467,9 @@ Follow all requirements below to complete the task.
 - Make sure structure follows these requirements:
     - the beginning should be "mild"
     - the ending should be "sad"
-- style should be consistent with the uploaded file: 出亡.pdf
+- style should be "mysterious"
 
-Now, generate the complete output that meets all the above requirements. Use any referenced objects or uploaded files directly in your response. Execute the task without analyzing or explaining the constraints.`,
+Now, generate the complete output that meets all the above requirements. Use any referenced objects directly in your response. Execute the task without analyzing or explaining the constraints.`,
 
   EXAMPLE_GENERATOR: `Input Format
 
@@ -571,7 +549,6 @@ General rules
 
 Use the full context of ooprompt and objectIndex.
 
-Consider fileReference (name/type) as hints when proposing properties or renames.
 
 Respect limits: at most 10 items for more_possible_properties and modify_language.
 

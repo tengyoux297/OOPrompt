@@ -2,7 +2,7 @@
 export type LLMProvider = 'openai' | 'gemini' | 'claude';
 
 // Import types from the main types file
-import type { OOPromptObject, Property, FileReference, ObjectModifierEnvelope } from '../types';
+import type { OOPromptObject, Property, ObjectModifierEnvelope } from '../types';
 // Import system prompts
 import { getSystemPrompt } from '../config/systemPrompts';
 // Import shared normalization utilities
@@ -28,17 +28,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
-
-export interface FileAttachment {
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-  data: string | ArrayBuffer | null;
-  propertyName?: string; // Add property context for better association
-  propertyId?: string;   // Add property ID for precise tracking
-}
-
-// Remove this duplicate interface - we already have the proper one in types.ts
 
 class LLMService {
   private openaiApiKey: string;
@@ -236,12 +225,11 @@ class LLMService {
   // Unified chat method that routes to the appropriate provider
   async chat(
     messages: ChatMessage[],
-    provider: LLMProvider = 'openai',
-    fileAttachments?: FileAttachment[]
+    provider: LLMProvider = 'openai'
   ): Promise<LLMResponse> {
     switch (provider) {
       case 'openai':
-        return this.chatWithOpenAI(messages, fileAttachments);
+        return this.chatWithOpenAI(messages);
       case 'gemini':
         throw new Error('Gemini chat not yet implemented');
       case 'claude':
@@ -253,8 +241,7 @@ class LLMService {
 
   // OpenAI Chat Completion - Use regular Chat Completions API (faster, simpler for general purpose)
   async chatWithOpenAI(
-    messages: ChatMessage[],
-    fileAttachments?: FileAttachment[]
+    messages: ChatMessage[]
   ): Promise<LLMResponse> {
     if (!this.openaiApiKey) {
       throw new Error("OpenAI API key not configured");
@@ -262,7 +249,7 @@ class LLMService {
   
     try {
       console.log("Using OpenAI Responses API (recommended)...");
-      return await this.chatWithOpenAIResponses(messages, fileAttachments || []);
+      return await this.chatWithOpenAIResponses(messages);
     } catch (error) {
       console.error("OpenAI Responses API error:", error);
       throw error;
@@ -271,8 +258,7 @@ class LLMService {
 
   // Regular OpenAI Chat Completions API (simpler, faster, no polling needed)
   private async chatWithOpenAIResponses(
-    messages: ChatMessage[],
-    fileAttachments: FileAttachment[]
+    messages: ChatMessage[]
   ): Promise<LLMResponse> {
     // 1) Normalize and split system vs non-system messages
     const normalized = messages.map((m) => ({
@@ -291,16 +277,9 @@ class LLMService {
         ? systemMessages.map((m) => m.content).join("\n\n")
         : undefined;
   
-    // 3) File attachments: keep your existing "text note" approach
-    //    (Responses API supports tools like file_search, but that is a different integration surface.)
-    const nonSystemWithFiles = this.injectFileNotesIntoLastUserMessage(
-      nonSystemMessages,
-      fileAttachments
-    );
-  
-    // 4) Build Responses API `input` in role-based form
-    //    OpenAI Responses API accepts an array of role/content items. :contentReference[oaicite:1]{index=1}
-    const input = nonSystemWithFiles.map((m) => ({
+    // 3) Build Responses API `input` in role-based form
+    //    OpenAI Responses API accepts an array of role/content items.
+    const input = nonSystemMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
@@ -347,47 +326,6 @@ class LLMService {
     };
   }
 
-  private injectFileNotesIntoLastUserMessage(
-    messages: Array<{ role: string; content: string }>,
-    fileAttachments: FileAttachment[]
-  ): Array<{ role: string; content: string }> {
-    if (!fileAttachments || fileAttachments.length === 0) return messages;
-  
-    const fileInfo = fileAttachments
-      .map((file) => {
-        const sizeKb = (file.fileSize / 1024).toFixed(1);
-        const propCtx =
-          file.propertyName || file.propertyId
-            ? ` (property: ${file.propertyName ?? ""}${file.propertyName && file.propertyId ? ", " : ""}${
-                file.propertyId ?? ""
-              })`
-            : "";
-        return `[File attached: ${file.fileName} (${file.fileType}, ${sizeKb} KB)${propCtx}]`;
-      })
-      .join("\n");
-  
-    const lastUserIndex = [...messages]
-      .map((m, i) => (m.role === "user" ? i : -1))
-      .filter((i) => i !== -1)
-      .pop();
-  
-    if (lastUserIndex === undefined) return messages;
-  
-    const updated = messages.map((m, i) => {
-      if (i !== lastUserIndex) return m;
-      return {
-        ...m,
-        content:
-          `${m.content}\n\n` +
-          `Attached files (references only):\n${fileInfo}\n\n` +
-          `Note: In this stateless Responses API mode, file contents are not uploaded or searchable unless you implement file handling (e.g., file_search / your own retrieval).`,
-      };
-    });
-  
-    console.log(`Including file references for ${fileAttachments.length} files (as text notes)`);
-    return updated;
-  }
-  
   /**
    * Fallback extractor: if output_text is missing, try to derive text from `output`.
    * This is defensive parsing to avoid brittle failures if response shape changes.
@@ -481,29 +419,13 @@ class LLMService {
     
     console.log('Building prompt using Responses API with PROMPT_BUILDER system prompt');
     
-    // Count files for property-file associations
-    const propertiesWithFiles = oopObject.properties?.filter((prop: PropertyData) => prop.fileData) || [];
-    
-    // Clean the OOP object to remove fileData (which contains large binary data)
+    // Clean the OOP object (no file data to remove)
     const cleanOopObject = {
       ...oopObject,
-      properties: oopObject.properties?.map((prop: PropertyData) => {
-        const cleanProp = { ...prop };
-        // Remove fileData to avoid sending large binary data
-        if (cleanProp.fileData) {
-          delete cleanProp.fileData;
-          // Enhanced property-specific file note
-          if (cleanProp.fileReference) {
-            const fileRef = cleanProp.fileReference as FileReference;
-            cleanProp.fileNote = `File "${fileRef.fileName}" (${fileRef.fileType}) is specifically attached to this "${prop.name}" property and should be used to fulfill the requirements for this property.`;
-          }
-        }
-        return cleanProp;
-      }) || []
+      properties: oopObject.properties || []
     };
     
     console.log('Cleaned OOP object for PROMPT_BUILDER:', cleanOopObject);
-    console.log(`Properties with files: ${propertiesWithFiles.length}`);
 
     try {
       // Build input according to PROMPT_BUILDER prompt format

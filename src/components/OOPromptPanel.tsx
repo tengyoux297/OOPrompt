@@ -36,12 +36,11 @@ function EmphasisIcon({ emphasis }: { emphasis: Emphasis }) {
   );
 }
 
-function PropertyCard({ p, onSelect, isSelected, dispatch, selectedLLM }: { 
+function PropertyCard({ p, onSelect, isSelected, dispatch }: { 
   p: Property; 
   onSelect: () => void; 
   isSelected: boolean;
   dispatch: React.Dispatch<Action>;
-  selectedLLM: 'openai' | 'gemini' | 'claude';
 }) {
   const base = "oop-property-card bg-white border border-gray-200 rounded px-2 py-1.5 w-full transition-all duration-200 hover:shadow-sm";
   const selectedStyle = isSelected ? "ring-1 ring-black ring-offset-1 shadow-md" : "";
@@ -139,37 +138,6 @@ function PropertyCard({ p, onSelect, isSelected, dispatch, selectedLLM }: {
             </button>
           </div>
         </div>
-        
-        {p.fileReference && selectedLLM === 'openai' && (
-          <div className="mt-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <span className="text-green-600 text-[10px] font-medium bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
-              📎 {p.fileReference.fileName}
-            </span>
-            <button
-              type="button"
-              className="text-green-600 hover:text-green-700 text-[10px]"
-              onClick={async () => {
-                try {
-                  const { fileStorageService } = await import("../services/fileStorageService");
-                  await fileStorageService.downloadFile(p.fileReference!);
-                } catch (error) {
-                  alert(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                }
-              }}
-              title="Download file"
-            >
-              ⬇️
-            </button>
-          </div>
-        )}
-        
-        {p.fileReference && (selectedLLM === 'gemini' || selectedLLM === 'claude') && (
-          <div className="mt-1 flex items-center gap-1">
-            <span className="text-amber-600 text-[10px] font-medium bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-              📎 {p.fileReference.fileName} (Not supported by {selectedLLM.charAt(0).toUpperCase() + selectedLLM.slice(1)})
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -511,7 +479,6 @@ export function OOPromptPanel({
                         key={p.id}
                         p={p}
                         isSelected={isSelected}
-                        selectedLLM={selectedLLM}
                         onSelect={() => {
                           if (isSelected) {
                             dispatch({ type: "SELECT_PROPERTY", id: undefined });
@@ -614,7 +581,7 @@ export function OOPromptPanel({
               setSendStatus('building');
               
               try {
-                // Step 1: Function to recursively resolve embedded objects and file references
+                // Step 1: Function to recursively resolve embedded objects
                 const resolveEmbeddedObjects = async (properties: Property[], depth = 0): Promise<Property[]> => {
                   if (depth > 10) { // Prevent infinite recursion
                     console.warn('Maximum embedding depth reached, stopping recursion');
@@ -650,40 +617,11 @@ export function OOPromptPanel({
                   return resolvedProperties;
                 };
 
-                // Step 1.5: Function to resolve file references to include actual file data
-                const resolveFileReferences = async (properties: Property[]): Promise<Property[]> => {
-                  const { fileStorageService } = await import("../services/fileStorageService");
-                  
-                  return Promise.all(properties.map(async (prop) => {
-                    if (prop.fileReference) {
-                      try {
-                        // Get the actual file data from storage
-                        const fileData = await fileStorageService.getFileData(prop.fileReference.id);
-                        if (fileData) {
-                          return {
-                            ...prop,
-                            fileData: {
-                              fileName: prop.fileReference.fileName,
-                              fileType: prop.fileReference.fileType,
-                              fileSize: prop.fileReference.fileSize,
-                              data: fileData.data
-                            }
-                          };
-                        }
-                      } catch (error) {
-                        console.warn(`Failed to resolve file reference for property ${prop.name}:`, error);
-                      }
-                    }
-                    return prop;
-                  }));
-                };
-
                 const resolvedProperties = await resolveEmbeddedObjects(oop.properties);
-                const propertiesWithFiles = await resolveFileReferences(resolvedProperties);
 
                 const promptData: OOPromptObject = {
                   ...oop,
-                  properties: propertiesWithFiles
+                  properties: resolvedProperties
                 };
                 console.log('Sending to PROMPT_BUILDER with resolved embedded objects:', promptData);
                 

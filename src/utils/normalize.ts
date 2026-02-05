@@ -45,12 +45,6 @@ export function normalizeProperty(prop: Property): Property {
   if (prop.source) {
     normalized.source = prop.source;
   }
-  if (prop.fileReference) {
-    normalized.fileReference = prop.fileReference;
-  }
-  if (prop.fileData) {
-    normalized.fileData = prop.fileData;
-  }
   
   return normalized;
 }

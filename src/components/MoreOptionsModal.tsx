@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { Property, OOPromptObject } from "../types";
 import { generateExamples } from "../api";
-import { fileStorageService } from "../services/fileStorageService";
 
 type Props = {
   isOpen: boolean;
@@ -48,12 +47,6 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
   };
   
   const latestObjects = getLatestVersions();
-  
-  // File upload state
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize selected examples when property changes
   useEffect(() => {
@@ -122,107 +115,6 @@ export function MoreOptionsModal({ isOpen, property, currentOOP, promptObjects, 
     const updatedProperty = { ...property, examples: selectedExamplesArray, updatedAt: Date.now() };
     onUpdateProperty(updatedProperty);
     onClose();
-  };
-
-  // File upload handlers
-  const handleFileUpload = async (file: File) => {
-    if (!file) return;
-    
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 100);
-
-      const fileReference = await fileStorageService.uploadFile(file);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      // Update property with file reference
-      const updatedProperty = { 
-        ...property, 
-        fileReference, 
-        updatedAt: Date.now() 
-      };
-      onUpdateProperty(updatedProperty);
-      
-      console.log('=== File Uploaded Successfully ===');
-      console.log('File:', fileReference);
-      console.log('Updated Property:', updatedProperty);
-      console.log('==================================');
-      
-    } catch (error) {
-      console.error('File upload failed:', error);
-      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-    // Reset input value to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
-  const handleRemoveFile = async () => {
-    if (!property.fileReference) return;
-    
-    try {
-      await fileStorageService.removeFile(property.fileReference.id);
-      
-      const updatedProperty = { 
-        ...property, 
-        fileReference: undefined, 
-        updatedAt: Date.now() 
-      };
-      onUpdateProperty(updatedProperty);
-      
-      console.log('=== File Removed Successfully ===');
-      console.log('Removed file ID:', property.fileReference.id);
-      console.log('Updated Property:', updatedProperty);
-      console.log('==================================');
-      
-    } catch (error) {
-      console.error('File removal failed:', error);
-      alert(`Failed to remove file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
   };
 
   if (!isOpen) return null;
